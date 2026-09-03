@@ -1,0 +1,63 @@
+{
+  "id": "generic-moving-head-spot",
+  "manufacturer": "Generique",
+  "model": "Lyre spot",
+  "default_mode": "11ch",
+  "modes": [
+    {
+      "id": "11ch",
+      "label": "11 canaux",
+      "channels": [
+        {
+          "role": "pan",
+          "label": "Pan"
+        },
+        {
+          "role": "pan_fine",
+          "label": "Pan fin"
+        },
+        {
+          "role": "tilt",
+          "label": "Tilt"
+        },
+        {
+          "role": "tilt_fine",
+          "label": "Tilt fin"
+        },
+        {
+          "role": "unused",
+          "label": "Vitesse de deplacement"
+        },
+        {
+          "role": "color_wheel",
+          "label": "Roue de couleurs"
+        },
+        {
+          "role": "gobo",
+          "label": "Gobos"
+        },
+        {
+          "role": "strobe",
+          "label": "Strobe",
+          "range_min": 16,
+          "range_max": 255,
+          "off": 0,
+          "physical_min": 1,
+          "physical_max": 20
+        },
+        {
+          "role": "dimmer",
+          "label": "Intensite"
+        },
+        {
+          "role": "unused",
+          "label": "Programmes internes"
+        },
+        {
+          "role": "unused",
+          "label": "Reset"
+        }
+      ]
+    }
+  ]
+}

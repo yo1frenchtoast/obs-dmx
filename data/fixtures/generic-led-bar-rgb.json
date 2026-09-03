@@ -1,0 +1,48 @@
+{
+  "id": "generic-led-bar-rgb",
+  "manufacturer": "Generique",
+  "model": "Barre LED RGB",
+  "default_mode": "3ch",
+  "modes": [
+    {
+      "id": "3ch",
+      "label": "3 canaux — RVB (toute la barre)",
+      "channels": [
+        {
+          "role": "red",
+          "label": "Rouge"
+        },
+        {
+          "role": "green",
+          "label": "Vert"
+        },
+        {
+          "role": "blue",
+          "label": "Bleu"
+        }
+      ]
+    },
+    {
+      "id": "4ch",
+      "label": "4 canaux — Intensite + RVB",
+      "channels": [
+        {
+          "role": "dimmer",
+          "label": "Intensite"
+        },
+        {
+          "role": "red",
+          "label": "Rouge"
+        },
+        {
+          "role": "green",
+          "label": "Vert"
+        },
+        {
+          "role": "blue",
+          "label": "Bleu"
+        }
+      ]
+    }
+  ]
+}

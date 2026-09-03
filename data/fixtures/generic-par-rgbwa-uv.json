@@ -1,0 +1,123 @@
+{
+  "id": "generic-par-rgbwa-uv",
+  "manufacturer": "Generique",
+  "model": "PAR LED RGBWA+UV (6 en 1)",
+  "default_mode": "7ch",
+  "modes": [
+    {
+      "id": "6ch",
+      "label": "6 canaux — RVBBAU",
+      "channels": [
+        {
+          "role": "red",
+          "label": "Rouge"
+        },
+        {
+          "role": "green",
+          "label": "Vert"
+        },
+        {
+          "role": "blue",
+          "label": "Bleu"
+        },
+        {
+          "role": "white",
+          "label": "Blanc"
+        },
+        {
+          "role": "amber",
+          "label": "Ambre"
+        },
+        {
+          "role": "uv",
+          "label": "UV"
+        }
+      ]
+    },
+    {
+      "id": "7ch",
+      "label": "7 canaux — Intensite + RVBBAU",
+      "channels": [
+        {
+          "role": "dimmer",
+          "label": "Intensite"
+        },
+        {
+          "role": "red",
+          "label": "Rouge"
+        },
+        {
+          "role": "green",
+          "label": "Vert"
+        },
+        {
+          "role": "blue",
+          "label": "Bleu"
+        },
+        {
+          "role": "white",
+          "label": "Blanc"
+        },
+        {
+          "role": "amber",
+          "label": "Ambre"
+        },
+        {
+          "role": "uv",
+          "label": "UV"
+        }
+      ]
+    },
+    {
+      "id": "10ch",
+      "label": "10 canaux — Intensite, RVBBAU, strobe",
+      "channels": [
+        {
+          "role": "dimmer",
+          "label": "Intensite"
+        },
+        {
+          "role": "red",
+          "label": "Rouge"
+        },
+        {
+          "role": "green",
+          "label": "Vert"
+        },
+        {
+          "role": "blue",
+          "label": "Bleu"
+        },
+        {
+          "role": "white",
+          "label": "Blanc"
+        },
+        {
+          "role": "amber",
+          "label": "Ambre"
+        },
+        {
+          "role": "uv",
+          "label": "UV"
+        },
+        {
+          "role": "strobe",
+          "label": "Strobe",
+          "range_min": 16,
+          "range_max": 255,
+          "off": 0,
+          "physical_min": 1,
+          "physical_max": 20
+        },
+        {
+          "role": "unused",
+          "label": "Programmes internes"
+        },
+        {
+          "role": "unused",
+          "label": "Vitesse"
+        }
+      ]
+    }
+  ]
+}

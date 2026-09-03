@@ -17,13 +17,20 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
 # obs-dmx-core : le moteur, volontairement sans aucune dependance a libobs ni
 # a Qt, pour rester testable hors d'OBS (voir tests/).
 # ---------------------------------------------------------------------------
+find_package(nlohmann_json REQUIRED)
+
 add_library(obs-dmx-core STATIC
+  src/core/color.cpp
   src/core/dmx-engine.cpp
+  src/core/fixture-library.cpp
+  src/core/fixture-profile.cpp
+  src/core/patch.cpp
   src/output/artnet-output.cpp
   src/output/sacn-output.cpp
   src/output/enttec-output.cpp
 )
 target_include_directories(obs-dmx-core PUBLIC src)
+target_link_libraries(obs-dmx-core PUBLIC nlohmann_json::nlohmann_json)
 
 # ---------------------------------------------------------------------------
 # Le module OBS proprement dit.

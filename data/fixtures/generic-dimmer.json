@@ -1,0 +1,18 @@
+{
+  "id": "generic-dimmer",
+  "manufacturer": "Generique",
+  "model": "Gradateur 1 canal",
+  "default_mode": "1ch",
+  "modes": [
+    {
+      "id": "1ch",
+      "label": "1 canal — Intensite",
+      "channels": [
+        {
+          "role": "dimmer",
+          "label": "Intensite"
+        }
+      ]
+    }
+  ]
+}

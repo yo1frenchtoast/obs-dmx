@@ -1,0 +1,37 @@
+{
+  "id": "generic-uv",
+  "manufacturer": "Generique",
+  "model": "Projecteur UV",
+  "default_mode": "1ch",
+  "modes": [
+    {
+      "id": "1ch",
+      "label": "1 canal — Intensite",
+      "channels": [
+        {
+          "role": "uv",
+          "label": "Intensite UV"
+        }
+      ]
+    },
+    {
+      "id": "2ch",
+      "label": "2 canaux — Intensite + strobe",
+      "channels": [
+        {
+          "role": "uv",
+          "label": "Intensite UV"
+        },
+        {
+          "role": "strobe",
+          "label": "Strobe",
+          "range_min": 16,
+          "range_max": 255,
+          "off": 0,
+          "physical_min": 1,
+          "physical_max": 20
+        }
+      ]
+    }
+  ]
+}

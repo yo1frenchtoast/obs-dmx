@@ -1,0 +1,18 @@
+{
+  "id": "generic-fog",
+  "manufacturer": "Generique",
+  "model": "Machine a fumee",
+  "default_mode": "1ch",
+  "modes": [
+    {
+      "id": "1ch",
+      "label": "1 canal — Debit",
+      "channels": [
+        {
+          "role": "fog",
+          "label": "Debit de fumee"
+        }
+      ]
+    }
+  ]
+}

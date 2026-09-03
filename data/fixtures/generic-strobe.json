@@ -1,0 +1,27 @@
+{
+  "id": "generic-strobe",
+  "manufacturer": "Generique",
+  "model": "Strobe LED",
+  "default_mode": "2ch",
+  "modes": [
+    {
+      "id": "2ch",
+      "label": "2 canaux — Intensite + frequence",
+      "channels": [
+        {
+          "role": "dimmer",
+          "label": "Intensite"
+        },
+        {
+          "role": "strobe",
+          "label": "Frequence",
+          "range_min": 10,
+          "range_max": 255,
+          "off": 0,
+          "physical_min": 1,
+          "physical_max": 25
+        }
+      ]
+    }
+  ]
+}

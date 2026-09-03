@@ -1,0 +1,95 @@
+{
+  "id": "generic-par-rgbw",
+  "manufacturer": "Generique",
+  "model": "PAR LED RGBW",
+  "default_mode": "5ch",
+  "modes": [
+    {
+      "id": "4ch",
+      "label": "4 canaux — RVBB",
+      "channels": [
+        {
+          "role": "red",
+          "label": "Rouge"
+        },
+        {
+          "role": "green",
+          "label": "Vert"
+        },
+        {
+          "role": "blue",
+          "label": "Bleu"
+        },
+        {
+          "role": "white",
+          "label": "Blanc"
+        }
+      ]
+    },
+    {
+      "id": "5ch",
+      "label": "5 canaux — Intensite + RVBB",
+      "channels": [
+        {
+          "role": "dimmer",
+          "label": "Intensite"
+        },
+        {
+          "role": "red",
+          "label": "Rouge"
+        },
+        {
+          "role": "green",
+          "label": "Vert"
+        },
+        {
+          "role": "blue",
+          "label": "Bleu"
+        },
+        {
+          "role": "white",
+          "label": "Blanc"
+        }
+      ]
+    },
+    {
+      "id": "7ch",
+      "label": "7 canaux — Intensite, RVBB, strobe",
+      "channels": [
+        {
+          "role": "dimmer",
+          "label": "Intensite"
+        },
+        {
+          "role": "red",
+          "label": "Rouge"
+        },
+        {
+          "role": "green",
+          "label": "Vert"
+        },
+        {
+          "role": "blue",
+          "label": "Bleu"
+        },
+        {
+          "role": "white",
+          "label": "Blanc"
+        },
+        {
+          "role": "strobe",
+          "label": "Strobe",
+          "range_min": 16,
+          "range_max": 255,
+          "off": 0,
+          "physical_min": 1,
+          "physical_max": 20
+        },
+        {
+          "role": "unused",
+          "label": "Programmes internes"
+        }
+      ]
+    }
+  ]
+}

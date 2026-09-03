@@ -1,0 +1,55 @@
+{
+  "id": "generic-cct-panel",
+  "manufacturer": "Generique",
+  "model": "Panneau LED bicolore",
+  "default_mode": "2ch",
+  "modes": [
+    {
+      "id": "2ch",
+      "label": "2 canaux — Intensite + temperature",
+      "channels": [
+        {
+          "role": "dimmer",
+          "label": "Intensite"
+        },
+        {
+          "role": "cct",
+          "label": "Temperature de couleur",
+          "physical_min": 3200,
+          "physical_max": 5600
+        }
+      ]
+    },
+    {
+      "id": "4ch",
+      "label": "4 canaux — Intensite, temperature, vert/magenta, strobe",
+      "channels": [
+        {
+          "role": "dimmer",
+          "label": "Intensite"
+        },
+        {
+          "role": "cct",
+          "label": "Temperature de couleur",
+          "physical_min": 2700,
+          "physical_max": 6500
+        },
+        {
+          "role": "green_magenta",
+          "label": "Vert / Magenta",
+          "neutral": 128,
+          "default": 128
+        },
+        {
+          "role": "strobe",
+          "label": "Strobe",
+          "range_min": 16,
+          "range_max": 255,
+          "off": 0,
+          "physical_min": 1,
+          "physical_max": 20
+        }
+      ]
+    }
+  ]
+}
