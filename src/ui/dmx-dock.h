@@ -8,6 +8,7 @@ class QTabWidget;
 namespace obsdmx {
 
 class DmxEngine;
+class ObsAudioTap;
 class FixtureLibrary;
 class OutputSettingsPage;
 class PatchPage;
@@ -19,7 +20,8 @@ class DmxDock : public QWidget {
 	Q_OBJECT
 
 public:
-	DmxDock(DmxEngine &engine, Show &show, const FixtureLibrary &library, QWidget *parent = nullptr);
+	DmxDock(DmxEngine &engine, Show &show, const FixtureLibrary &library, ObsAudioTap &audio,
+		QWidget *parent = nullptr);
 	~DmxDock() override;
 
 	/// Reconstruit l'interface apres un chargement de collection de scenes.
@@ -33,6 +35,7 @@ private slots:
 private:
 	DmxEngine &engine_;
 	Show &show_;
+	ObsAudioTap &audio_;
 
 	QTabWidget *tabs_ = nullptr;
 	PatchPage *patchPage_ = nullptr;

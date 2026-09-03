@@ -1,5 +1,6 @@
 #include "test-harness.h"
 
+#include "core/effect-runner.h"
 #include "core/fixture-library.h"
 #include "core/patch.h"
 
@@ -128,4 +129,69 @@ TEST(chaque_profil_livre_a_un_mode_par_defaut_valide)
 		if (!profile.defaultMode.empty())
 			CHECK(profile.findMode(profile.defaultMode) != nullptr);
 	}
+}
+
+TEST(effets_embarques_du_t4c_produisent_les_bons_canaux)
+{
+	std::vector<std::string> warnings;
+	const auto library = loadShipped(warnings);
+	const auto *fx = library.find("aputure-amaran-t4c")->findMode("mode7");
+
+	BuiltinFxSettings settings;
+	settings.effectId = "lightning";
+	settings.frequency = 3;
+
+	const auto channels = builtinFxChannels(*fx, settings);
+
+	// Canal 3 du mode FX : choix de l'effet. L'orage occupe 10 a 19.
+	bool foundSelect = false, foundFrequency = false, foundControl = false;
+	for (const auto &[index, value] : channels) {
+		if (index == 2) { foundSelect = true; CHECK_EQ(value, 15); }
+		if (index == 1) { foundControl = true; CHECK(value < 10); } // en boucle, pas a l'arret
+		// La frequence 3 tombe dans la tranche 20-29.
+		if (index == 5) { foundFrequency = true; CHECK(value >= 20 && value <= 29); }
+	}
+	CHECK(foundSelect);
+	CHECK(foundControl);
+	CHECK(foundFrequency);
+}
+
+TEST(frequence_aleatoire_n_est_offerte_que_par_les_effets_qui_l_acceptent)
+{
+	std::vector<std::string> warnings;
+	const auto library = loadShipped(warnings);
+	const auto *fx = library.find("aputure-amaran-t4c")->findMode("mode7");
+
+	// L'orage accepte l'aleatoire : il occupe la tranche 100-109.
+	BuiltinFxSettings orage;
+	orage.effectId = "lightning";
+	orage.frequency = 0;
+	for (const auto &[index, value] : builtinFxChannels(*fx, orage))
+		if (index == 5)
+			CHECK(value >= 100 && value <= 109);
+
+	// Le gyrophare ne l'accepte pas : on retombe sur une frequence valide
+	// plutot que d'ecrire une valeur reservee.
+	BuiltinFxSettings gyrophare;
+	gyrophare.effectId = "cop_car";
+	gyrophare.frequency = 0;
+	for (const auto &[index, value] : builtinFxChannels(*fx, gyrophare))
+		if (index == 4)
+			CHECK(value < 100);
+}
+
+TEST(un_effet_embarque_inconnu_ne_produit_aucun_canal)
+{
+	std::vector<std::string> warnings;
+	const auto library = loadShipped(warnings);
+	const auto *fx = library.find("aputure-amaran-t4c")->findMode("mode7");
+
+	BuiltinFxSettings settings;
+	settings.effectId = "effet-inexistant";
+	CHECK(builtinFxChannels(*fx, settings).empty());
+
+	// Et un mode sans effets non plus, meme avec un identifiant valide.
+	const auto *mode3 = library.find("aputure-amaran-t4c")->findMode("mode3");
+	settings.effectId = "lightning";
+	CHECK(builtinFxChannels(*mode3, settings).empty());
 }

@@ -8,17 +8,174 @@ namespace obsdmx {
 
 namespace {
 
+void serializeState(obs_data_t *item, const LightState &state)
+{
+	obs_data_set_double(item, "intensity", state.intensity);
+	obs_data_set_double(item, "color_mix", state.colorMix);
+	obs_data_set_double(item, "hue", state.hue);
+	obs_data_set_double(item, "saturation", state.saturation);
+	obs_data_set_double(item, "cct", state.cct);
+	obs_data_set_double(item, "green_magenta", state.greenMagenta);
+	obs_data_set_double(item, "strobe_hz", state.strobeHz);
+}
+
+LightState parseState(obs_data_t *item)
+{
+	LightState state;
+	state.intensity = static_cast<float>(obs_data_get_double(item, "intensity"));
+	state.hue = static_cast<float>(obs_data_get_double(item, "hue"));
+	state.saturation = static_cast<float>(obs_data_get_double(item, "saturation"));
+	state.greenMagenta = static_cast<float>(obs_data_get_double(item, "green_magenta"));
+	state.strobeHz = static_cast<float>(obs_data_get_double(item, "strobe_hz"));
+
+	// Valeurs par defaut explicites : un document ecrit par une version
+	// anterieure n'a pas forcement ces champs, et zero serait un mauvais
+	// choix pour une temperature de couleur.
+	state.colorMix = obs_data_has_user_value(item, "color_mix")
+				 ? static_cast<float>(obs_data_get_double(item, "color_mix"))
+				 : 1.0f;
+	state.cct = obs_data_has_user_value(item, "cct") ? static_cast<float>(obs_data_get_double(item, "cct"))
+							 : 5600.0f;
+	return state;
+}
+
+obs_data_t *serializeEffect(const Effect &effect)
+{
+	obs_data_t *item = obs_data_create();
+	obs_data_set_string(item, "id", effect.id.c_str());
+	obs_data_set_string(item, "name", effect.name.c_str());
+	obs_data_set_int(item, "type", static_cast<int>(effect.type));
+	obs_data_set_bool(item, "enabled", effect.enabled);
+	obs_data_set_int(item, "blend", static_cast<int>(effect.blend));
+
+	obs_data_array_t *targets = obs_data_array_create();
+	for (const auto &fixtureId : effect.fixtureIds) {
+		obs_data_t *target = obs_data_create();
+		obs_data_set_string(target, "fixture", fixtureId.c_str());
+		obs_data_array_push_back(targets, target);
+		obs_data_release(target);
+	}
+	obs_data_set_array(item, "fixtures", targets);
+	obs_data_array_release(targets);
+
+	obs_data_t *chaser = obs_data_create();
+	obs_data_set_int(chaser, "step_ms", effect.chaser.stepMs);
+	obs_data_set_bool(chaser, "use_bpm", effect.chaser.useBpm);
+	obs_data_set_double(chaser, "bpm", effect.chaser.bpm);
+	obs_data_set_double(chaser, "fade_ratio", effect.chaser.fadeRatio);
+	obs_data_set_int(chaser, "direction", static_cast<int>(effect.chaser.direction));
+	obs_data_array_t *steps = obs_data_array_create();
+	for (const auto &step : effect.chaser.steps) {
+		obs_data_t *stepItem = obs_data_create();
+		serializeState(stepItem, step);
+		obs_data_array_push_back(steps, stepItem);
+		obs_data_release(stepItem);
+	}
+	obs_data_set_array(chaser, "steps", steps);
+	obs_data_array_release(steps);
+	obs_data_set_obj(item, "chaser", chaser);
+	obs_data_release(chaser);
+
+	obs_data_t *strobe = obs_data_create();
+	obs_data_set_double(strobe, "hz", effect.strobe.hz);
+	obs_data_set_double(strobe, "duty", effect.strobe.dutyCycle);
+	obs_data_set_bool(strobe, "use_base_color", effect.strobe.useBaseColor);
+	obs_data_set_bool(strobe, "prefer_hardware", effect.strobe.preferHardware);
+	serializeState(strobe, effect.strobe.color);
+	obs_data_set_obj(item, "strobe", strobe);
+	obs_data_release(strobe);
+
+	obs_data_t *sound = obs_data_create();
+	obs_data_set_int(sound, "target", static_cast<int>(effect.sound.target));
+	obs_data_set_int(sound, "band", effect.sound.band);
+	obs_data_set_double(sound, "sensitivity", effect.sound.sensitivity);
+	obs_data_set_double(sound, "threshold", effect.sound.threshold);
+	obs_data_set_double(sound, "smoothing_ms", effect.sound.smoothingMs);
+	serializeState(sound, effect.sound.color);
+	obs_data_set_obj(item, "sound", sound);
+	obs_data_release(sound);
+
+	obs_data_t *builtin = obs_data_create();
+	obs_data_set_string(builtin, "effect", effect.builtin.effectId.c_str());
+	obs_data_set_int(builtin, "frequency", effect.builtin.frequency);
+	obs_data_set_int(builtin, "variant", effect.builtin.variant);
+	obs_data_set_obj(item, "builtin", builtin);
+	obs_data_release(builtin);
+
+	return item;
+}
+
+Effect parseEffect(obs_data_t *item)
+{
+	Effect effect;
+	effect.id = obs_data_get_string(item, "id");
+	effect.name = obs_data_get_string(item, "name");
+	effect.type = static_cast<EffectType>(obs_data_get_int(item, "type"));
+	effect.enabled = obs_data_get_bool(item, "enabled");
+	effect.blend = static_cast<BlendMode>(obs_data_get_int(item, "blend"));
+
+	if (obs_data_array_t *targets = obs_data_get_array(item, "fixtures")) {
+		const size_t count = obs_data_array_count(targets);
+		for (size_t i = 0; i < count; ++i) {
+			obs_data_t *target = obs_data_array_item(targets, i);
+			effect.fixtureIds.emplace_back(obs_data_get_string(target, "fixture"));
+			obs_data_release(target);
+		}
+		obs_data_array_release(targets);
+	}
+
+	if (obs_data_t *chaser = obs_data_get_obj(item, "chaser")) {
+		effect.chaser.stepMs = static_cast<int>(obs_data_get_int(chaser, "step_ms"));
+		effect.chaser.useBpm = obs_data_get_bool(chaser, "use_bpm");
+		effect.chaser.bpm = static_cast<float>(obs_data_get_double(chaser, "bpm"));
+		effect.chaser.fadeRatio = static_cast<float>(obs_data_get_double(chaser, "fade_ratio"));
+		effect.chaser.direction = static_cast<ChaserDirection>(obs_data_get_int(chaser, "direction"));
+		if (obs_data_array_t *steps = obs_data_get_array(chaser, "steps")) {
+			const size_t count = obs_data_array_count(steps);
+			for (size_t i = 0; i < count; ++i) {
+				obs_data_t *stepItem = obs_data_array_item(steps, i);
+				effect.chaser.steps.push_back(parseState(stepItem));
+				obs_data_release(stepItem);
+			}
+			obs_data_array_release(steps);
+		}
+		obs_data_release(chaser);
+	}
+
+	if (obs_data_t *strobe = obs_data_get_obj(item, "strobe")) {
+		effect.strobe.hz = static_cast<float>(obs_data_get_double(strobe, "hz"));
+		effect.strobe.dutyCycle = static_cast<float>(obs_data_get_double(strobe, "duty"));
+		effect.strobe.useBaseColor = obs_data_get_bool(strobe, "use_base_color");
+		effect.strobe.preferHardware = obs_data_get_bool(strobe, "prefer_hardware");
+		effect.strobe.color = parseState(strobe);
+		obs_data_release(strobe);
+	}
+
+	if (obs_data_t *sound = obs_data_get_obj(item, "sound")) {
+		effect.sound.target = static_cast<SoundTarget>(obs_data_get_int(sound, "target"));
+		effect.sound.band = static_cast<int>(obs_data_get_int(sound, "band"));
+		effect.sound.sensitivity = static_cast<float>(obs_data_get_double(sound, "sensitivity"));
+		effect.sound.threshold = static_cast<float>(obs_data_get_double(sound, "threshold"));
+		effect.sound.smoothingMs = static_cast<float>(obs_data_get_double(sound, "smoothing_ms"));
+		effect.sound.color = parseState(sound);
+		obs_data_release(sound);
+	}
+
+	if (obs_data_t *builtin = obs_data_get_obj(item, "builtin")) {
+		effect.builtin.effectId = obs_data_get_string(builtin, "effect");
+		effect.builtin.frequency = static_cast<int>(obs_data_get_int(builtin, "frequency"));
+		effect.builtin.variant = static_cast<int>(obs_data_get_int(builtin, "variant"));
+		obs_data_release(builtin);
+	}
+
+	return effect;
+}
+
 obs_data_t *serializeLook(const FixtureLook &look)
 {
 	obs_data_t *item = obs_data_create();
 	obs_data_set_string(item, "fixture", look.fixtureId.c_str());
-	obs_data_set_double(item, "intensity", look.state.intensity);
-	obs_data_set_double(item, "color_mix", look.state.colorMix);
-	obs_data_set_double(item, "hue", look.state.hue);
-	obs_data_set_double(item, "saturation", look.state.saturation);
-	obs_data_set_double(item, "cct", look.state.cct);
-	obs_data_set_double(item, "green_magenta", look.state.greenMagenta);
-	obs_data_set_double(item, "strobe_hz", look.state.strobeHz);
+	serializeState(item, look.state);
 	return item;
 }
 
@@ -26,20 +183,7 @@ FixtureLook parseLook(obs_data_t *item)
 {
 	FixtureLook look;
 	look.fixtureId = obs_data_get_string(item, "fixture");
-	look.state.intensity = static_cast<float>(obs_data_get_double(item, "intensity"));
-	look.state.hue = static_cast<float>(obs_data_get_double(item, "hue"));
-	look.state.saturation = static_cast<float>(obs_data_get_double(item, "saturation"));
-	look.state.greenMagenta = static_cast<float>(obs_data_get_double(item, "green_magenta"));
-	look.state.strobeHz = static_cast<float>(obs_data_get_double(item, "strobe_hz"));
-
-	// Valeurs par defaut explicites : un document ecrit par une version
-	// anterieure n'a pas forcement ces champs, et 0 serait un mauvais choix
-	// pour une temperature de couleur.
-	look.state.colorMix = obs_data_has_user_value(item, "color_mix")
-				      ? static_cast<float>(obs_data_get_double(item, "color_mix"))
-				      : 1.0f;
-	look.state.cct = obs_data_has_user_value(item, "cct") ? static_cast<float>(obs_data_get_double(item, "cct"))
-							      : 5600.0f;
+	look.state = parseState(item);
 	return look;
 }
 
@@ -83,6 +227,15 @@ void saveShow(const Show &show, obs_data_t *collectionData)
 		}
 		obs_data_set_array(item, "looks", looks);
 		obs_data_array_release(looks);
+
+		obs_data_array_t *effects = obs_data_array_create();
+		for (const auto &effect : program.effects) {
+			obs_data_t *effectItem = serializeEffect(effect);
+			obs_data_array_push_back(effects, effectItem);
+			obs_data_release(effectItem);
+		}
+		obs_data_set_array(item, "effects", effects);
+		obs_data_array_release(effects);
 
 		obs_data_array_push_back(programs, item);
 		obs_data_release(item);
@@ -156,6 +309,16 @@ void loadShow(Show &show, obs_data_t *collectionData)
 					obs_data_release(lookItem);
 				}
 				obs_data_array_release(looks);
+			}
+
+			if (obs_data_array_t *effects = obs_data_get_array(item, "effects")) {
+				const size_t effectCount = obs_data_array_count(effects);
+				for (size_t j = 0; j < effectCount; ++j) {
+					obs_data_t *effectItem = obs_data_array_item(effects, j);
+					program.effects.push_back(parseEffect(effectItem));
+					obs_data_release(effectItem);
+				}
+				obs_data_array_release(effects);
 			}
 
 			programs.push_back(std::move(program));

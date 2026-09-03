@@ -51,7 +51,7 @@ Program makeProgram(const std::string &id, const std::string &fixtureId, float i
 std::vector<Universe> renderAt(Show &show, Clock::time_point now)
 {
 	std::vector<Universe> universes{Universe(0)};
-	show.render(universes, now);
+	show.render(universes, now, AudioSnapshot{});
 	return universes;
 }
 

@@ -4,6 +4,8 @@
 
 #include <QWidget>
 
+#include <functional>
+
 class QCheckBox;
 class QComboBox;
 class QLabel;
@@ -14,6 +16,7 @@ class QTableWidget;
 
 namespace obsdmx {
 
+class EffectEditor;
 class SliderRow;
 
 /// Onglet Programmes : construire des ambiances et les associer aux scenes OBS.
@@ -24,7 +27,7 @@ class ProgramsPage : public QWidget {
 	Q_OBJECT
 
 public:
-	ProgramsPage(Show &show, QWidget *parent = nullptr);
+	ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvider, QWidget *parent = nullptr);
 	~ProgramsPage() override;
 
 	/// Reconstruit tout depuis le spectacle.
@@ -46,6 +49,11 @@ private slots:
 	void onFixtureSelectionChanged();
 	void onFixtureChecked(QListWidgetItem *item);
 	void onLightChanged();
+	void onEffectSelected();
+	void addEffect();
+	void removeEffect();
+	void onEffectChanged(const Effect &effect);
+	void onEffectToggled(QListWidgetItem *item);
 
 private:
 	Program *currentProgram();
@@ -53,6 +61,8 @@ private:
 	void applyControlsToSelection();
 	void pushPreview();
 	void updateSwatches();
+	void refreshEffectList();
+	Effect *currentEffect();
 
 	Show &show_;
 	std::vector<Program> programs_;
@@ -72,8 +82,13 @@ private:
 	SliderRow *greenMagenta_ = nullptr;
 	SliderRow *strobe_ = nullptr;
 
+	QListWidget *effects_ = nullptr;
+	EffectEditor *effectEditor_ = nullptr;
+	QPushButton *removeEffectButton_ = nullptr;
+
 	QTableWidget *scenes_ = nullptr;
 
+	int effectIdCounter_ = 0;
 	bool populating_ = false;
 };
 

@@ -1,6 +1,7 @@
 #include "ui/programs-page.h"
 
 #include "obs/scene-binding.h"
+#include "ui/effect-editor.h"
 #include "ui/slider-row.h"
 
 #include <QComboBox>
@@ -11,6 +12,7 @@
 #include <QHeaderView>
 #include <QInputDialog>
 #include <QLabel>
+#include <QMenu>
 #include <QListWidget>
 #include <QPushButton>
 #include <QSpinBox>
@@ -32,6 +34,7 @@ QString tr_(const char *key)
 
 constexpr int kFixtureIdRole = Qt::UserRole;
 constexpr int kSceneUuidRole = Qt::UserRole;
+constexpr int kEffectIdRole = Qt::UserRole;
 
 enum SceneColumn { SceneName = 0, SceneProgram, SceneFade, SceneColumnCount };
 
@@ -61,7 +64,8 @@ QIcon swatchIcon(const QColor &color)
 
 } // namespace
 
-ProgramsPage::ProgramsPage(Show &show, QWidget *parent) : QWidget(parent), show_(show)
+ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvider, QWidget *parent)
+	: QWidget(parent), show_(show)
 {
 	auto *layout = new QVBoxLayout(this);
 
@@ -130,6 +134,31 @@ ProgramsPage::ProgramsPage(Show &show, QWidget *parent) : QWidget(parent), show_
 
 	editorRow->addWidget(controls_, 1);
 	layout->addLayout(editorRow, 1);
+
+	// --- effets ---
+	auto *effectBox = new QGroupBox(tr_("Programs.Effects"), this);
+	auto *effectLayout = new QHBoxLayout(effectBox);
+
+	auto *effectListColumn = new QVBoxLayout();
+	auto *effectHint = new QLabel(tr_("Programs.Effects.Hint"), effectBox);
+	effectHint->setWordWrap(true);
+	effectListColumn->addWidget(effectHint);
+
+	effects_ = new QListWidget(effectBox);
+	effects_->setMaximumWidth(220);
+	effectListColumn->addWidget(effects_, 1);
+
+	auto *effectButtons = new QHBoxLayout();
+	auto *addEffectButton = new QPushButton(tr_("Programs.Effects.Add"), effectBox);
+	removeEffectButton_ = new QPushButton(tr_("Programs.Effects.Remove"), effectBox);
+	effectButtons->addWidget(addEffectButton);
+	effectButtons->addWidget(removeEffectButton_);
+	effectListColumn->addLayout(effectButtons);
+	effectLayout->addLayout(effectListColumn);
+
+	effectEditor_ = new EffectEditor(show_, std::move(audioProvider), effectBox);
+	effectLayout->addWidget(effectEditor_, 1);
+	layout->addWidget(effectBox, 1);
 
 	// --- association aux scenes OBS ---
 	auto *sceneBox = new QGroupBox(tr_("Programs.Scenes"), this);
@@ -215,6 +244,9 @@ void ProgramsPage::reloadFixtures()
 	});
 
 	noFixturesHint_->setVisible(fixtures_->count() == 0);
+
+	if (effectEditor_)
+		effectEditor_->reloadFixtures();
 
 	updateSwatches();
 }
@@ -302,6 +334,7 @@ void ProgramsPage::onProgramSelected()
 	}
 
 	updateSwatches();
+	refreshEffectList();
 	loadStateIntoControls();
 	pushPreview();
 }
@@ -459,6 +492,146 @@ void ProgramsPage::applyControlsToSelection()
 
 	show_.updateProgram(*program);
 	updateSwatches();
+	pushPreview();
+}
+
+Effect *ProgramsPage::currentEffect()
+{
+	Program *program = currentProgram();
+	const int row = effects_ ? effects_->currentRow() : -1;
+	if (!program || row < 0 || row >= static_cast<int>(program->effects.size()))
+		return nullptr;
+	return &program->effects[static_cast<size_t>(row)];
+}
+
+void ProgramsPage::refreshEffectList()
+{
+	const QSignalBlocker blocker(effects_);
+	const int previous = effects_->currentRow();
+	effects_->clear();
+
+	if (Program *program = currentProgram())
+		for (const auto &effect : program->effects) {
+			auto *item = new QListWidgetItem(QString::fromStdString(effect.name), effects_);
+			item->setData(kEffectIdRole, QString::fromStdString(effect.id));
+			item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
+			// La case a cocher allume ou eteint l'effet sans le supprimer :
+			// c'est le geste courant pendant un spectacle.
+			item->setCheckState(effect.enabled ? Qt::Checked : Qt::Unchecked);
+		}
+
+	if (previous >= 0 && previous < effects_->count())
+		effects_->setCurrentRow(previous);
+	else if (effects_->count() > 0)
+		effects_->setCurrentRow(0);
+
+	onEffectSelected();
+}
+
+void ProgramsPage::onEffectSelected()
+{
+	Effect *effect = currentEffect();
+	removeEffectButton_->setEnabled(effect != nullptr);
+	effectEditor_->setEffect(effect);
+}
+
+void ProgramsPage::addEffect()
+{
+	Program *program = currentProgram();
+	if (!program)
+		return;
+
+	QMenu menu(this);
+	const struct {
+		const char *key;
+		EffectType type;
+	} kinds[] = {
+		{"Effect.Type.Chaser", EffectType::Chaser},
+		{"Effect.Type.Strobe", EffectType::Strobe},
+		{"Effect.Type.Sound", EffectType::Sound},
+		{"Effect.Type.Builtin", EffectType::BuiltinFx},
+	};
+
+	for (const auto &kind : kinds) {
+		QAction *action = menu.addAction(tr_(kind.key));
+		action->setData(static_cast<int>(kind.type));
+	}
+
+	QAction *chosen = menu.exec(QCursor::pos());
+	if (!chosen)
+		return;
+
+	Effect effect;
+	effect.type = static_cast<EffectType>(chosen->data().toInt());
+	effect.name = chosen->text().toStdString();
+	effect.id = "effect-" + std::to_string(++effectIdCounter_);
+
+	// Un chaser sans pas ne fait rien : on en donne deux, de quoi voir
+	// immediatement quelque chose bouger.
+	if (effect.type == EffectType::Chaser) {
+		LightState on;
+		on.intensity = 1.0f;
+		on.colorMix = 0.0f;
+		on.cct = 5600.0f;
+		LightState off = on;
+		off.intensity = 0.0f;
+		effect.chaser.steps = {on, off};
+	}
+
+	program->effects.push_back(std::move(effect));
+	show_.updateProgram(*program);
+
+	refreshEffectList();
+	effects_->setCurrentRow(effects_->count() - 1);
+	pushPreview();
+}
+
+void ProgramsPage::removeEffect()
+{
+	Program *program = currentProgram();
+	const int row = effects_->currentRow();
+	if (!program || row < 0 || row >= static_cast<int>(program->effects.size()))
+		return;
+
+	program->effects.erase(program->effects.begin() + row);
+	show_.updateProgram(*program);
+	refreshEffectList();
+	pushPreview();
+}
+
+void ProgramsPage::onEffectToggled(QListWidgetItem *item)
+{
+	Program *program = currentProgram();
+	if (!program || !item)
+		return;
+
+	const int row = effects_->row(item);
+	if (row < 0 || row >= static_cast<int>(program->effects.size()))
+		return;
+
+	program->effects[static_cast<size_t>(row)].enabled = item->checkState() == Qt::Checked;
+	show_.updateProgram(*program);
+
+	// L'editeur affiche peut-etre cet effet : le tenir a jour.
+	if (row == effects_->currentRow())
+		effectEditor_->setEffect(&program->effects[static_cast<size_t>(row)]);
+	pushPreview();
+}
+
+void ProgramsPage::onEffectChanged(const Effect &effect)
+{
+	Program *program = currentProgram();
+	const int row = effects_->currentRow();
+	if (!program || row < 0 || row >= static_cast<int>(program->effects.size()))
+		return;
+
+	program->effects[static_cast<size_t>(row)] = effect;
+	show_.updateProgram(*program);
+
+	const QSignalBlocker blocker(effects_);
+	effects_->item(row)->setText(QString::fromStdString(effect.name));
+	effects_->item(row)->setCheckState(effect.enabled ? Qt::Checked : Qt::Unchecked);
+
 	pushPreview();
 }
 

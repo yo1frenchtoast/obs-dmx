@@ -129,4 +129,19 @@ void Patch::renderFixture(const Fixture &fixture, const LightState &state, std::
 		it->set(fixture.address + static_cast<int>(i), values[i]);
 }
 
+void Patch::writeChannel(const Fixture &fixture, int channelIndex, uint8_t value,
+			 std::vector<Universe> &universes) const
+{
+	const FixtureMode *mode = modeOf(fixture);
+	if (!mode || channelIndex < 0 || channelIndex >= static_cast<int>(mode->channelCount()))
+		return;
+
+	const auto it = std::find_if(universes.begin(), universes.end(),
+				     [&fixture](const Universe &u) { return u.id() == fixture.universe; });
+	if (it == universes.end())
+		return;
+
+	it->set(fixture.address + channelIndex, value);
+}
+
 } // namespace obsdmx

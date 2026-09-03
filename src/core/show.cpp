@@ -150,6 +150,17 @@ void Show::activateProgram(const std::string &programId, int fadeMs, Clock::time
 
 void Show::beginTransition(const std::string &programId, int fadeMs, Clock::time_point now)
 {
+	// OBS emet plusieurs evenements pour un meme passage de scene. Rejouer la
+	// transition a chaque fois relancerait le fondu et ferait begayer les
+	// chasers.
+	if (programId == activeProgramId_ && !fadeFrom_.empty())
+		return;
+
+	// Un chaser doit repartir de son premier pas quand on change de programme,
+	// pas reprendre la ou le programme precedent l'avait laisse.
+	if (programId != activeProgramId_)
+		effects_.reset();
+
 	// Fige l'image courante, fondu en cours compris : enchainer deux
 	// transitions ne doit pas provoquer de saut.
 	fadeFrom_ = currentStates(now);
@@ -204,7 +215,7 @@ bool Show::hasPreview() const
 	return preview_.has_value();
 }
 
-void Show::render(std::vector<Universe> &universes, Clock::time_point now)
+void Show::render(std::vector<Universe> &universes, Clock::time_point now, const AudioSnapshot &audio)
 {
 	std::lock_guard<std::mutex> lock(mutex_);
 
@@ -225,18 +236,55 @@ void Show::render(std::vector<Universe> &universes, Clock::time_point now)
 		t = std::min(1.0f, static_cast<float>(elapsed.count()) / static_cast<float>(fadeMs_));
 	}
 
+	// La base, fondu compris.
+	std::unordered_map<std::string, LightState> states;
+	states.reserve(patch_.fixtures().size());
 	for (const auto &fixture : patch_.fixtures()) {
 		const LightState *to = target ? target->lookFor(fixture.id) : nullptr;
 		const LightState toState = to ? *to : LightState::black();
 
-		LightState state = toState;
 		if (t < 1.0f) {
 			const auto from = fadeFrom_.find(fixture.id);
 			const LightState fromState = from != fadeFrom_.end() ? from->second : LightState::black();
-			state = lerp(fromState, toState, t);
+			states[fixture.id] = lerp(fromState, toState, t);
+		} else {
+			states[fixture.id] = toState;
 		}
+	}
 
-		patch_.renderFixture(fixture, state, universes);
+	// Puis les effets, empiles par-dessus.
+	if (target)
+		effects_.apply(target->effects, patch_, audio, now, states);
+
+	for (const auto &fixture : patch_.fixtures()) {
+		const auto it = states.find(fixture.id);
+		patch_.renderFixture(fixture, it != states.end() ? it->second : LightState::black(), universes);
+	}
+
+	// Les effets embarques forcent des canaux bruts, donc apres le rendu
+	// normal : ils remplacent ce que la couleur y avait mis.
+	if (target)
+		applyBuiltinEffects(*target, universes);
+}
+
+void Show::applyBuiltinEffects(const Program &program, std::vector<Universe> &universes) const
+{
+	for (const auto &effect : program.effects) {
+		if (!effect.enabled || effect.type != EffectType::BuiltinFx)
+			continue;
+
+		for (const std::string &fixtureId : effect.fixtureIds) {
+			const Fixture *fixture = patch_.find(fixtureId);
+			if (!fixture)
+				continue;
+
+			const FixtureMode *mode = patch_.modeOf(*fixture);
+			if (!mode)
+				continue;
+
+			for (const auto &[channel, value] : builtinFxChannels(*mode, effect.builtin))
+				patch_.writeChannel(*fixture, channel, value, universes);
+		}
 	}
 }
 

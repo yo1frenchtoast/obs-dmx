@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/effect-runner.h"
 #include "core/patch.h"
 
 #include <chrono>
@@ -21,8 +22,10 @@ struct FixtureLook {
 struct Program {
 	std::string id;
 	std::string name;
-	/// Les projecteurs non cites restent eteints.
+	/// La base : les projecteurs non cites restent eteints.
 	std::vector<FixtureLook> looks;
+	/// Les effets s'empilent par-dessus la base, dans l'ordre.
+	std::vector<Effect> effects;
 
 	const LightState *lookFor(const std::string &fixtureId) const;
 };
@@ -89,7 +92,7 @@ public:
 	bool hasPreview() const;
 
 	/// Rendu d'une trame. Appele depuis le thread du moteur.
-	void render(std::vector<Universe> &universes, Clock::time_point now);
+	void render(std::vector<Universe> &universes, Clock::time_point now, const AudioSnapshot &audio);
 
 	void clear();
 
@@ -98,6 +101,7 @@ private:
 	std::unordered_map<std::string, LightState> currentStates(Clock::time_point now) const;
 
 	void beginTransition(const std::string &programId, int fadeMs, Clock::time_point now);
+	void applyBuiltinEffects(const Program &program, std::vector<Universe> &universes) const;
 
 	mutable std::mutex mutex_;
 	Patch patch_;
@@ -109,6 +113,7 @@ private:
 
 	/// Etats de depart du fondu en cours.
 	std::unordered_map<std::string, LightState> fadeFrom_;
+	EffectRunner effects_;
 	Clock::time_point fadeStart_{};
 	int fadeMs_ = 0;
 	int nextProgramId_ = 1;

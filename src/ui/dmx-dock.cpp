@@ -1,6 +1,7 @@
 #include "ui/dmx-dock.h"
 
 #include "core/dmx-engine.h"
+#include "audio/obs-audio-tap.h"
 #include "core/show.h"
 #include "ui/output-settings.h"
 #include "ui/patch-page.h"
@@ -23,13 +24,14 @@ QString tr_(const char *key)
 
 } // namespace
 
-DmxDock::DmxDock(DmxEngine &engine, Show &show, const FixtureLibrary &library, QWidget *parent)
-	: QWidget(parent), engine_(engine), show_(show)
+DmxDock::DmxDock(DmxEngine &engine, Show &show, const FixtureLibrary &library, ObsAudioTap &audio,
+		 QWidget *parent)
+	: QWidget(parent), engine_(engine), show_(show), audio_(audio)
 {
 	auto *layout = new QVBoxLayout(this);
 
 	patchPage_ = new PatchPage(show_, library, this);
-	programsPage_ = new ProgramsPage(show_, this);
+	programsPage_ = new ProgramsPage(show_, [this] { return audio_.snapshot(); }, this);
 	outputPage_ = new OutputSettingsPage(engine_, this);
 
 	tabs_ = new QTabWidget(this);
@@ -51,7 +53,7 @@ DmxDock::DmxDock(DmxEngine &engine, Show &show, const FixtureLibrary &library, Q
 	// verrou ; le banc d'essai passe par des atomiques. Aucun widget n'est
 	// touche ici.
 	engine_.setRenderFn([this](std::vector<Universe> &universes, std::chrono::steady_clock::time_point now) {
-		show_.render(universes, now);
+		show_.render(universes, now, audio_.snapshot());
 		outputPage_->renderTest(universes[0]);
 	});
 }

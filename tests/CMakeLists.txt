@@ -7,6 +7,8 @@ add_executable(obs-dmx-tests
   test-patch.cpp
   test-library-files.cpp
   test-show.cpp
+  test-effects.cpp
+  test-audio.cpp
   test-engine.cpp
 )
 target_link_libraries(obs-dmx-tests PRIVATE obs-dmx-core)

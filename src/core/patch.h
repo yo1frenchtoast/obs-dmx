@@ -71,6 +71,12 @@ public:
 	/// Les projecteurs dont le profil est introuvable sont ignores.
 	void renderFixture(const Fixture &fixture, const LightState &state, std::vector<Universe> &universes) const;
 
+	/// Ecrit une valeur brute sur un canal du projecteur, indice 0 relatif a
+	/// son adresse. Sert aux effets embarques, qui ne passent pas par une
+	/// intention lumineuse.
+	void writeChannel(const Fixture &fixture, int channelIndex, uint8_t value,
+			  std::vector<Universe> &universes) const;
+
 private:
 	const FixtureLibrary *library_;
 	std::vector<Fixture> fixtures_;

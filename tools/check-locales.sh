@@ -17,8 +17,17 @@ status=0
 if missing=$(comm -23 "$used" "$en") && [ -n "$missing" ]; then
   echo "Clefs utilisees mais absentes de en-US.ini :"; echo "$missing" | sed 's/^/  /'; status=1
 fi
-if unused=$(comm -13 "$used" "$en") && [ -n "$unused" ]; then
-  echo "Clefs traduites mais inutilisees :"; echo "$unused" | sed 's/^/  /'; status=1
+# Une clef peut etre citee indirectement, par un champ de structure plutot que
+# dans un appel litteral : on la cherche alors comme simple chaine avant de la
+# declarer inutilisee.
+orphans=""
+for key in $(comm -13 "$used" "$en"); do
+  grep -rqF "\"$key\"" src/ || orphans="$orphans $key"
+done
+if [ -n "$orphans" ]; then
+  echo "Clefs traduites mais introuvables dans le code :"
+  for key in $orphans; do echo "  $key"; done
+  status=1
 fi
 if ! diff -q "$en" "$fr" >/dev/null; then
   echo "en-US.ini et fr-FR.ini n'ont pas les memes clefs :"; diff "$en" "$fr" | sed 's/^/  /'; status=1

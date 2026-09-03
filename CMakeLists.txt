@@ -20,8 +20,10 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
 find_package(nlohmann_json REQUIRED)
 
 add_library(obs-dmx-core STATIC
+  src/core/audio-analysis.cpp
   src/core/color.cpp
   src/core/dmx-engine.cpp
+  src/core/effect-runner.cpp
   src/core/fixture-library.cpp
   src/core/fixture-profile.cpp
   src/core/patch.cpp
@@ -38,10 +40,13 @@ target_link_libraries(obs-dmx-core PUBLIC nlohmann_json::nlohmann_json)
 # ---------------------------------------------------------------------------
 add_library(obs-dmx MODULE
   src/plugin-main.cpp
+  src/audio/obs-audio-tap.cpp
   src/obs/persistence.cpp
   src/obs/scene-binding.cpp
   src/ui/add-fixture-dialog.cpp
   src/ui/dmx-dock.cpp
+  src/ui/effect-editor.cpp
+  src/ui/level-meter.h
   src/ui/output-settings.cpp
   src/ui/patch-page.cpp
   src/ui/programs-page.cpp

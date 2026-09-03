@@ -1,5 +1,6 @@
 #include "core/dmx-engine.h"
 #include "core/fixture-library.h"
+#include "audio/obs-audio-tap.h"
 #include "core/show.h"
 #include "obs/scene-binding.h"
 #include "ui/dmx-dock.h"
@@ -31,6 +32,7 @@ std::unique_ptr<obsdmx::FixtureLibrary> g_library;
 std::unique_ptr<obsdmx::DmxEngine> g_engine;
 std::unique_ptr<obsdmx::Show> g_show;
 std::unique_ptr<obsdmx::SceneBinder> g_binder;
+std::unique_ptr<obsdmx::ObsAudioTap> g_audio;
 obsdmx::DmxDock *g_dock = nullptr;
 obs_hotkey_id g_blackoutHotkey = OBS_INVALID_HOTKEY_ID;
 
@@ -71,11 +73,15 @@ bool obs_module_load(void)
 	g_engine = std::make_unique<obsdmx::DmxEngine>();
 	g_show = std::make_unique<obsdmx::Show>(*g_library);
 
-	g_dock = new obsdmx::DmxDock(*g_engine, *g_show, *g_library);
+	g_audio = std::make_unique<obsdmx::ObsAudioTap>();
+	g_audio->start();
+
+	g_dock = new obsdmx::DmxDock(*g_engine, *g_show, *g_library, *g_audio);
 	if (!obs_frontend_add_dock_by_id("obs-dmx-dock", obs_module_text("Dock.Title"), g_dock)) {
 		blog(LOG_ERROR, "[obs-dmx] echec de l'enregistrement du dock");
 		delete g_dock;
 		g_dock = nullptr;
+		g_audio.reset();
 		g_show.reset();
 		g_engine.reset();
 		g_library.reset();
@@ -112,7 +118,13 @@ void obs_module_unload(void)
 	if (g_engine)
 		g_engine->stop();
 
+	// La prise audio s'arrete avant le moteur : le rappel temps reel ne doit
+	// plus pouvoir arriver quand l'analyseur disparait.
+	if (g_audio)
+		g_audio->stop();
+
 	g_dock = nullptr;
+	g_audio.reset();
 	g_engine.reset();
 	g_show.reset();
 	g_library.reset();

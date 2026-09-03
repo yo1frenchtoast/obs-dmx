@@ -88,18 +88,52 @@ def request(kind, data=None):
 scenes = request("GetSceneList")["responseData"]
 print("scenes :", [s["sceneName"] for s in scenes["scenes"]])
 
-def snapshot(label, scene):
+def switch(scene, settle=1.2):
     request("SetCurrentProgramScene", {"sceneName": scene})
-    time.sleep(1.2)  # laisser passer le fondu et quelques trames
+    time.sleep(settle)
+
+def snapshot(label, scene):
+    switch(scene)
     slots = latest["slots"]
     print(f"\n--- {label} (scene '{scene}') ---")
-    print(f"  T4c jardin, canaux 1-9  : {slots[0:9]}")
-    print(f"  T4c cour,   canaux 10-18: {slots[9:18]}")
+    print(f"  T4c 1, canaux  1-9 : {slots[0:9]}")
+    print(f"  T4c 2, canaux 11-19: {slots[10:19]}")
     return slots
+
+def sample(scene, count, interval):
+    """Plusieurs releves successifs, pour observer ce qui bouge dans le temps."""
+    switch(scene)
+    out = []
+    for _ in range(count):
+        out.append(list(latest["slots"]))
+        time.sleep(interval)
+    return out
 
 a = snapshot("Programme 1 : plateau chaud", "Plateau")
 b = snapshot("Programme 2 : interview bleue", "Interview")
 c = snapshot("Retour au plateau", "Plateau")
+
+# --- effets ---------------------------------------------------------------
+print("\n--- Chaser ---")
+chase = sample("Chaser", 12, 0.12)
+# Les intensites des quatre projecteurs, adresses 1, 11, 21, 31.
+motifs = {tuple(t[a] for a in (0, 10, 20, 30)) for t in chase}
+for m in sorted(motifs):
+    print(f"  motif {m}")
+
+print("\n--- Strobe sur fond bleu ---")
+strobe = snapshot("Strobe materiel", "Strobe")
+
+print("\n--- Effet embarque ---")
+fxslots = snapshot("Orage dans la lampe", "EffetIntegre")
+print(f"  T4c effets, canaux 100-108: {fxslots[99:108]}")
+
+print("\n--- Reaction au son ---")
+# Meme programme, sans source sonore : le temoin.
+silence = sample("Silence", 3, 0.3)[-1]
+musique = sample("Musique", 14, 0.25)
+niveaux = [t[0] for t in musique]
+print(f"  intensites relevees : {niveaux}")
 
 print(f"\ntrames Art-Net recues : {latest['count']}")
 stop.set(); time.sleep(0.4)
@@ -125,10 +159,29 @@ check("interview — fondu vers la couleur ouvert", b[3] == 255)
 check("interview — teinte bleue (240 degres)", abs(b[4] - 170) <= 2)
 check("interview — saturation maximale", b[5] == 255)
 # Les deux projecteurs doivent recevoir la meme chose, a 9 canaux d'ecart.
-check("les deux projecteurs sont pilotes a l'identique", a[0:9] == a[9:18] and b[0:9] == b[9:18])
+check("les deux projecteurs sont pilotes a l'identique", a[0:9] == a[10:19] and b[0:9] == b[10:19])
 # Le vert/magenta neutre du T4c est a 132, pas au milieu de 0-255.
 check("vert/magenta au neutre constructeur (132)", a[2] == 132 and b[2] == 132)
 check("strobe eteint", a[8] == 0 and b[8] == 0)
+
+print("\neffets :")
+# Un chaser a deux pas sur quatre projecteurs : un sur deux allume, et le motif
+# doit s'inverser au fil du temps.
+check("le chaser alterne un projecteur sur deux", (255, 0, 255, 0) in motifs or (0, 255, 0, 255) in motifs)
+check("le chaser se deplace dans le temps", len(motifs) >= 2)
+
+# Le T4c a un canal de strobe : il doit etre pilote plutot que module par nous.
+check("le strobe passe par le canal materiel", strobe[8] >= 20)
+check("le strobe garde le fond allume", strobe[0] > 0)
+check("le strobe garde la couleur du programme", strobe[3] == 255 and abs(strobe[4] - 170) <= 2)
+
+# Mode FX : canal 3 du bloc, soit l'adresse 102, porte le choix de l'effet.
+check("l'effet embarque selectionne l'orage", fxslots[101] == 15)
+check("l'effet embarque est lance, pas arrete", fxslots[100] < 10)
+check("la vitesse de l'effet est ecrite", 30 <= fxslots[104] <= 39)
+
+check("le meme programme sans son laisse la lumiere eteinte", silence[0] == 0)
+check("avec le son, la lumiere s'allume", max(niveaux) > 60)
 
 print("\nRESULTAT :", "tout est conforme" if ok else "AU MOINS UNE VERIFICATION A ECHOUE")
 sys.exit(0 if ok else 1)
