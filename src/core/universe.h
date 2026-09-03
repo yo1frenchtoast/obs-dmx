@@ -14,6 +14,7 @@ public:
 	explicit Universe(uint16_t id = 0) : id_(id) { clear(); }
 
 	uint16_t id() const { return id_; }
+	void setId(uint16_t id) { id_ = id; }
 
 	void clear() { slots_.fill(0); }
 

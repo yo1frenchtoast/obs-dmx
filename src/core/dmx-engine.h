@@ -43,6 +43,10 @@ public:
 	void setUniverseCount(size_t count);
 	size_t universeCount() const;
 
+	/// Numero DMX d'un univers. C'est lui qui part dans l'en-tete Art-Net,
+	/// il doit correspondre a celui configure sur le boitier.
+	void setUniverseId(size_t index, uint16_t id);
+
 	void setRenderFn(RenderFn fn);
 
 	void addOutput(std::shared_ptr<DmxOutput> output);

@@ -1,11 +1,11 @@
 #include "ui/dmx-dock.h"
 
 #include "core/dmx-engine.h"
+#include "ui/output-settings.h"
 
 #include <QLabel>
 #include <QPushButton>
 #include <QTabWidget>
-#include <QTimer>
 #include <QVBoxLayout>
 
 #include <obs-module.h>
@@ -13,52 +13,43 @@
 namespace obsdmx {
 
 namespace {
-/// Intervalle de rafraichissement de l'affichage. Volontairement lent : c'est
-/// de l'information de confort, pas du temps reel.
-constexpr int kStatusIntervalMs = 500;
+
+QString tr_(const char *key)
+{
+	return QString::fromUtf8(obs_module_text(key));
+}
+
 } // namespace
 
 DmxDock::DmxDock(DmxEngine &engine, QWidget *parent) : QWidget(parent), engine_(engine)
 {
 	auto *layout = new QVBoxLayout(this);
 
+	outputPage_ = new OutputSettingsPage(engine_, this);
+
 	auto *tabs = new QTabWidget(this);
-	tabs->addTab(buildPlaceholderPage(QString::fromUtf8(obs_module_text("Tab.Fixtures")),
-					  QString::fromUtf8(obs_module_text("Placeholder.Fixtures"))),
-		     QString::fromUtf8(obs_module_text("Tab.Fixtures")));
-	tabs->addTab(buildPlaceholderPage(QString::fromUtf8(obs_module_text("Tab.Programs")),
-					  QString::fromUtf8(obs_module_text("Placeholder.Programs"))),
-		     QString::fromUtf8(obs_module_text("Tab.Programs")));
-	tabs->addTab(buildOutputPage(), QString::fromUtf8(obs_module_text("Tab.Output")));
+	tabs->addTab(buildPlaceholderPage(tr_("Tab.Fixtures"), tr_("Placeholder.Fixtures")), tr_("Tab.Fixtures"));
+	tabs->addTab(buildPlaceholderPage(tr_("Tab.Programs"), tr_("Placeholder.Programs")), tr_("Tab.Programs"));
+	tabs->addTab(outputPage_, tr_("Tab.Output"));
 	layout->addWidget(tabs);
 
-	blackoutButton_ = new QPushButton(QString::fromUtf8(obs_module_text("Blackout")), this);
+	blackoutButton_ = new QPushButton(tr_("Blackout"), this);
 	blackoutButton_->setCheckable(true);
 	connect(blackoutButton_, &QPushButton::clicked, this, &DmxDock::toggleBlackout);
 	layout->addWidget(blackoutButton_);
 
-	statusTimer_ = new QTimer(this);
-	connect(statusTimer_, &QTimer::timeout, this, &DmxDock::refreshStatus);
-	statusTimer_->start(kStatusIntervalMs);
-
-	refreshStatus();
+	// Le rendu tourne sur le thread du moteur : il ne touche que des
+	// atomiques, jamais un widget.
+	engine_.setRenderFn([this](std::vector<Universe> &universes, std::chrono::steady_clock::time_point) {
+		outputPage_->renderTest(universes[0]);
+	});
 }
 
-QWidget *DmxDock::buildOutputPage()
+DmxDock::~DmxDock()
 {
-	auto *page = new QWidget(this);
-	auto *layout = new QVBoxLayout(page);
-
-	statusLabel_ = new QLabel(page);
-	statusLabel_->setTextFormat(Qt::PlainText);
-	layout->addWidget(statusLabel_);
-
-	auto *note = new QLabel(QString::fromUtf8(obs_module_text("Placeholder.Output")), page);
-	note->setWordWrap(true);
-	layout->addWidget(note);
-
-	layout->addStretch();
-	return page;
+	// Le moteur survit au dock : on retire le rendu avant que outputPage_ ne
+	// disparaisse, sinon le thread appellerait un objet detruit.
+	engine_.setRenderFn(nullptr);
 }
 
 QWidget *DmxDock::buildPlaceholderPage(const QString &title, const QString &explanation)
@@ -78,20 +69,6 @@ QWidget *DmxDock::buildPlaceholderPage(const QString &title, const QString &expl
 
 	layout->addStretch();
 	return page;
-}
-
-void DmxDock::refreshStatus()
-{
-	const uint64_t frames = engine_.framesSent();
-	// Trames emises depuis le dernier rafraichissement, ramenees a une cadence.
-	const double rate = static_cast<double>(frames - lastFrames_) * 1000.0 / kStatusIntervalMs;
-	lastFrames_ = frames;
-
-	statusLabel_->setText(QString::fromUtf8(obs_module_text("Status.Engine"))
-				      .arg(engine_.running() ? QString::fromUtf8(obs_module_text("Status.Running"))
-							     : QString::fromUtf8(obs_module_text("Status.Stopped")))
-				      .arg(rate, 0, 'f', 1)
-				      .arg(engine_.universeCount()));
 }
 
 void DmxDock::toggleBlackout()

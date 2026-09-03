@@ -42,6 +42,13 @@ void DmxEngine::setUniverseCount(size_t count)
 	universes_.resize(count);
 }
 
+void DmxEngine::setUniverseId(size_t index, uint16_t id)
+{
+	std::lock_guard<std::mutex> lock(mutex_);
+	if (index < universes_.size())
+		universes_[index].setId(id);
+}
+
 size_t DmxEngine::universeCount() const
 {
 	std::lock_guard<std::mutex> lock(mutex_);
