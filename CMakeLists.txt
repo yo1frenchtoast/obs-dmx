@@ -20,6 +20,8 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
 add_library(obs-dmx-core STATIC
   src/core/dmx-engine.cpp
   src/output/artnet-output.cpp
+  src/output/sacn-output.cpp
+  src/output/enttec-output.cpp
 )
 target_include_directories(obs-dmx-core PUBLIC src)
 
