@@ -98,7 +98,7 @@ std::vector<uint8_t> renderState(const FixtureMode &mode, const LightState &stat
 	for (size_t i = 0; i < mode.channelCount(); ++i)
 		values[i] = mode.channels[i].defaultValue;
 
-	const bool wantsTint = state.mode == ColorMode::Tint;
+	const float mix = clamp01(state.colorMix);
 
 	// Un appareil sans gradateur doit voir l'intensite se reporter sur ses
 	// canaux de couleur, sinon il reste allume a pleine puissance.
@@ -106,8 +106,14 @@ std::vector<uint8_t> renderState(const FixtureMode &mode, const LightState &stat
 	const float colorScale = hasDimmer ? 1.0f : clamp01(state.intensity);
 
 	// Ce que l'appareil doit afficher, en RVB, si l'on doit passer par la.
-	const Rgb rgb = wantsTint ? hsToRgb(state.hue, state.saturation) : cctToRgb(state.cct);
-	const float saturation = wantsTint ? clamp01(state.saturation) : 0.0f;
+	// Les appareils sans canal de fondu voient le melange fait ici.
+	const Rgb tint = hsToRgb(state.hue, state.saturation);
+	const Rgb whiteRgb = cctToRgb(state.cct);
+	const Rgb rgb = {whiteRgb.r + (tint.r - whiteRgb.r) * mix, whiteRgb.g + (tint.g - whiteRgb.g) * mix,
+			 whiteRgb.b + (tint.b - whiteRgb.b) * mix};
+
+	// La saturation effective tombe a zero quand on revient vers le blanc.
+	const float saturation = clamp01(state.saturation) * mix;
 
 	// Pour un appareil RGBW, on sort le blanc du melange plutot que de le
 	// fabriquer avec les trois couleurs : c'est plus lumineux et plus propre.
@@ -141,7 +147,7 @@ std::vector<uint8_t> renderState(const FixtureMode &mode, const LightState &stat
 			out = toByte(std::fmod(std::fmod(state.hue, 360.0f) + 360.0f, 360.0f) / 360.0f);
 			break;
 		case ChannelRole::Saturation:
-			out = toByte(wantsTint ? state.saturation : 0.0f);
+			out = toByte(saturation);
 			break;
 
 		case ChannelRole::Cct:
@@ -151,11 +157,13 @@ std::vector<uint8_t> renderState(const FixtureMode &mode, const LightState &stat
 			out = mapBipolar(spec, state.greenMagenta);
 			break;
 
-		case ChannelRole::ColorMix:
-			// Sans ce canal a fond, un appareil dote de deux moteurs
+		case ChannelRole::ColorMix: {
+			// Sans ce canal ouvert, un appareil dote de deux moteurs
 			// reste sur son blanc et ignore la teinte demandee.
-			out = wantsTint ? spec.rangeMax : spec.rangeMin;
+			const float span = static_cast<float>(spec.rangeMax) - static_cast<float>(spec.rangeMin);
+			out = static_cast<uint8_t>(std::lround(spec.rangeMin + mix * span));
 			break;
+		}
 
 		case ChannelRole::Strobe:
 			out = state.strobeHz > 0.0f ? mapPhysical(spec, state.strobeHz) : spec.offValue;
@@ -181,6 +189,34 @@ std::vector<uint8_t> renderState(const FixtureMode &mode, const LightState &stat
 	}
 
 	return values;
+}
+
+LightState lerp(const LightState &from, const LightState &to, float t)
+{
+	const float k = clamp01(t);
+
+	LightState state;
+	state.intensity = from.intensity + (to.intensity - from.intensity) * k;
+	state.colorMix = from.colorMix + (to.colorMix - from.colorMix) * k;
+	state.saturation = from.saturation + (to.saturation - from.saturation) * k;
+	state.cct = from.cct + (to.cct - from.cct) * k;
+	state.greenMagenta = from.greenMagenta + (to.greenMagenta - from.greenMagenta) * k;
+
+	// Le strobe ne se fond pas : une frequence intermediaire n'a pas de sens
+	// et donnerait un clignotement erratique pendant la transition. On bascule
+	// a mi-parcours.
+	state.strobeHz = k < 0.5f ? from.strobeHz : to.strobeHz;
+
+	// Plus court chemin sur le cercle chromatique : un fondu du rouge vers
+	// l'orange ne doit pas traverser tout le spectre.
+	float delta = std::fmod(to.hue - from.hue, 360.0f);
+	if (delta > 180.0f)
+		delta -= 360.0f;
+	else if (delta < -180.0f)
+		delta += 360.0f;
+	state.hue = from.hue + delta * k;
+
+	return state;
 }
 
 } // namespace obsdmx

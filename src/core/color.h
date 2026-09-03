@@ -7,12 +7,6 @@
 
 namespace obsdmx {
 
-/// Comment l'utilisateur a defini la lumiere : une teinte, ou un blanc.
-enum class ColorMode : uint8_t {
-	Tint,  ///< teinte et saturation
-	White, ///< temperature de couleur
-};
-
 /// L'intention lumineuse, exprimee independamment de tout materiel.
 ///
 /// C'est ce que manipulent les programmes et les effets ; la traduction vers
@@ -20,13 +14,21 @@ enum class ColorMode : uint8_t {
 /// sait faire.
 struct LightState {
 	float intensity = 0.0f; ///< 0 a 1
-	ColorMode mode = ColorMode::Tint;
+
+	/// Dosage entre le moteur blanc et le moteur couleur : 0 pour un blanc
+	/// defini par sa temperature, 1 pour une teinte.
+	///
+	/// C'est une grandeur continue et non un choix binaire, parce que le
+	/// materiel la traite ainsi : le T4c y consacre un canal de fondu. Cela
+	/// rend aussi les transitions entre programmes interpolables sans
+	/// discontinuite.
+	float colorMix = 1.0f;
 
 	float hue = 0.0f;        ///< degres, 0 a 360
 	float saturation = 1.0f; ///< 0 a 1
 
-	float cct = 5600.0f;         ///< kelvins
-	float greenMagenta = 0.0f;   ///< -1 (plein moins vert) a +1 (plein plus vert)
+	float cct = 5600.0f;       ///< kelvins
+	float greenMagenta = 0.0f; ///< -1 (plein moins vert) a +1 (plein plus vert)
 
 	float strobeHz = 0.0f; ///< 0 : pas de strobe
 
@@ -36,7 +38,22 @@ struct LightState {
 		state.intensity = 0.0f;
 		return state;
 	}
+
+	/// Blanc a la temperature donnee.
+	static LightState white(float kelvin)
+	{
+		LightState state;
+		state.colorMix = 0.0f;
+		state.cct = kelvin;
+		return state;
+	}
 };
+
+/// Interpolation entre deux etats, pour les fondus entre programmes.
+///
+/// La teinte suit le plus court chemin sur le cercle : sans cela, un fondu du
+/// rouge (350 degres) vers l'orange (10 degres) traverserait tout le spectre.
+LightState lerp(const LightState &from, const LightState &to, float t);
 
 struct Rgb {
 	float r = 0.0f;

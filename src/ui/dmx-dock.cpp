@@ -1,9 +1,11 @@
 #include "ui/dmx-dock.h"
 
 #include "core/dmx-engine.h"
+#include "core/show.h"
 #include "ui/output-settings.h"
+#include "ui/patch-page.h"
+#include "ui/programs-page.h"
 
-#include <QLabel>
 #include <QPushButton>
 #include <QTabWidget>
 #include <QVBoxLayout>
@@ -21,54 +23,56 @@ QString tr_(const char *key)
 
 } // namespace
 
-DmxDock::DmxDock(DmxEngine &engine, QWidget *parent) : QWidget(parent), engine_(engine)
+DmxDock::DmxDock(DmxEngine &engine, Show &show, const FixtureLibrary &library, QWidget *parent)
+	: QWidget(parent), engine_(engine), show_(show)
 {
 	auto *layout = new QVBoxLayout(this);
 
+	patchPage_ = new PatchPage(show_, library, this);
+	programsPage_ = new ProgramsPage(show_, this);
 	outputPage_ = new OutputSettingsPage(engine_, this);
 
-	auto *tabs = new QTabWidget(this);
-	tabs->addTab(buildPlaceholderPage(tr_("Tab.Fixtures"), tr_("Placeholder.Fixtures")), tr_("Tab.Fixtures"));
-	tabs->addTab(buildPlaceholderPage(tr_("Tab.Programs"), tr_("Placeholder.Programs")), tr_("Tab.Programs"));
-	tabs->addTab(outputPage_, tr_("Tab.Output"));
-	layout->addWidget(tabs);
+	tabs_ = new QTabWidget(this);
+	tabs_->addTab(patchPage_, tr_("Tab.Fixtures"));
+	tabs_->addTab(programsPage_, tr_("Tab.Programs"));
+	tabs_->addTab(outputPage_, tr_("Tab.Output"));
+	layout->addWidget(tabs_);
 
 	blackoutButton_ = new QPushButton(tr_("Blackout"), this);
 	blackoutButton_->setCheckable(true);
 	connect(blackoutButton_, &QPushButton::clicked, this, &DmxDock::toggleBlackout);
 	layout->addWidget(blackoutButton_);
 
-	// Le rendu tourne sur le thread du moteur : il ne touche que des
-	// atomiques, jamais un widget.
-	engine_.setRenderFn([this](std::vector<Universe> &universes, std::chrono::steady_clock::time_point) {
+	// Ajouter ou deplacer un projecteur change la liste que voit l'editeur
+	// de programmes.
+	connect(patchPage_, &PatchPage::patchChanged, programsPage_, &ProgramsPage::reloadFixtures);
+
+	// Le rendu tourne sur le thread du moteur. Le spectacle prend son propre
+	// verrou ; le banc d'essai passe par des atomiques. Aucun widget n'est
+	// touche ici.
+	engine_.setRenderFn([this](std::vector<Universe> &universes, std::chrono::steady_clock::time_point now) {
+		show_.render(universes, now);
 		outputPage_->renderTest(universes[0]);
 	});
 }
 
 DmxDock::~DmxDock()
 {
-	// Le moteur survit au dock : on retire le rendu avant que outputPage_ ne
-	// disparaisse, sinon le thread appellerait un objet detruit.
+	// Le moteur survit au dock : on retire le rendu avant que les pages ne
+	// disparaissent, sinon le thread appellerait des objets detruits.
 	engine_.setRenderFn(nullptr);
 }
 
-QWidget *DmxDock::buildPlaceholderPage(const QString &title, const QString &explanation)
+void DmxDock::reloadFromShow()
 {
-	auto *page = new QWidget(this);
-	auto *layout = new QVBoxLayout(page);
+	patchPage_->reload();
+	programsPage_->reload();
+}
 
-	auto *heading = new QLabel(title, page);
-	auto font = heading->font();
-	font.setBold(true);
-	heading->setFont(font);
-	layout->addWidget(heading);
-
-	auto *body = new QLabel(explanation, page);
-	body->setWordWrap(true);
-	layout->addWidget(body);
-
-	layout->addStretch();
-	return page;
+void DmxDock::setBlackout(bool on)
+{
+	blackoutButton_->setChecked(on);
+	engine_.setBlackout(on);
 }
 
 void DmxDock::toggleBlackout()

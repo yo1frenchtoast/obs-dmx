@@ -52,7 +52,7 @@ TEST(t4c_une_couleur_saturee_ouvre_le_fondu_vers_la_couleur)
 {
 	LightState state;
 	state.intensity = 1.0f;
-	state.mode = ColorMode::Tint;
+	state.colorMix = 1.0f;
 	state.hue = 240.0f; // bleu
 	state.saturation = 1.0f;
 
@@ -69,7 +69,7 @@ TEST(t4c_en_mode_blanc_referme_le_fondu)
 {
 	LightState state;
 	state.intensity = 0.5f;
-	state.mode = ColorMode::White;
+	state.colorMix = 0.0f;
 	state.cct = 5000.0f;
 
 	const auto values = renderState(t4cMode3(), state);
@@ -85,7 +85,7 @@ TEST(t4c_temperature_de_couleur_aux_bornes)
 {
 	FixtureMode mode = t4cMode3();
 	LightState state;
-	state.mode = ColorMode::White;
+	state.colorMix = 0.0f;
 
 	state.cct = 2500.0f;
 	CHECK_EQ(renderState(mode, state)[1], 0);
@@ -146,7 +146,7 @@ TEST(rgbw_sort_le_blanc_du_melange)
 {
 	LightState state;
 	state.intensity = 1.0f;
-	state.mode = ColorMode::Tint;
+	state.colorMix = 1.0f;
 	state.hue = 0.0f;
 
 	// Pleinement sature : tout le rouge, pas de blanc.
@@ -226,4 +226,70 @@ TEST(canaux_inconnus_gardent_leur_valeur_par_defaut)
 	CHECK_EQ(values[0], 255);
 	CHECK_EQ(values[1], 17); // le profil decide, pas le moteur
 	CHECK_EQ(values[2], 42);
+}
+
+
+TEST(fondu_prend_le_plus_court_chemin_sur_le_cercle)
+{
+	LightState rouge;
+	rouge.hue = 350.0f;
+	LightState orange;
+	orange.hue = 10.0f;
+
+	// 350 vers 10 fait 20 degres par le plus court chemin, pas 340.
+	const auto milieu = lerp(rouge, orange, 0.5f);
+	const float h = std::fmod(std::fmod(milieu.hue, 360.0f) + 360.0f, 360.0f);
+	CHECK(h > 359.0f || h < 1.0f);
+
+	// Et dans l'autre sens.
+	const auto retour = lerp(orange, rouge, 0.5f);
+	const float h2 = std::fmod(std::fmod(retour.hue, 360.0f) + 360.0f, 360.0f);
+	CHECK(h2 > 359.0f || h2 < 1.0f);
+}
+
+TEST(fondu_traverse_bien_le_spectre_quand_c_est_le_plus_court)
+{
+	LightState rouge;
+	rouge.hue = 0.0f;
+	LightState cyan;
+	cyan.hue = 180.0f;
+
+	// A exactement 180 degres il n'y a pas de plus court chemin ; on veut
+	// seulement que le resultat reste sur le cercle et bouge vraiment.
+	const auto milieu = lerp(rouge, cyan, 0.5f);
+	CHECK(std::abs(std::abs(milieu.hue) - 90.0f) < 0.01f);
+}
+
+TEST(fondu_bascule_le_strobe_a_mi_parcours)
+{
+	LightState calme;
+	LightState strobe;
+	strobe.strobeHz = 10.0f;
+
+	// Une frequence intermediaire donnerait un clignotement erratique.
+	CHECK_EQ(lerp(calme, strobe, 0.4f).strobeHz, 0.0f);
+	CHECK_EQ(lerp(calme, strobe, 0.6f).strobeHz, 10.0f);
+}
+
+TEST(fondu_du_blanc_vers_la_couleur_est_progressif)
+{
+	auto blanc = LightState::white(3200.0f);
+	blanc.intensity = 1.0f;
+
+	LightState bleu;
+	bleu.intensity = 1.0f;
+	bleu.colorMix = 1.0f;
+	bleu.hue = 240.0f;
+	bleu.saturation = 1.0f;
+
+	FixtureMode mode = t4cMode3();
+
+	// Le canal de fondu du T4c suit la progression au lieu de basculer.
+	CHECK_EQ(renderState(mode, lerp(blanc, bleu, 0.0f))[3], 0);
+	CHECK(near(renderState(mode, lerp(blanc, bleu, 0.5f))[3], 128));
+	CHECK_EQ(renderState(mode, lerp(blanc, bleu, 1.0f))[3], 255);
+
+	// La saturation monte avec le fondu, elle ne saute pas.
+	CHECK_EQ(renderState(mode, lerp(blanc, bleu, 0.0f))[5], 0);
+	CHECK(near(renderState(mode, lerp(blanc, bleu, 0.5f))[5], 128));
 }

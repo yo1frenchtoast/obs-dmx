@@ -2,30 +2,41 @@
 
 #include <QWidget>
 
-class QLabel;
 class QPushButton;
+class QTabWidget;
 
 namespace obsdmx {
 
 class DmxEngine;
+class FixtureLibrary;
 class OutputSettingsPage;
+class PatchPage;
+class ProgramsPage;
+class Show;
 
-/// Le dock principal, ancre dans OBS. Les onglets Projecteurs et Programmes
-/// arrivent aux etapes 3 et 4 ; la sortie est deja fonctionnelle.
+/// Le dock principal, ancre dans OBS.
 class DmxDock : public QWidget {
 	Q_OBJECT
 
 public:
-	explicit DmxDock(DmxEngine &engine, QWidget *parent = nullptr);
+	DmxDock(DmxEngine &engine, Show &show, const FixtureLibrary &library, QWidget *parent = nullptr);
 	~DmxDock() override;
+
+	/// Reconstruit l'interface apres un chargement de collection de scenes.
+	void reloadFromShow();
+
+	void setBlackout(bool on);
 
 private slots:
 	void toggleBlackout();
 
 private:
-	QWidget *buildPlaceholderPage(const QString &title, const QString &explanation);
-
 	DmxEngine &engine_;
+	Show &show_;
+
+	QTabWidget *tabs_ = nullptr;
+	PatchPage *patchPage_ = nullptr;
+	ProgramsPage *programsPage_ = nullptr;
 	OutputSettingsPage *outputPage_ = nullptr;
 	QPushButton *blackoutButton_ = nullptr;
 };

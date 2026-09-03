@@ -6,6 +6,7 @@ add_executable(obs-dmx-tests
   test-color.cpp
   test-patch.cpp
   test-library-files.cpp
+  test-show.cpp
   test-engine.cpp
 )
 target_link_libraries(obs-dmx-tests PRIVATE obs-dmx-core)
