@@ -51,6 +51,7 @@ private:
 
 	Show &show_;
 	std::function<void()> onReloaded_;
+	std::string lastLoggedScene_;
 	bool started_ = false;
 };
 

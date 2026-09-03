@@ -76,6 +76,13 @@ void SceneBinder::applyCurrentScene()
 
 	show_.activateScene(uuid, Show::Clock::now());
 
+	// OBS emet plusieurs evenements pour un meme passage de scene : ne
+	// journaliser que les changements reels, sinon la trace devient illisible
+	// au moment ou l'on en a besoin.
+	if (uuid == lastLoggedScene_)
+		return;
+	lastLoggedScene_ = uuid;
+
 	// Une scene sans programme est un cas courant et volontaire ; c'est le
 	// silence total qui serait deroutant si la lumiere ne suit pas.
 	const auto binding = show_.bindingFor(uuid);
