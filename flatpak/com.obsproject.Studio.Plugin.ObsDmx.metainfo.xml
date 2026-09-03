@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="addon">
+  <id>com.obsproject.Studio.Plugin.ObsDmx</id>
+  <extends>com.obsproject.Studio</extends>
+  <name>DMX Lighting</name>
+  <summary>Drive DMX lighting from your OBS scenes</summary>
+  <description>
+    <p>
+      Attach a lighting program to each OBS scene: a static look, a chaser, a strobe,
+      or an effect that follows the audio playing in OBS. Output over Art-Net, sACN
+      or a USB DMX interface.
+    </p>
+  </description>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2.0-or-later</project_license>
+  <url type="homepage">https://github.com/tanguy/obs-dmx</url>
+</component>

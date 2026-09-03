@@ -1,0 +1,32 @@
+id: com.obsproject.Studio.Plugin.ObsDmx
+branch: stable
+runtime: com.obsproject.Studio
+runtime-version: stable
+sdk: org.freedesktop.Sdk//25.08
+build-extension: true
+separate-locales: false
+appstream-compose: false
+
+build-options:
+  prefix: /app/plugins/ObsDmx
+  strip: true
+
+modules:
+  - name: obs-dmx
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    sources:
+      # Source locale : on construit l'arbre de travail tel quel.
+      # Pour une publication, remplacer par un source de type git + tag.
+      - type: dir
+        path: ..
+        skip:
+          - .git
+          - build
+          - build-dir
+          - .flatpak-builder
+    post-install:
+      - install -Dm0644 flatpak/com.obsproject.Studio.Plugin.ObsDmx.metainfo.xml
+        -t ${FLATPAK_DEST}/share/metainfo
+      - install -Dm0644 LICENSE -t ${FLATPAK_DEST}/share/licenses/${FLATPAK_ID}
