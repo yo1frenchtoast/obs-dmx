@@ -54,6 +54,7 @@ private slots:
 	void removeEffect();
 	void onEffectChanged(const Effect &effect);
 	void onEffectToggled(QListWidgetItem *item);
+	void bindToCurrentScene();
 
 private:
 	Program *currentProgram();
@@ -62,6 +63,7 @@ private:
 	void pushPreview();
 	void updateSwatches();
 	void refreshEffectList();
+	void updateBindingStatus();
 	Effect *currentEffect();
 
 	Show &show_;
@@ -70,6 +72,8 @@ private:
 
 	QComboBox *programSelector_ = nullptr;
 	QPushButton *removeButton_ = nullptr;
+	QLabel *bindingStatus_ = nullptr;
+	QPushButton *bindButton_ = nullptr;
 	QListWidget *fixtures_ = nullptr;
 	QLabel *noFixturesHint_ = nullptr;
 

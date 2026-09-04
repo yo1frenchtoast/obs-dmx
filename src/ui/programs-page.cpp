@@ -85,6 +85,16 @@ ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvi
 	programRow->addWidget(removeButton_);
 	layout->addLayout(programRow);
 
+	// Sans cette ligne, un programme qu'aucune scene ne declenche s'allume
+	// pendant l'edition puis s'eteint des qu'on quitte l'onglet, sans que rien
+	// n'explique pourquoi.
+	bindingStatus_ = new QLabel(this);
+	bindingStatus_->setWordWrap(true);
+	layout->addWidget(bindingStatus_);
+
+	bindButton_ = new QPushButton(tr_("Programs.Binding.BindToCurrent"), this);
+	layout->addWidget(bindButton_);
+
 	// --- projecteurs et reglages ---
 	auto *fixtureBox = new QGroupBox(tr_("Programs.Fixtures"), this);
 	auto *fixtureLayout = new QVBoxLayout(fixtureBox);
@@ -184,6 +194,7 @@ ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvi
 
 	connect(programSelector_, &QComboBox::currentIndexChanged, this, &ProgramsPage::onProgramSelected);
 	connect(addButton, &QPushButton::clicked, this, &ProgramsPage::addProgram);
+	connect(bindButton_, &QPushButton::clicked, this, &ProgramsPage::bindToCurrentScene);
 	connect(renameButton, &QPushButton::clicked, this, &ProgramsPage::renameProgram);
 	connect(removeButton_, &QPushButton::clicked, this, &ProgramsPage::removeProgram);
 	connect(fixtures_, &QListWidget::itemSelectionChanged, this, &ProgramsPage::onFixtureSelectionChanged);
@@ -306,6 +317,7 @@ void ProgramsPage::reloadScenes()
 		const std::string name = scene.name;
 		auto commit = [this, uuid, name, combo, fade] {
 			show_.bindScene(uuid, name, combo->currentData().toString().toStdString(), fade->value());
+			updateBindingStatus();
 		};
 		connect(combo, &QComboBox::currentIndexChanged, this, [commit](int) { commit(); });
 		connect(fade, &QSpinBox::valueChanged, this, [commit](int) { commit(); });
@@ -322,6 +334,58 @@ Program *ProgramsPage::currentProgram()
 	const auto it = std::find_if(programs_.begin(), programs_.end(),
 				     [this](const Program &p) { return p.id == currentProgramId_; });
 	return it != programs_.end() ? &*it : nullptr;
+}
+
+void ProgramsPage::updateBindingStatus()
+{
+	Program *program = currentProgram();
+	if (!program) {
+		bindingStatus_->clear();
+		bindButton_->setVisible(false);
+		return;
+	}
+
+	// Toutes les scenes que ce programme sert.
+	QStringList scenes;
+	for (const auto &binding : show_.bindings())
+		if (binding.programId == program->id)
+			scenes << QString::fromStdString(binding.sceneName);
+
+	if (!scenes.isEmpty()) {
+		bindingStatus_->setText(tr_("Programs.Binding.Active").arg(scenes.join(", ")));
+		bindButton_->setVisible(false);
+		return;
+	}
+
+	bindingStatus_->setText(QStringLiteral("⚠ ") + tr_("Programs.Binding.None"));
+
+	// Le bouton n'a de sens que s'il y a une scene courante a associer.
+	const std::string uuid = SceneBinder::currentSceneUuid();
+	bindButton_->setVisible(!uuid.empty());
+}
+
+void ProgramsPage::bindToCurrentScene()
+{
+	Program *program = currentProgram();
+	if (!program)
+		return;
+
+	const std::string uuid = SceneBinder::currentSceneUuid();
+	if (uuid.empty())
+		return;
+
+	// Retrouver le nom pour l'affichage : l'association, elle, retient l'UUID.
+	std::string name;
+	for (const auto &scene : SceneBinder::currentScenes())
+		if (scene.uuid == uuid)
+			name = scene.name;
+
+	// 500 ms est le fondu par defaut de l'interface : rester coherent avec ce
+	// que le tableau des scenes propose.
+	show_.bindScene(uuid, name, program->id, 500);
+
+	reloadScenes();
+	updateBindingStatus();
 }
 
 void ProgramsPage::onProgramSelected()
@@ -353,6 +417,7 @@ void ProgramsPage::onProgramSelected()
 	updateSwatches();
 	refreshEffectList();
 	loadStateIntoControls();
+	updateBindingStatus();
 	pushPreview();
 }
 

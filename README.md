@@ -73,7 +73,10 @@ Onglet **Programmes → Nouveau**. Cochez les projecteurs concernés, sélection
 les, réglez la lumière. Le réglage s'applique à toute la sélection d'un coup.
 
 Tant que cet onglet est ouvert, le programme en cours d'édition prend la main
-sur la sortie : vous voyez ce que vous réglez.
+sur la sortie : vous voyez ce que vous réglez. **En quittant l'onglet, c'est la
+scène OBS active qui reprend la main** — si elle n'est associée à aucun
+programme, la lumière s'éteint. Un avertissement en haut de l'onglet le signale,
+avec un bouton pour associer le programme à la scène courante en un clic.
 
 ### 4. Associez les scènes OBS
 
