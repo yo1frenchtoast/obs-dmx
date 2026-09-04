@@ -207,3 +207,25 @@ TEST(identifiants_generes_ne_rejouent_pas_ceux_charges)
 	CHECK(show.program(id).has_value());
 	CHECK(show.program("program-7").has_value());
 }
+
+TEST(associer_une_scene_ne_l_active_pas_a_soi_seul)
+{
+	const auto library = buildLibrary();
+	Show show(library);
+	addFixture(show, "a", 1);
+	show.addProgram(makeProgram("p1", "a", 1.0f, 0.0f));
+
+	const auto now = Clock::now();
+
+	// Associer la scene courante n'allume rien : l'activation est declenchee
+	// par un evenement d'OBS, qui ne survient pas quand on associe la scene
+	// deja affichee. C'est a l'appelant de rejouer la scene.
+	show.bindScene("uuid-1", "Camera", "p1", 0);
+	CHECK(show.activeProgramId().empty());
+	CHECK_EQ(renderAt(show, now)[0].get(1), 0);
+
+	// Rejouer la scene suffit alors.
+	show.activateScene("uuid-1", now);
+	CHECK(show.activeProgramId() == "p1");
+	CHECK_EQ(renderAt(show, now)[0].get(1), 255);
+}

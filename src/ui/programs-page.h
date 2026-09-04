@@ -64,6 +64,7 @@ private:
 	void updateSwatches();
 	void refreshEffectList();
 	void updateBindingStatus();
+	void reapplyIfCurrentScene(const std::string &sceneUuid);
 	Effect *currentEffect();
 
 	Show &show_;

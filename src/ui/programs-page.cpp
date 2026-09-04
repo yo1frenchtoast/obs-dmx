@@ -317,6 +317,7 @@ void ProgramsPage::reloadScenes()
 		const std::string name = scene.name;
 		auto commit = [this, uuid, name, combo, fade] {
 			show_.bindScene(uuid, name, combo->currentData().toString().toStdString(), fade->value());
+			reapplyIfCurrentScene(uuid);
 			updateBindingStatus();
 		};
 		connect(combo, &QComboBox::currentIndexChanged, this, [commit](int) { commit(); });
@@ -334,6 +335,16 @@ Program *ProgramsPage::currentProgram()
 	const auto it = std::find_if(programs_.begin(), programs_.end(),
 				     [this](const Program &p) { return p.id == currentProgramId_; });
 	return it != programs_.end() ? &*it : nullptr;
+}
+
+void ProgramsPage::reapplyIfCurrentScene(const std::string &sceneUuid)
+{
+	// Associer une scene ne fait qu'enregistrer l'association. Le programme
+	// actif, lui, ne change que sur un evenement d'OBS -- lequel ne survient
+	// pas quand on associe la scene deja affichee. Sans ce rappel, il faudrait
+	// changer de scene puis revenir pour que le reglage prenne effet.
+	if (sceneUuid == SceneBinder::currentSceneUuid())
+		show_.activateScene(sceneUuid, Show::Clock::now());
 }
 
 void ProgramsPage::updateBindingStatus()
@@ -383,6 +394,7 @@ void ProgramsPage::bindToCurrentScene()
 	// 500 ms est le fondu par defaut de l'interface : rester coherent avec ce
 	// que le tableau des scenes propose.
 	show_.bindScene(uuid, name, program->id, 500);
+	reapplyIfCurrentScene(uuid);
 
 	reloadScenes();
 	updateBindingStatus();
