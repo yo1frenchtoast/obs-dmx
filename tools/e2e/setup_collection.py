@@ -46,8 +46,11 @@ musique = scene("Musique", [item(media, 1)] if tone else [])
 # Meme programme que Musique, mais sans source sonore : c'est le temoin qui
 # permet d'affirmer que c'est bien le son qui allume la lumiere.
 silence = scene("Silence")
+# Saisie directe des canaux, pour un appareil dont le profil ne connait pas les
+# effets : on force ici le canal 5 a 200 sur un T4c en mode 3.
+fxmanuel = scene("FxManuel")
 
-scenes = [plateau, interview, chase, strobe, fx, musique, silence]
+scenes = [plateau, interview, chase, strobe, fx, musique, silence, fxmanuel]
 
 def look(f, i, mix, hue, sat, cct=5600.0):
     return {"fixture": f, "intensity": i, "color_mix": mix, "hue": hue,
@@ -98,6 +101,13 @@ show = {
         {"id": "program-5", "name": "Orage embarque",
          "looks": [],
          "effects": [effect("fx", 3, ["fx1"], builtin={"effect": "lightning", "frequency": 4})]},
+        {"id": "program-7", "name": "Canaux a la main",
+         "looks": [],
+         "effects": [effect("manuel", 3, ["f1"],
+                            builtin={"use_manual": True,
+                                     "manual": [{"channel": 5, "value": 200},
+                                                {"channel": 6, "value": 111},
+                                                {"channel": 99, "value": 255}]})]},
         {"id": "program-6", "name": "Suit la musique",
          "looks": [],
          "effects": [effect("son", 2, fixtures,
@@ -111,10 +121,22 @@ show = {
         {"scene_uuid": fx["uuid"], "scene_name": "EffetIntegre", "program": "program-5", "fade_ms": 0},
         {"scene_uuid": musique["uuid"], "scene_name": "Musique", "program": "program-6", "fade_ms": 0},
         {"scene_uuid": silence["uuid"], "scene_name": "Silence", "program": "program-6", "fade_ms": 0},
+        {"scene_uuid": fxmanuel["uuid"], "scene_name": "FxManuel", "program": "program-7", "fade_ms": 0},
     ],
 }
 
 collection = dict(base)
+
+# Couper les entrees audio globales : elles sont mixees quelle que soit la
+# scene active, et le bruit de la piece rendrait le temoin silencieux faux.
+for key in ("DesktopAudioDevice1", "AuxAudioDevice1"):
+    device = collection.get(key)
+    if isinstance(device, dict):
+        device = dict(device)
+        device["muted"] = True
+        device["volume"] = 0.0
+        collection[key] = device
+
 collection.update({
     "name": "obs-dmx-test",
     "sources": scenes + ([media] if tone else []),

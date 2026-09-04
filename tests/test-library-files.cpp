@@ -195,3 +195,75 @@ TEST(un_effet_embarque_inconnu_ne_produit_aucun_canal)
 	settings.effectId = "lightning";
 	CHECK(builtinFxChannels(*mode3, settings).empty());
 }
+
+TEST(saisie_manuelle_force_les_canaux_demandes)
+{
+	std::vector<std::string> warnings;
+	const auto library = loadShipped(warnings);
+	// Le mode 3 ne declare aucun effet : c'est justement le cas ou la saisie
+	// manuelle sert.
+	const auto *mode3 = library.find("aputure-amaran-t4c")->findMode("mode3");
+
+	BuiltinFxSettings settings;
+	settings.useManual = true;
+	settings.manual = {{1, 255}, {5, 128}, {9, 42}};
+
+	const auto channels = builtinFxChannels(*mode3, settings);
+	CHECK_EQ(channels.size(), size_t(3));
+
+	// Les numeros du constructeur commencent a 1, les indices internes a 0.
+	CHECK_EQ(channels[0].first, 0);
+	CHECK_EQ(channels[0].second, 255);
+	CHECK_EQ(channels[1].first, 4);
+	CHECK_EQ(channels[1].second, 128);
+	CHECK_EQ(channels[2].first, 8);
+	CHECK_EQ(channels[2].second, 42);
+}
+
+TEST(saisie_manuelle_refuse_de_deborder_sur_le_projecteur_voisin)
+{
+	std::vector<std::string> warnings;
+	const auto library = loadShipped(warnings);
+	const auto *mode3 = library.find("aputure-amaran-t4c")->findMode("mode3");
+	CHECK_EQ(mode3->channelCount(), size_t(9));
+
+	BuiltinFxSettings settings;
+	settings.useManual = true;
+	// 10 depasse les 9 canaux de l'appareil : l'ecrire piloterait son voisin.
+	settings.manual = {{9, 10}, {10, 20}, {100, 30}, {0, 40}, {-1, 50}};
+
+	const auto channels = builtinFxChannels(*mode3, settings);
+	CHECK_EQ(channels.size(), size_t(1));
+	CHECK_EQ(channels[0].first, 8);
+	CHECK_EQ(channels[0].second, 10);
+}
+
+TEST(saisie_manuelle_ignore_la_bibliotheque_d_effets)
+{
+	std::vector<std::string> warnings;
+	const auto library = loadShipped(warnings);
+	const auto *fx = library.find("aputure-amaran-t4c")->findMode("mode7");
+
+	// Meme sur un mode qui connait des effets, la saisie manuelle prend la
+	// main : c'est le point de sortie quand la bibliotheque se trompe.
+	BuiltinFxSettings settings;
+	settings.useManual = true;
+	settings.effectId = "lightning";
+	settings.manual = {{3, 77}};
+
+	const auto channels = builtinFxChannels(*fx, settings);
+	CHECK_EQ(channels.size(), size_t(1));
+	CHECK_EQ(channels[0].first, 2);
+	CHECK_EQ(channels[0].second, 77);
+}
+
+TEST(saisie_manuelle_vide_n_ecrit_rien)
+{
+	std::vector<std::string> warnings;
+	const auto library = loadShipped(warnings);
+	const auto *mode3 = library.find("aputure-amaran-t4c")->findMode("mode3");
+
+	BuiltinFxSettings settings;
+	settings.useManual = true;
+	CHECK(builtinFxChannels(*mode3, settings).empty());
+}

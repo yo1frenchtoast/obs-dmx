@@ -4,6 +4,8 @@
 
 #include <obs-module.h>
 
+#include <algorithm>
+
 namespace obsdmx {
 
 namespace {
@@ -99,6 +101,19 @@ obs_data_t *serializeEffect(const Effect &effect)
 	obs_data_set_string(builtin, "effect", effect.builtin.effectId.c_str());
 	obs_data_set_int(builtin, "frequency", effect.builtin.frequency);
 	obs_data_set_int(builtin, "variant", effect.builtin.variant);
+	obs_data_set_bool(builtin, "use_manual", effect.builtin.useManual);
+
+	obs_data_array_t *manual = obs_data_array_create();
+	for (const auto &entry : effect.builtin.manual) {
+		obs_data_t *manualItem = obs_data_create();
+		obs_data_set_int(manualItem, "channel", entry.channel);
+		obs_data_set_int(manualItem, "value", entry.value);
+		obs_data_array_push_back(manual, manualItem);
+		obs_data_release(manualItem);
+	}
+	obs_data_set_array(builtin, "manual", manual);
+	obs_data_array_release(manual);
+
 	obs_data_set_obj(item, "builtin", builtin);
 	obs_data_release(builtin);
 
@@ -165,6 +180,21 @@ Effect parseEffect(obs_data_t *item)
 		effect.builtin.effectId = obs_data_get_string(builtin, "effect");
 		effect.builtin.frequency = static_cast<int>(obs_data_get_int(builtin, "frequency"));
 		effect.builtin.variant = static_cast<int>(obs_data_get_int(builtin, "variant"));
+		effect.builtin.useManual = obs_data_get_bool(builtin, "use_manual");
+
+		if (obs_data_array_t *manual = obs_data_get_array(builtin, "manual")) {
+			const size_t count = obs_data_array_count(manual);
+			for (size_t k = 0; k < count; ++k) {
+				obs_data_t *manualItem = obs_data_array_item(manual, k);
+				ManualChannel entry;
+				entry.channel = static_cast<int>(obs_data_get_int(manualItem, "channel"));
+				entry.value = static_cast<uint8_t>(
+					std::clamp<long long>(obs_data_get_int(manualItem, "value"), 0, 255));
+				effect.builtin.manual.push_back(entry);
+				obs_data_release(manualItem);
+			}
+			obs_data_array_release(manual);
+		}
 		obs_data_release(builtin);
 	}
 

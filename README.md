@@ -98,11 +98,27 @@ Décocher un effet l'éteint sans le perdre.
   fréquences, ou un éclat tombe sur chaque temps. L'analyse écoute le mix audio
   d'OBS, donc exactement ce que le public entend. Un afficheur de niveaux montre
   en direct ce que le plugin entend, pour régler la sensibilité en voyant.
+
+  Attention : le mix comprend vos périphériques audio globaux, micro compris, et
+  ce quelle que soit la scène affichée. Si la lumière frémit dans le silence,
+  c'est le bruit de la salle qui passe par le micro : montez le **seuil**.
 - **Effet intégré au projecteur** — pour les appareils qui en proposent, comme
   le mode FX des amaran T4c : orage, feu, téléviseur, gyrophare, feu
   d'artifice… Ils sont joués par la lampe elle-même, donc bien plus fins que ce
   qui pourrait être envoyé sur le réseau. En contrepartie, la lampe doit être en
   mode effets sur son écran, et ne peut alors plus afficher de couleur simple.
+
+  **Si le plugin ne connaît pas les effets de votre projecteur**, cochez
+  *Saisir les canaux moi-même* : vous recopiez alors la table de canaux de sa
+  notice, ligne par ligne. Le canal 1 est le premier canal du projecteur, tel
+  que numéroté dans sa documentation — ce n'est pas l'adresse DMX, et les
+  valeurs suivent l'appareil si vous le réadressez. Un canal qui dépasse le
+  nombre de canaux de l'appareil n'est pas émis, et l'interface le signale :
+  y écrire piloterait le projecteur suivant.
+
+  Cette saisie directe ne sert pas qu'aux effets. C'est aussi le moyen de
+  piloter n'importe quel canal qu'aucun réglage de l'interface n'expose : une
+  roue de gobos, un moteur de rotation, un réglage propre à votre modèle.
 
 Par défaut, quand plusieurs choses pilotent le même projecteur, la plus
 lumineuse l'emporte. C'est ce qui permet à un strobe d'éclater sur un fond

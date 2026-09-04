@@ -128,9 +128,13 @@ print("\n--- Effet embarque ---")
 fxslots = snapshot("Orage dans la lampe", "EffetIntegre")
 print(f"  T4c effets, canaux 100-108: {fxslots[99:108]}")
 
+print("\n--- Canaux saisis a la main ---")
+manuel = snapshot("Canaux forces", "FxManuel")
+
 print("\n--- Reaction au son ---")
 # Meme programme, sans source sonore : le temoin.
 silence = sample("Silence", 3, 0.3)[-1]
+print(f"  temoin silencieux, canaux 1-9 : {silence[0:9]}")
 musique = sample("Musique", 14, 0.25)
 niveaux = [t[0] for t in musique]
 print(f"  intensites relevees : {niveaux}")
@@ -179,6 +183,11 @@ check("le strobe garde la couleur du programme", strobe[3] == 255 and abs(strobe
 check("l'effet embarque selectionne l'orage", fxslots[101] == 15)
 check("l'effet embarque est lance, pas arrete", fxslots[100] < 10)
 check("la vitesse de l'effet est ecrite", 30 <= fxslots[104] <= 39)
+
+check("le canal 5 saisi a la main sort a 200", manuel[4] == 200)
+check("le canal 6 saisi a la main sort a 111", manuel[5] == 111)
+# Le canal 99 depasse les 9 canaux du T4c : l'ecrire piloterait son voisin.
+check("un canal hors de l'appareil n'ecrase pas son voisin", manuel[9] == 0 and manuel[98] == 0)
 
 check("le meme programme sans son laisse la lumiere eteinte", silence[0] == 0)
 check("avec le son, la lumiere s'allume", max(niveaux) > 60)

@@ -14,6 +14,7 @@ class QListWidget;
 class QListWidgetItem;
 class QSpinBox;
 class QStackedWidget;
+class QTableWidget;
 
 namespace obsdmx {
 
@@ -53,6 +54,12 @@ private:
 	void removeStep();
 	void refreshStepList();
 	void refreshBuiltinEffects();
+	void refreshManualTable();
+	void commitManualTable();
+	void addManualChannel();
+	void removeManualChannel();
+	/// Plus petit nombre de canaux parmi les projecteurs vises, 0 si aucun.
+	size_t smallestFootprint() const;
 
 	Show &show_;
 	std::function<AudioSnapshot()> audioProvider_;
@@ -95,6 +102,10 @@ private:
 	QComboBox *builtinEffect_ = nullptr;
 	QComboBox *builtinFrequency_ = nullptr;
 	QLabel *builtinWarning_ = nullptr;
+	QCheckBox *builtinManual_ = nullptr;
+	QWidget *builtinManualBox_ = nullptr;
+	QTableWidget *builtinTable_ = nullptr;
+	QLabel *builtinFootprint_ = nullptr;
 };
 
 } // namespace obsdmx

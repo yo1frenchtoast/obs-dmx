@@ -1,6 +1,7 @@
 #include "ui/effect-editor.h"
 
 #include "core/show.h"
+#include "core/universe.h"
 #include "ui/level-meter.h"
 #include "ui/slider-row.h"
 
@@ -16,6 +17,8 @@
 #include <QSignalBlocker>
 #include <QSpinBox>
 #include <QStackedWidget>
+#include <QTableWidget>
+#include <QHeaderView>
 #include <QVBoxLayout>
 
 #include <obs-module.h>
@@ -273,8 +276,48 @@ QWidget *EffectEditor::buildBuiltinPage()
 	builtinWarning_->setWordWrap(true);
 	form->addRow(builtinWarning_);
 
+	// Repli quand le profil ne decrit pas les effets de l'appareil :
+	// l'utilisateur recopie la table de canaux du constructeur.
+	builtinManual_ = new QCheckBox(tr_("Effect.Builtin.Manual"), page);
+	builtinManual_->setToolTip(tr_("Effect.Builtin.Manual.Hint"));
+	form->addRow(QString(), builtinManual_);
+
+	builtinManualBox_ = new QWidget(page);
+	auto *manualLayout = new QVBoxLayout(builtinManualBox_);
+	manualLayout->setContentsMargins(0, 0, 0, 0);
+
+	auto *manualHint = new QLabel(tr_("Effect.Builtin.Manual.Explain"), builtinManualBox_);
+	manualHint->setWordWrap(true);
+	manualLayout->addWidget(manualHint);
+
+	builtinTable_ = new QTableWidget(0, 2, builtinManualBox_);
+	builtinTable_->setHorizontalHeaderLabels({tr_("Effect.Builtin.Manual.Channel"),
+						  tr_("Effect.Builtin.Manual.Value")});
+	builtinTable_->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+	builtinTable_->verticalHeader()->setVisible(false);
+	builtinTable_->setMaximumHeight(140);
+	manualLayout->addWidget(builtinTable_);
+
+	auto *manualButtons = new QHBoxLayout();
+	auto *addChannelButton = new QPushButton(tr_("Effect.Builtin.Manual.Add"), builtinManualBox_);
+	auto *removeChannelButton = new QPushButton(tr_("Effect.Builtin.Manual.Remove"), builtinManualBox_);
+	manualButtons->addWidget(addChannelButton);
+	manualButtons->addWidget(removeChannelButton);
+	manualButtons->addStretch();
+	manualLayout->addLayout(manualButtons);
+
+	builtinFootprint_ = new QLabel(builtinManualBox_);
+	builtinFootprint_->setWordWrap(true);
+	manualLayout->addWidget(builtinFootprint_);
+
+	form->addRow(builtinManualBox_);
+
 	connect(builtinEffect_, &QComboBox::currentIndexChanged, this, &EffectEditor::commit);
 	connect(builtinFrequency_, &QComboBox::currentIndexChanged, this, &EffectEditor::commit);
+	connect(builtinManual_, &QCheckBox::toggled, this, &EffectEditor::commit);
+	connect(builtinTable_, &QTableWidget::cellChanged, this, [this](int, int) { commitManualTable(); });
+	connect(addChannelButton, &QPushButton::clicked, this, &EffectEditor::addManualChannel);
+	connect(removeChannelButton, &QPushButton::clicked, this, &EffectEditor::removeManualChannel);
 
 	return page;
 }
@@ -317,6 +360,10 @@ void EffectEditor::setEffect(const Effect *effect)
 	soundSensitivity_->setValueSilently(effect_.sound.sensitivity);
 	soundThreshold_->setValueSilently(effect_.sound.threshold * 100.0f);
 
+	{
+		const QSignalBlocker blocker(builtinManual_);
+		builtinManual_->setChecked(effect_.builtin.useManual);
+	}
 	refreshBuiltinEffects();
 
 	loading_ = false;
@@ -476,8 +523,128 @@ void EffectEditor::refreshBuiltinEffects()
 	if (frequencyIndex >= 0)
 		builtinFrequency_->setCurrentIndex(frequencyIndex);
 
+	// Sans effet connu, la saisie manuelle est la seule voie : on l'impose
+	// plutot que de laisser une liste vide sans explication.
+	if (available.empty() && !effect_.builtin.useManual) {
+		effect_.builtin.useManual = true;
+		const QSignalBlocker manualBlocker(builtinManual_);
+		builtinManual_->setChecked(true);
+	}
+	builtinManual_->setEnabled(!available.empty());
+
+	const bool manual = effect_.builtin.useManual;
+	builtinEffect_->setVisible(!manual);
+	builtinFrequency_->setVisible(!manual);
+	builtinManualBox_->setVisible(manual);
+
 	builtinWarning_->setText(available.empty() ? QStringLiteral("⚠ ") + tr_("Effect.Builtin.None")
 						   : QStringLiteral("⚠ ") + tr_("Effect.Builtin.Warning"));
+
+	refreshManualTable();
+}
+
+size_t EffectEditor::smallestFootprint() const
+{
+	// Le plus petit denominateur : ecrire au-dela ne toucherait qu'une partie
+	// des projecteurs vises, ce qui serait deroutant.
+	size_t smallest = 0;
+	bool first = true;
+
+	show_.withPatch([&](const Patch &patch) {
+		for (const auto &fixtureId : effect_.fixtureIds) {
+			const Fixture *fixture = patch.find(fixtureId);
+			if (!fixture)
+				continue;
+			const size_t span = patch.footprintOf(*fixture);
+			if (span == 0)
+				continue;
+			smallest = first ? span : std::min(smallest, span);
+			first = false;
+		}
+	});
+
+	return smallest;
+}
+
+void EffectEditor::refreshManualTable()
+{
+	const QSignalBlocker blocker(builtinTable_);
+	builtinTable_->setRowCount(0);
+
+	for (const auto &entry : effect_.builtin.manual) {
+		const int row = builtinTable_->rowCount();
+		builtinTable_->insertRow(row);
+		builtinTable_->setItem(row, 0, new QTableWidgetItem(QString::number(entry.channel)));
+		builtinTable_->setItem(row, 1, new QTableWidgetItem(QString::number(entry.value)));
+	}
+
+	const size_t footprint = smallestFootprint();
+	if (footprint == 0) {
+		builtinFootprint_->setText(tr_("Effect.Builtin.Manual.NoFixture"));
+		return;
+	}
+
+	// Un canal hors de l'empreinte du projecteur n'est pas emis : le dire,
+	// plutot que de laisser l'utilisateur chercher pourquoi rien ne bouge.
+	QStringList tooHigh;
+	for (const auto &entry : effect_.builtin.manual)
+		if (entry.channel < 1 || entry.channel > static_cast<int>(footprint))
+			tooHigh << QString::number(entry.channel);
+
+	builtinFootprint_->setText(tooHigh.isEmpty()
+					   ? tr_("Effect.Builtin.Manual.Footprint").arg(footprint)
+					   : QStringLiteral("⚠ ") +
+						     tr_("Effect.Builtin.Manual.OutOfRange")
+							     .arg(tooHigh.join(", "))
+							     .arg(footprint));
+}
+
+void EffectEditor::commitManualTable()
+{
+	if (loading_ || !valid_)
+		return;
+
+	effect_.builtin.manual.clear();
+	for (int row = 0; row < builtinTable_->rowCount(); ++row) {
+		const QTableWidgetItem *channelItem = builtinTable_->item(row, 0);
+		const QTableWidgetItem *valueItem = builtinTable_->item(row, 1);
+		if (!channelItem || !valueItem)
+			continue;
+
+		ManualChannel entry;
+		entry.channel = std::clamp(channelItem->text().toInt(), 1, kSlotsPerUniverse);
+		entry.value = static_cast<uint8_t>(std::clamp(valueItem->text().toInt(), 0, 255));
+		effect_.builtin.manual.push_back(entry);
+	}
+
+	refreshManualTable();
+	emit effectChanged(effect_);
+}
+
+void EffectEditor::addManualChannel()
+{
+	if (!valid_)
+		return;
+
+	// Le canal suivant celui deja saisi : on recopie une table de haut en bas.
+	ManualChannel entry;
+	if (!effect_.builtin.manual.empty())
+		entry.channel = effect_.builtin.manual.back().channel + 1;
+
+	effect_.builtin.manual.push_back(entry);
+	refreshManualTable();
+	emit effectChanged(effect_);
+}
+
+void EffectEditor::removeManualChannel()
+{
+	const int row = builtinTable_->currentRow();
+	if (row < 0 || row >= static_cast<int>(effect_.builtin.manual.size()))
+		return;
+
+	effect_.builtin.manual.erase(effect_.builtin.manual.begin() + row);
+	refreshManualTable();
+	emit effectChanged(effect_);
 }
 
 void EffectEditor::commit()
@@ -514,6 +681,7 @@ void EffectEditor::commit()
 
 	effect_.builtin.effectId = builtinEffect_->currentData().toString().toStdString();
 	effect_.builtin.frequency = builtinFrequency_->currentData().toInt();
+	effect_.builtin.useManual = builtinManual_->isChecked();
 
 	// La liste des effets embarques depend des projecteurs vises, qui viennent
 	// peut-etre de changer.

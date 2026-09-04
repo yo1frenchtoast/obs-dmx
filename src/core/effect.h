@@ -79,6 +79,16 @@ struct SoundSettings {
 	LightState color;
 };
 
+/// Un canal force a la main.
+///
+/// Le numero est celui du document du constructeur : 1 designe le premier
+/// canal du projecteur, pas l'adresse DMX absolue. C'est ainsi que les tables
+/// de canaux sont ecrites, et cela suit l'appareil si on le readresse.
+struct ManualChannel {
+	int channel = 1;
+	uint8_t value = 0;
+};
+
 /// Un effet embarque dans l'appareil, comme le mode FX du T4c.
 struct BuiltinFxSettings {
 	std::string effectId;
@@ -86,6 +96,11 @@ struct BuiltinFxSettings {
 	int frequency = 5;
 	/// Variante de l'effet : combinaison de couleurs, plage de temperature.
 	int variant = 0;
+
+	/// Saisie directe des canaux, pour les appareils dont le profil ne decrit
+	/// pas les effets. L'utilisateur recopie alors la table du constructeur.
+	bool useManual = false;
+	std::vector<ManualChannel> manual;
 };
 
 struct Effect {

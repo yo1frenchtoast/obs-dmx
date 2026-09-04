@@ -245,6 +245,23 @@ std::vector<std::pair<int, uint8_t>> builtinFxChannels(const FixtureMode &mode, 
 {
 	std::vector<std::pair<int, uint8_t>> values;
 
+	// Saisie directe : le profil ne decrit pas les effets de cet appareil,
+	// l'utilisateur recopie sa table de canaux.
+	if (settings.useManual) {
+		for (const auto &entry : settings.manual) {
+			// Les numeros du constructeur commencent a 1 ; en interne les
+			// canaux sont indices depuis 0.
+			const int index = entry.channel - 1;
+
+			// Ecrire au-dela de l'empreinte du projecteur reviendrait a
+			// piloter son voisin : on refuse plutot que de causer un
+			// degat a distance.
+			if (index >= 0 && index < static_cast<int>(mode.channelCount()))
+				values.emplace_back(index, entry.value);
+		}
+		return values;
+	}
+
 	const auto effect = std::find_if(mode.effects.begin(), mode.effects.end(),
 					 [&settings](const BuiltinEffect &e) { return e.id == settings.effectId; });
 	if (effect == mode.effects.end())
