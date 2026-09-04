@@ -1,6 +1,21 @@
+# Build output
 /build/
 /build-dir/
 /.flatpak-builder/
 /repo/
+*.flatpak
+
+# Tooling
 compile_commands.json
 .cache/
+.clangd/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# Local end-to-end artefacts
+tools/e2e/*.wav
+tools/e2e/*.log

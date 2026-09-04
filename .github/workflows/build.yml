@@ -1,0 +1,60 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: Engine tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            g++ cmake ninja-build nlohmann-json3-dev
+
+      # src/core and src/output depend on neither libobs nor Qt, so the engine
+      # builds and runs without an OBS runtime at all.
+      - name: Configure
+        run: |
+          cmake -B build -G Ninja \
+            -DBUILD_PLUGIN=OFF -DBUILD_TESTING_OBS_DMX=ON \
+            -DCMAKE_CXX_FLAGS=-Werror
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  checks:
+    name: Translations and Qt wiring
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # A missing translation key shows up verbatim in OBS, and an unconnected
+      # Qt slot compiles without a warning. Neither is caught by a compiler.
+      - run: ./tools/check-locales.sh
+      - run: ./tools/check-slots.sh
+
+  plugin:
+    name: Flatpak plugin
+    runs-on: ubuntu-latest
+    container:
+      image: bilelmoussaoui/flatpak-github-actions:gnome-47
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: obs-dmx.flatpak
+          manifest-path: flatpak/com.obsproject.Studio.Plugin.ObsDmx.yaml
+          cache-key: flatpak-builder-${{ github.sha }}

@@ -1,182 +1,155 @@
-# Éclairage DMX pour OBS
+# DMX Lighting for OBS
 
-Un plugin OBS qui associe un programme lumineux à chaque scène : changer de
-scène change la lumière. Ambiances fixes, chasers, strobes, effets qui suivent
-le son.
+An OBS plugin that attaches a lighting programme to each scene: switching scene
+switches the light. Static looks, chases, strobes, and effects that follow the
+sound.
 
-Tout se règle à la souris dans un panneau intégré à OBS. Il n'y a pas de
-fichier de configuration à écrire.
+Everything is set up by hand in a panel docked inside OBS. There is no
+configuration file to write.
 
-## Ce dont vous avez besoin
+## What you need
 
-- **OBS Studio 32** ou plus récent.
-- **Une interface DMX** entre l'ordinateur et vos projecteurs. Trois familles
-  sont gérées :
-  - un boîtier **Art-Net** ou **sACN** sur le réseau, qui ressort du DMX ;
-  - une interface **Enttec DMX USB Pro** (ou un clone parlant le même
-    protocole) branchée en USB.
+- **OBS Studio 32** or newer.
+- **A DMX interface** between the computer and your fixtures. Three families are
+  supported:
+  - an **Art-Net** or **sACN** node on the network, which outputs wired DMX;
+  - an **Enttec DMX USB Pro** (or a clone speaking the same protocol) over USB.
 
-  Sous Linux, l'accès à une interface USB demande d'appartenir au groupe
-  `dialout` :
+  On Linux, reaching a USB interface requires membership of the `dialout` group:
 
       sudo usermod -aG dialout $USER
 
-  puis de se déconnecter et se reconnecter.
+  then log out and back in.
 
-- **Si vos projecteurs sont des Aputure amaran T2c ou T4c** : l'adaptateur
-  *amaran USB-C vers DMX*, vendu séparément, un par lampe. Ces tubes n'ont pas
-  d'entrée DMX directe.
+- **If your fixtures are Aputure amaran T2c or T4c**: the *amaran USB-C to DMX*
+  adapter, sold separately, one per lamp. These tubes have no DMX input of their
+  own.
 
-## Construire et installer
+## Building and installing
 
-Le plugin se construit comme une extension Flatpak d'OBS. Il n'y a rien à
-installer sur le système hôte.
+The plugin builds as a Flatpak extension of OBS. Nothing has to be installed on
+the host system.
 
     flatpak install --user flathub org.flatpak.Builder
     flatpak run org.flatpak.Builder --force-clean --user --install \
         build-dir flatpak/com.obsproject.Studio.Plugin.ObsDmx.yaml
 
-Relancez OBS. Le panneau apparaît dans le menu **Docks → Éclairage DMX**.
+Restart OBS. The panel appears under **Docks → DMX Lighting**.
 
-Le plugin doit être reconstruit à chaque version majeure d'OBS : un plugin natif
-est lié à la version avec laquelle il a été compilé.
+The plugin must be rebuilt for each major OBS release: a native plugin is bound
+to the version it was compiled against.
 
-## Prise en main
+## Getting started
 
-### 1. Déclarez vos projecteurs
+### 1. Declare your fixtures
 
-Onglet **Projecteurs → Ajouter un projecteur**. Choisissez le modèle, indiquez
-son **mode DMX**, donnez l'adresse de départ. Le plugin propose la première
-adresse libre.
+**Fixtures → Add a light…** Pick the model, say which **DMX mode** it is set to,
+and give it a start address. The plugin suggests the first free one.
 
-> **Le mode DMX se choisit sur l'écran du projecteur**, pas depuis le logiciel.
-> Le mode indiqué ici doit correspondre à celui réglé sur l'appareil. Rien ne
-> permet de le vérifier : si les deux ne correspondent pas, le projecteur se
-> comportera bizarrement sans aucun message d'erreur. C'est de loin la cause la
-> plus fréquente de « ça ne marche pas ».
+> **The DMX mode is chosen on the fixture's own screen**, not from the software.
+> The mode named here must match the one set on the device. Nothing can verify
+> it: if the two disagree, the fixture will behave oddly with no error message
+> whatsoever. This is by far the most common cause of "it doesn't work".
 
-Le tableau signale les chevauchements d'adresses, en nommant les deux appareils
-concernés.
+The table flags address overlaps, naming both fixtures involved.
 
-### 2. Vérifiez le câblage
+### 2. Check the wiring
 
-Onglet **Sortie**. Choisissez le protocole, indiquez l'adresse du boîtier ou le
-port série, cochez **Émettre le DMX**.
+**Output** tab. Choose the protocol, give the node's address or the serial port,
+and tick **Send DMX**.
 
-Le **banc d'essai** en bas de l'onglet envoie une valeur sur un canal de votre
-choix. C'est la façon la plus rapide de répondre à la vraie question : est-ce
-que mon projecteur est bien à l'adresse que je crois ?
+The **test bench** at the bottom of that tab sends a value on a channel of your
+choosing. It is the quickest way to answer the real question: is my fixture
+actually at the address I think it is?
 
-### 3. Construisez vos programmes
+### 3. Build your programmes
 
-Onglet **Programmes → Nouveau**. Cochez les projecteurs concernés, sélectionnez-
-les, réglez la lumière. Le réglage s'applique à toute la sélection d'un coup.
+**Programmes → New…** Tick the fixtures involved, select them, set the light. The
+setting applies to the whole selection at once.
 
-Tant que cet onglet est ouvert, le programme en cours d'édition prend la main
-sur la sortie : vous voyez ce que vous réglez. **En quittant l'onglet, c'est la
-scène OBS active qui reprend la main** — si elle n'est associée à aucun
-programme, la lumière s'éteint. Un avertissement en haut de l'onglet le signale,
-avec un bouton pour associer le programme à la scène courante en un clic.
+While that tab is open, the programme being edited takes over the output: you see
+what you are setting. **On leaving the tab, the active OBS scene takes over
+again** — if it is attached to no programme, the lights go out. A warning at the
+top of the tab says so, with a button to attach the programme to the current
+scene in one click.
 
-### 4. Associez les scènes OBS
+### 4. Attach the OBS scenes
 
-En bas de l'onglet Programmes, un tableau liste vos scènes OBS avec, en face de
-chacune, le programme à déclencher et la durée du fondu. C'est l'écran central.
+At the bottom of the Programmes tab, a table lists your OBS scenes with, against
+each one, the programme to trigger and the fade duration. This is the central
+screen.
 
-Une scène laissée sans programme éteint la lumière.
+A scene left without a programme puts the lights out.
 
-## Les effets
+## The effects
 
-Un programme peut porter des effets, qui se superposent à sa lumière de base.
-Décocher un effet l'éteint sans le perdre.
+A programme can carry effects, which stack on top of its base light. Unticking an
+effect switches it off without losing it.
 
-- **Chaser** — une suite de couleurs qui défile le long des projecteurs, dans
-  l'ordre où ils sont listés. Durée par pas ou tempo, fondu entre les pas, sens
-  avant, arrière, aller-retour ou aléatoire.
-- **Strobe** — fréquence, durée de l'éclat. Les projecteurs dotés d'un canal de
-  strobe s'en chargent eux-mêmes, ce qui est bien plus net. Les autres sont
-  clignotés par le plugin, ce qui devient irrégulier au-delà d'une dizaine
-  d'éclats par seconde : c'est une limite du DMX, pas de votre matériel.
-- **Réagit au son** — l'intensité suit le niveau, la couleur suit les
-  fréquences, ou un éclat tombe sur chaque temps. L'analyse écoute le mix audio
-  d'OBS, donc exactement ce que le public entend. Un afficheur de niveaux montre
-  en direct ce que le plugin entend, pour régler la sensibilité en voyant.
+- **Chase** — a sequence of colours running along the fixtures, in the order they
+  are listed. Step duration or tempo, fade between steps, forwards, backwards,
+  back and forth, or random.
+- **Strobe** — rate and flash length. Fixtures with a strobe channel of their own
+  handle it themselves, which is far crisper. The others are flashed by the
+  plugin, which becomes uneven above roughly ten flashes per second: that is a
+  limit of DMX, not of your hardware.
+- **Follows the sound** — brightness follows the level, colour follows the
+  frequencies, or a flash lands on every beat. The analysis listens to OBS's
+  audio mix, so exactly what the audience hears. A level meter shows live what
+  the plugin is hearing, so the sensitivity can be set by eye.
 
-  Attention : le mix comprend vos périphériques audio globaux, micro compris, et
-  ce quelle que soit la scène affichée. Si la lumière frémit dans le silence,
-  c'est le bruit de la salle qui passe par le micro : montez le **seuil**.
+  Note that the mix includes your global audio devices, microphone included, and
+  that whatever scene is showing. If the light twitches in silence, that is room
+  noise coming through the microphone: raise the **threshold**.
 
-  Par défaut l'effet reprend la couleur du programme ; décochez *Garder la
-  couleur du programme* pour lui en donner une à lui.
-- **Effet intégré au projecteur** — pour les appareils qui en proposent, comme
-  le mode FX des amaran T4c : orage, feu, téléviseur, gyrophare, feu
-  d'artifice… Ils sont joués par la lampe elle-même, donc bien plus fins que ce
-  qui pourrait être envoyé sur le réseau. En contrepartie, la lampe doit être en
-  mode effets sur son écran, et ne peut alors plus afficher de couleur simple.
+  By default the effect takes the programme's colour; untick *Keep the
+  programme's colour* to give it one of its own.
 
-  **Si le plugin ne connaît pas les effets de votre projecteur**, cochez
-  *Saisir les canaux moi-même* : vous recopiez alors la table de canaux de sa
-  notice, ligne par ligne. Le canal 1 est le premier canal du projecteur, tel
-  que numéroté dans sa documentation — ce n'est pas l'adresse DMX, et les
-  valeurs suivent l'appareil si vous le réadressez. Un canal qui dépasse le
-  nombre de canaux de l'appareil n'est pas émis, et l'interface le signale :
-  y écrire piloterait le projecteur suivant.
+- **Effect built into the fixture** — for devices that offer them, such as the FX
+  mode of the amaran T4c: lightning, fire, TV, cop car, fireworks… They are
+  played by the lamp itself, so they are far finer than anything that could be
+  sent over the network. In exchange, the lamp must be in its effects mode on its
+  own screen, and can then no longer show a plain colour.
 
-  Cette saisie directe ne sert pas qu'aux effets. C'est aussi le moyen de
-  piloter n'importe quel canal qu'aucun réglage de l'interface n'expose : une
-  roue de gobos, un moteur de rotation, un réglage propre à votre modèle.
+  **If the plugin does not know your fixture's effects**, tick *Enter the
+  channels myself*: you then copy the channel chart from its manual, line by
+  line. Channel 1 is the fixture's first channel as numbered in its
+  documentation — not a DMX address — and the values follow the fixture if you
+  readdress it. A channel past the fixture's channel count is not sent, and the
+  interface says so: writing there would drive the next fixture along.
 
-Par défaut, quand plusieurs choses pilotent le même projecteur, la plus
-lumineuse l'emporte. C'est ce qui permet à un strobe d'éclater sur un fond
-coloré sans l'effacer entre deux éclats. Le repli **Avancé** permet de choisir
-le remplacement à la place.
+  This direct entry is not only for effects. It is also the way to drive any
+  channel the interface does not expose: a gobo wheel, a rotation motor, some
+  setting peculiar to your model.
 
-Conséquence à connaître : dans ce mode, **un effet ne peut qu'éclaircir, jamais
-baisser**. Un effet dont l'intensité suit le son ne descendra donc jamais sous
-celle du programme. C'est pourquoi les effets sonores sont créés en
-*Remplacement*, et pourquoi l'éditeur avertit quand la combinaison rendrait
-l'effet inerte.
+By default, when several things drive the same fixture, the brightest wins. That
+is what lets a strobe flash over a coloured background without erasing it between
+flashes. The **Advanced** fold offers Replace instead.
 
-## Raccourci clavier
+One consequence worth knowing: in that mode **an effect can only brighten, never
+dim**. An effect whose intensity follows the sound will therefore never fall
+below the programme's own level. That is why sound effects are created in
+*Replace*, and why the editor warns when the combination would make an effect
+inert.
 
-Un **blackout** est proposé dans les raccourcis d'OBS
-(*Paramètres → Raccourcis clavier*). Il coupe et rallume tout d'un même geste.
+## Keyboard shortcut
 
-## Où sont rangés les réglages
+A **blackout** is offered among OBS's hotkeys (*Settings → Hotkeys*). It kills
+and restores everything with the same gesture.
 
-- Le montage lumière (projecteurs, programmes, associations) vit dans la
-  **collection de scènes** d'OBS. Il suit donc votre projet, et se sauvegarde
-  avec lui.
-- Les réglages de sortie (protocole, adresse du boîtier, port série) dépendent
-  de la machine et vivent à part, dans la configuration du plugin.
+## Where the settings live
 
-## Développement
+- The lighting rig (fixtures, programmes, scene attachments) lives in the OBS
+  **scene collection**. It therefore follows your project and is backed up with
+  it.
+- The output settings (protocol, node address, serial port) depend on the machine
+  and live apart, in the plugin's own configuration.
 
-Le moteur (`src/core`) ne dépend ni de libobs ni de Qt, ce qui le rend testable
-hors d'OBS :
+## Contributing
 
-    flatpak run --devel --filesystem="$PWD" --command=bash com.obsproject.Studio -c '
-      g++ -std=c++20 -O2 -I src -I tests -I/app/include -pthread \
-        -DOBS_DMX_FIXTURES_DIR=\"$PWD/data/fixtures\" -o /tmp/tests \
-        tests/*.cpp src/core/*.cpp src/output/*.cpp && /tmp/tests'
-
-`tools/check-locales.sh` vérifie que chaque texte d'interface a sa traduction
-dans les deux langues. `tools/e2e/` contient un test de bout en bout qui pilote
-un vrai OBS et décode le DMX qui en sort ; lisez son README avant de le lancer,
-il modifie la configuration d'OBS.
-
-### Ajouter un modèle de projecteur
-
-Déposez un fichier JSON dans `data/fixtures/`. Chaque mode y décrit ses canaux
-par leur rôle — `dimmer`, `red`, `hue`, `cct`, `strobe`… — plutôt que par un
-numéro. C'est ce typage qui permet à l'interface de proposer une roue de couleur
-et au moteur de traduire une couleur voulue vers ce dont l'appareil dispose.
-
-Les plages ne sont pas toujours 0-255 et se décrivent dans le profil :
-`range_min`, `range_max`, `off`, `neutral`, `physical_min`, `physical_max`.
-Voyez `aputure-amaran-t4c.json`, dont le canal de strobe est éteint de 0 à 19
-puis couvre 1 à 25 Hz de 20 à 255, et dont le neutre vert/magenta est à 132.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Adding a fixture profile is the most
+likely contribution and needs no C++.
 
 ## Licence
 
-GPL-2.0-or-later, comme l'exige toute liaison à libobs.
+GPL-2.0-or-later, as required by anything linking against libobs.
