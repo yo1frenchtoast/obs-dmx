@@ -8,6 +8,7 @@
 #include "ui/programs-page.h"
 
 #include <QPushButton>
+#include <QScrollArea>
 #include <QTabWidget>
 #include <QVBoxLayout>
 
@@ -20,6 +21,24 @@ namespace {
 QString tr_(const char *key)
 {
 	return QString::fromUtf8(obs_module_text(key));
+}
+
+/// Rend une page defilante.
+///
+/// Le dock est etroit et haut, et son contenu depasse souvent la hauteur
+/// disponible. Sans cela, Qt comprime tout : les tableaux sont ecrases a rien
+/// et les textes explicatifs sont coupes en plein milieu.
+QScrollArea *scrollable(QWidget *page, QWidget *parent)
+{
+	auto *area = new QScrollArea(parent);
+	area->setWidget(page);
+	// La page suit la largeur du dock ; seule la hauteur defile.
+	area->setWidgetResizable(true);
+	// Jamais AlwaysOff : si un contenu depasse malgre tout en largeur, il
+	// serait coupe sans aucun moyen d'y acceder.
+	area->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+	area->setFrameShape(QFrame::NoFrame);
+	return area;
 }
 
 } // namespace
@@ -35,9 +54,9 @@ DmxDock::DmxDock(DmxEngine &engine, Show &show, const FixtureLibrary &library, O
 	outputPage_ = new OutputSettingsPage(engine_, this);
 
 	tabs_ = new QTabWidget(this);
-	tabs_->addTab(patchPage_, tr_("Tab.Fixtures"));
-	tabs_->addTab(programsPage_, tr_("Tab.Programs"));
-	tabs_->addTab(outputPage_, tr_("Tab.Output"));
+	tabs_->addTab(scrollable(patchPage_, this), tr_("Tab.Fixtures"));
+	tabs_->addTab(scrollable(programsPage_, this), tr_("Tab.Programs"));
+	tabs_->addTab(scrollable(outputPage_, this), tr_("Tab.Output"));
 	layout->addWidget(tabs_);
 
 	blackoutButton_ = new QPushButton(tr_("Blackout"), this);

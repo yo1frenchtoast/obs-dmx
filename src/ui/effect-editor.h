@@ -13,6 +13,7 @@ class QLineEdit;
 class QListWidget;
 class QListWidgetItem;
 class QSpinBox;
+class QFormLayout;
 class QStackedWidget;
 class QTableWidget;
 
@@ -102,6 +103,9 @@ private:
 	QComboBox *builtinEffect_ = nullptr;
 	QComboBox *builtinFrequency_ = nullptr;
 	QLabel *builtinWarning_ = nullptr;
+	/// Conserve pour masquer les lignes entieres : cacher le champ d'un
+	/// QFormLayout y laisse son etiquette orpheline.
+	QFormLayout *builtinForm_ = nullptr;
 	QCheckBox *builtinManual_ = nullptr;
 	QWidget *builtinManualBox_ = nullptr;
 	QTableWidget *builtinTable_ = nullptr;

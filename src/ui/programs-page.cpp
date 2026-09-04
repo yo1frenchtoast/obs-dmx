@@ -70,11 +70,13 @@ ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvi
 	auto *layout = new QVBoxLayout(this);
 
 	// --- choix du programme ---
-	auto *programRow = new QHBoxLayout();
+	// Un dock est etroit : la liste deroulante prend toute la largeur, les
+	// boutons vont dessous. Cote a cote, le dernier finissait coupe.
 	programSelector_ = new QComboBox(this);
 	programSelector_->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
-	programRow->addWidget(programSelector_, 1);
+	layout->addWidget(programSelector_);
 
+	auto *programRow = new QHBoxLayout();
 	auto *addButton = new QPushButton(tr_("Programs.Add"), this);
 	auto *renameButton = new QPushButton(tr_("Programs.Rename"), this);
 	removeButton_ = new QPushButton(tr_("Programs.Remove"), this);
@@ -84,8 +86,6 @@ ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvi
 	layout->addLayout(programRow);
 
 	// --- projecteurs et reglages ---
-	auto *editorRow = new QHBoxLayout();
-
 	auto *fixtureBox = new QGroupBox(tr_("Programs.Fixtures"), this);
 	auto *fixtureLayout = new QVBoxLayout(fixtureBox);
 	auto *fixtureHint = new QLabel(tr_("Programs.Fixtures.Hint"), fixtureBox);
@@ -94,15 +94,19 @@ ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvi
 
 	fixtures_ = new QListWidget(fixtureBox);
 	fixtures_->setSelectionMode(QAbstractItemView::ExtendedSelection);
+	fixtures_->setMinimumHeight(120);
 	fixtureLayout->addWidget(fixtures_, 1);
 
 	noFixturesHint_ = new QLabel(tr_("Programs.NoFixtures"), fixtureBox);
 	noFixturesHint_->setWordWrap(true);
 	fixtureLayout->addWidget(noFixturesHint_);
-	editorRow->addWidget(fixtureBox, 1);
+	layout->addWidget(fixtureBox);
 
 	controls_ = new QGroupBox(tr_("Programs.Light"), this);
 	auto *form = new QFormLayout(controls_);
+	// Dans une colonne etroite, « Température du blanc » ecraserait son
+	// curseur : le libelle passe alors au-dessus.
+	form->setRowWrapPolicy(QFormLayout::WrapLongRows);
 
 	intensity_ = new SliderRow(0.0f, 100.0f, 100, " %", 0, controls_);
 	form->addRow(tr_("Programs.Intensity"), intensity_);
@@ -132,12 +136,11 @@ ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvi
 	strobe_->setToolTip(tr_("Programs.Strobe.Hint"));
 	form->addRow(tr_("Programs.Strobe"), strobe_);
 
-	editorRow->addWidget(controls_, 1);
-	layout->addLayout(editorRow, 1);
+	layout->addWidget(controls_);
 
 	// --- effets ---
 	auto *effectBox = new QGroupBox(tr_("Programs.Effects"), this);
-	auto *effectLayout = new QHBoxLayout(effectBox);
+	auto *effectLayout = new QVBoxLayout(effectBox);
 
 	auto *effectListColumn = new QVBoxLayout();
 	auto *effectHint = new QLabel(tr_("Programs.Effects.Hint"), effectBox);
@@ -145,7 +148,8 @@ ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvi
 	effectListColumn->addWidget(effectHint);
 
 	effects_ = new QListWidget(effectBox);
-	effects_->setMaximumWidth(220);
+	effects_->setMinimumHeight(110);
+	effects_->setMaximumHeight(170);
 	effectListColumn->addWidget(effects_, 1);
 
 	auto *effectButtons = new QHBoxLayout();
@@ -157,8 +161,8 @@ ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvi
 	effectLayout->addLayout(effectListColumn);
 
 	effectEditor_ = new EffectEditor(show_, std::move(audioProvider), effectBox);
-	effectLayout->addWidget(effectEditor_, 1);
-	layout->addWidget(effectBox, 1);
+	effectLayout->addWidget(effectEditor_);
+	layout->addWidget(effectBox);
 
 	// --- association aux scenes OBS ---
 	auto *sceneBox = new QGroupBox(tr_("Programs.Scenes"), this);
@@ -173,8 +177,10 @@ ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvi
 	scenes_->horizontalHeader()->setSectionResizeMode(SceneName, QHeaderView::Stretch);
 	scenes_->verticalHeader()->setVisible(false);
 	scenes_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+	scenes_->setMinimumHeight(120);
 	sceneLayout->addWidget(scenes_);
-	layout->addWidget(sceneBox, 1);
+	layout->addWidget(sceneBox);
+	layout->addStretch();
 
 	connect(programSelector_, &QComboBox::currentIndexChanged, this, &ProgramsPage::onProgramSelected);
 	connect(addButton, &QPushButton::clicked, this, &ProgramsPage::addProgram);
@@ -193,6 +199,7 @@ ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvi
 		connect(slider, &SliderRow::valueChanged, this, &ProgramsPage::onLightChanged);
 
 	reload();
+
 }
 
 ProgramsPage::~ProgramsPage()

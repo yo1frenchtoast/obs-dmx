@@ -36,6 +36,15 @@ QString tr_(const char *key)
 
 constexpr int kFixtureIdRole = Qt::UserRole;
 
+/// Une liste deroulante exige par defaut la largeur de son plus long element,
+/// ce qui suffit a rendre tout le dock trop etroit. On la laisse se replier :
+/// le texte complet reste lisible une fois la liste deroulee.
+void shrinkable(QComboBox *box)
+{
+	box->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+	box->setMinimumContentsLength(8);
+}
+
 /// Les pages de la pile suivent l'ordre de EffectType.
 int pageFor(EffectType type)
 {
@@ -63,7 +72,10 @@ EffectEditor::EffectEditor(Show &show, std::function<AudioSnapshot()> audioProvi
 	targetsHint->setWordWrap(true);
 	targetsLayout->addWidget(targetsHint);
 	targets_ = new QListWidget(targetsBox);
-	targets_->setMaximumHeight(120);
+	// Une hauteur minimale donne a la page une taille propre : c'est elle qui
+	// declenche le defilement au lieu de l'ecrasement.
+	targets_->setMinimumHeight(90);
+	targets_->setMaximumHeight(160);
 	targetsLayout->addWidget(targets_);
 	layout->addWidget(targetsBox);
 
@@ -81,6 +93,7 @@ EffectEditor::EffectEditor(Show &show, std::function<AudioSnapshot()> audioProvi
 	advanced->setChecked(false);
 	auto *advancedLayout = new QFormLayout(advanced);
 	blend_ = new QComboBox(advanced);
+	shrinkable(blend_);
 	blend_->addItem(tr_("Effect.Blend.Htp"), static_cast<int>(BlendMode::Htp));
 	blend_->addItem(tr_("Effect.Blend.Replace"), static_cast<int>(BlendMode::Replace));
 	blend_->setToolTip(tr_("Effect.Blend.Hint"));
@@ -109,7 +122,8 @@ QWidget *EffectEditor::buildChaserPage()
 
 	auto *stepsRow = new QHBoxLayout();
 	steps_ = new QListWidget(page);
-	steps_->setMaximumHeight(120);
+	steps_->setMinimumHeight(90);
+	steps_->setMaximumHeight(160);
 	stepsRow->addWidget(steps_, 1);
 
 	auto *stepButtons = new QVBoxLayout();
@@ -157,6 +171,7 @@ QWidget *EffectEditor::buildChaserPage()
 	timing->addRow(tr_("Effect.Chaser.Fade"), fadeRatio_);
 
 	direction_ = new QComboBox(page);
+	shrinkable(direction_);
 	direction_->addItem(tr_("Effect.Chaser.Forward"), static_cast<int>(ChaserDirection::Forward));
 	direction_->addItem(tr_("Effect.Chaser.Backward"), static_cast<int>(ChaserDirection::Backward));
 	direction_->addItem(tr_("Effect.Chaser.PingPong"), static_cast<int>(ChaserDirection::PingPong));
@@ -224,6 +239,7 @@ QWidget *EffectEditor::buildSoundPage()
 
 	auto *form = new QFormLayout();
 	soundTarget_ = new QComboBox(page);
+	shrinkable(soundTarget_);
 	soundTarget_->addItem(tr_("Effect.Sound.Intensity"), static_cast<int>(SoundTarget::Intensity));
 	soundTarget_->addItem(tr_("Effect.Sound.Hue"), static_cast<int>(SoundTarget::Hue));
 	soundTarget_->addItem(tr_("Effect.Sound.FlashOnBeat"), static_cast<int>(SoundTarget::FlashOnBeat));
@@ -231,6 +247,7 @@ QWidget *EffectEditor::buildSoundPage()
 	form->addRow(tr_("Effect.Sound.Target"), soundTarget_);
 
 	soundBand_ = new QComboBox(page);
+	shrinkable(soundBand_);
 	soundBand_->addItem(tr_("Effect.Sound.Band.Low"), 0);
 	soundBand_->addItem(tr_("Effect.Sound.Band.Mid"), 1);
 	soundBand_->addItem(tr_("Effect.Sound.Band.High"), 2);
@@ -262,11 +279,14 @@ QWidget *EffectEditor::buildBuiltinPage()
 	auto *page = new QWidget(this);
 	auto *form = new QFormLayout(page);
 	form->setContentsMargins(0, 0, 0, 0);
+	builtinForm_ = form;
 
 	builtinEffect_ = new QComboBox(page);
+	shrinkable(builtinEffect_);
 	form->addRow(tr_("Effect.Builtin.Effect"), builtinEffect_);
 
 	builtinFrequency_ = new QComboBox(page);
+	shrinkable(builtinFrequency_);
 	for (int i = 1; i <= 10; ++i)
 		builtinFrequency_->addItem(QString::number(i), i);
 	builtinFrequency_->addItem(tr_("Effect.Builtin.Random"), 0);
@@ -295,7 +315,10 @@ QWidget *EffectEditor::buildBuiltinPage()
 						  tr_("Effect.Builtin.Manual.Value")});
 	builtinTable_->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 	builtinTable_->verticalHeader()->setVisible(false);
-	builtinTable_->setMaximumHeight(140);
+	// Sans hauteur minimale, la table est ecrasee a rien des que le dock
+	// manque de place, et ses en-tetes recouvrent les boutons.
+	builtinTable_->setMinimumHeight(120);
+	builtinTable_->setMaximumHeight(220);
 	manualLayout->addWidget(builtinTable_);
 
 	auto *manualButtons = new QHBoxLayout();
@@ -532,9 +555,11 @@ void EffectEditor::refreshBuiltinEffects()
 	}
 	builtinManual_->setEnabled(!available.empty());
 
+	// setRowVisible plutot que setVisible : cacher le seul champ laisserait
+	// son etiquette seule dans le formulaire.
 	const bool manual = effect_.builtin.useManual;
-	builtinEffect_->setVisible(!manual);
-	builtinFrequency_->setVisible(!manual);
+	builtinForm_->setRowVisible(builtinEffect_, !manual);
+	builtinForm_->setRowVisible(builtinFrequency_, !manual);
 	builtinManualBox_->setVisible(manual);
 
 	builtinWarning_->setText(available.empty() ? QStringLiteral("⚠ ") + tr_("Effect.Builtin.None")
