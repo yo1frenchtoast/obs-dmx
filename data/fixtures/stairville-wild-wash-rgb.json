@@ -1,0 +1,189 @@
+{
+  "id": "stairville-wild-wash-rgb",
+  "manufacturer": "Stairville",
+  "model": "Wild Wash 132 / 648 LED RGB",
+  "default_mode": "6ch",
+  "note": "Articles Thomann 399664 (132 LED) et 399658 (648 LED). Le mode se choisit sur l'ecran de l'appareil. Seuls les modes 3Ch3 et 6Ch exposent le rouge, le vert et le bleu : dans les autres, la couleur passe par une macro figee que le selecteur de couleur ne pilote pas.",
+  "modes": [
+    {
+      "id": "6ch",
+      "label": "Mode 6Ch — Intensité, strobe, RVB, son (6 canaux)",
+      "channels": [
+        {
+          "role": "dimmer",
+          "label": "Intensité"
+        },
+        {
+          "role": "strobe",
+          "label": "Strobe et effets aléatoires",
+          "range_min": 128,
+          "range_max": 250,
+          "off": 0,
+          "physical_min": 0,
+          "physical_max": 30
+        },
+        {
+          "role": "red",
+          "label": "Rouge"
+        },
+        {
+          "role": "green",
+          "label": "Vert"
+        },
+        {
+          "role": "blue",
+          "label": "Bleu"
+        },
+        {
+          "role": "unused",
+          "label": "Commande sonore intégrée de l'appareil (0 = désactivée)",
+          "default": 0
+        }
+      ]
+    },
+    {
+      "id": "4ch",
+      "label": "Mode 4Ch — Intensité, strobe, macro, son (4 canaux)",
+      "channels": [
+        {
+          "role": "dimmer",
+          "label": "Intensité"
+        },
+        {
+          "role": "strobe",
+          "label": "Strobe et effets aléatoires",
+          "range_min": 128,
+          "range_max": 250,
+          "off": 0,
+          "physical_min": 0,
+          "physical_max": 30
+        },
+        {
+          "role": "color_wheel",
+          "label": "Macro de couleurs (0 = noir, 110 = blanc)",
+          "default": 110
+        },
+        {
+          "role": "unused",
+          "label": "Commande sonore intégrée de l'appareil (0 = désactivée)",
+          "default": 0
+        }
+      ]
+    },
+    {
+      "id": "3ch3",
+      "label": "Mode 3Ch3 — RVB seul (3 canaux)",
+      "channels": [
+        {
+          "role": "red",
+          "label": "Rouge"
+        },
+        {
+          "role": "green",
+          "label": "Vert"
+        },
+        {
+          "role": "blue",
+          "label": "Bleu"
+        }
+      ]
+    },
+    {
+      "id": "3ch2",
+      "label": "Mode 3Ch2 — Intensité, strobe, macro (3 canaux)",
+      "channels": [
+        {
+          "role": "dimmer",
+          "label": "Intensité"
+        },
+        {
+          "role": "strobe",
+          "label": "Strobe",
+          "range_min": 11,
+          "range_max": 250,
+          "off": 0,
+          "physical_min": 0,
+          "physical_max": 30
+        },
+        {
+          "role": "color_wheel",
+          "label": "Macro de couleurs (0 = noir, 110 = blanc)",
+          "default": 110
+        }
+      ]
+    },
+    {
+      "id": "3ch1",
+      "label": "Mode 3Ch1 — Intensité, strobe, éclair (3 canaux)",
+      "channels": [
+        {
+          "role": "dimmer",
+          "label": "Intensité"
+        },
+        {
+          "role": "strobe",
+          "label": "Strobe",
+          "range_min": 11,
+          "range_max": 250,
+          "off": 0,
+          "physical_min": 0,
+          "physical_max": 30
+        },
+        {
+          "role": "unused",
+          "label": "Durée de l'éclair (0 à 510 ms)",
+          "default": 0
+        }
+      ]
+    },
+    {
+      "id": "2ch2",
+      "label": "Mode 2Ch2 — Intensité, strobe (2 canaux)",
+      "channels": [
+        {
+          "role": "dimmer",
+          "label": "Intensité"
+        },
+        {
+          "role": "strobe",
+          "label": "Strobe",
+          "range_min": 11,
+          "range_max": 250,
+          "off": 0,
+          "physical_min": 0,
+          "physical_max": 30
+        }
+      ]
+    },
+    {
+      "id": "2ch1",
+      "label": "Mode 2Ch1 — Intensité, macro de couleurs (2 canaux)",
+      "channels": [
+        {
+          "role": "dimmer",
+          "label": "Intensité"
+        },
+        {
+          "role": "color_wheel",
+          "label": "Macro de couleurs (0 = noir, 110 = blanc)",
+          "default": 110
+        }
+      ]
+    },
+    {
+      "id": "1ch",
+      "label": "Mode 1Ch — Strobe seul (1 canal)",
+      "channels": [
+        {
+          "role": "strobe",
+          "label": "Strobe (0-10 éteint, 11-255 de 0 à 30 Hz)",
+          "range_min": 11,
+          "range_max": 255,
+          "off": 0,
+          "physical_min": 0,
+          "physical_max": 30
+        }
+      ]
+    }
+  ]
+}

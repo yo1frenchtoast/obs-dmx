@@ -267,3 +267,127 @@ TEST(saisie_manuelle_vide_n_ecrit_rien)
 	settings.useManual = true;
 	CHECK(builtinFxChannels(*mode3, settings).empty());
 }
+
+TEST(profil_wild_wash_rgb_reprend_les_modes_de_la_notice)
+{
+	std::vector<std::string> warnings;
+	const auto library = loadShipped(warnings);
+
+	const auto *ww = library.find("stairville-wild-wash-rgb");
+	CHECK(ww != nullptr);
+	if (!ww)
+		return;
+
+	// Huit modes, tels que listes dans le menu de l'appareil.
+	CHECK_EQ(ww->modes.size(), size_t(8));
+	CHECK_EQ(ww->findMode("1ch")->channelCount(), size_t(1));
+	CHECK_EQ(ww->findMode("2ch1")->channelCount(), size_t(2));
+	CHECK_EQ(ww->findMode("2ch2")->channelCount(), size_t(2));
+	CHECK_EQ(ww->findMode("3ch1")->channelCount(), size_t(3));
+	CHECK_EQ(ww->findMode("3ch2")->channelCount(), size_t(3));
+	CHECK_EQ(ww->findMode("3ch3")->channelCount(), size_t(3));
+	CHECK_EQ(ww->findMode("4ch")->channelCount(), size_t(4));
+	CHECK_EQ(ww->findMode("6ch")->channelCount(), size_t(6));
+
+	// Le 6Ch est le seul qui offre a la fois gradateur, strobe et RVB.
+	CHECK(ww->preferredMode()->id == "6ch");
+}
+
+TEST(wild_wash_6ch_pilote_bien_le_rouge_le_vert_et_le_bleu)
+{
+	std::vector<std::string> warnings;
+	const auto library = loadShipped(warnings);
+	const auto *mode = library.find("stairville-wild-wash-rgb")->findMode("6ch");
+
+	LightState state;
+	state.intensity = 1.0f;
+	state.colorMix = 1.0f;
+	state.hue = 120.0f; // vert
+	state.saturation = 1.0f;
+
+	const auto values = renderState(*mode, state);
+	CHECK_EQ(values.size(), size_t(6));
+	CHECK_EQ(values[0], 255); // intensite
+	CHECK_EQ(values[2], 0);   // rouge
+	CHECK_EQ(values[3], 255); // vert
+	CHECK_EQ(values[4], 0);   // bleu
+	CHECK_EQ(values[5], 0);   // commande sonore de l'appareil : laissee coupee
+}
+
+TEST(wild_wash_le_strobe_ne_commence_pas_au_meme_endroit_selon_le_mode)
+{
+	std::vector<std::string> warnings;
+	const auto library = loadShipped(warnings);
+	const auto *ww = library.find("stairville-wild-wash-rgb");
+
+	LightState state;
+	state.intensity = 1.0f;
+
+	// Sans strobe, les deux modes laissent les diodes allumees (0-5), et non
+	// dans la zone de noir (6-10).
+	CHECK_EQ(renderState(*ww->findMode("6ch"), state)[1], 0);
+	CHECK_EQ(renderState(*ww->findMode("3ch2"), state)[1], 0);
+
+	state.strobeHz = 0.1f;
+
+	// En 3Ch2 la plage de strobe demarre a 11.
+	const int simple = renderState(*ww->findMode("3ch2"), state)[1];
+	CHECK(simple >= 11 && simple <= 14);
+
+	// En 6Ch, les valeurs 11 a 127 sont prises par les effets aleatoires de
+	// l'appareil : le strobe regulier ne commence qu'a 128. Confondre les deux
+	// declencherait un effet aleatoire au lieu d'un strobe.
+	const int etendu = renderState(*ww->findMode("6ch"), state)[1];
+	CHECK(etendu >= 128 && etendu <= 131);
+
+	// A pleine vitesse, les deux plafonnent a 250, pas a 255 : au-dela
+	// l'appareil repasse en eclairage fixe.
+	state.strobeHz = 30.0f;
+	CHECK_EQ(renderState(*ww->findMode("3ch2"), state)[1], 250);
+	CHECK_EQ(renderState(*ww->findMode("6ch"), state)[1], 250);
+}
+
+TEST(wild_wash_la_macro_de_couleurs_par_defaut_ne_laisse_pas_l_appareil_noir)
+{
+	std::vector<std::string> warnings;
+	const auto library = loadShipped(warnings);
+	const auto *ww = library.find("stairville-wild-wash-rgb");
+
+	LightState state;
+	state.intensity = 1.0f;
+
+	// Le canal de macro n'est pas pilote par une intention lumineuse. A zero
+	// il vaut « noir » : le projecteur resterait eteint quoi qu'on fasse du
+	// gradateur. Le profil le laisse donc sur le blanc.
+	for (const char *modeId : {"2ch1", "3ch2", "4ch"}) {
+		const auto *mode = ww->findMode(modeId);
+		const int macro = mode->findRole(ChannelRole::ColorWheel);
+		CHECK(macro >= 0);
+		if (macro >= 0) {
+			const int value = renderState(*mode, state)[static_cast<size_t>(macro)];
+			CHECK(value >= 110 && value <= 117); // plage « White » de la notice
+		}
+	}
+}
+
+TEST(profil_wild_wash_blanc_n_expose_ni_couleur_ni_temperature)
+{
+	std::vector<std::string> warnings;
+	const auto library = loadShipped(warnings);
+
+	const auto *ww = library.find("stairville-wild-wash-132-white");
+	CHECK(ww != nullptr);
+	if (!ww)
+		return;
+
+	CHECK_EQ(ww->modes.size(), size_t(3));
+	for (const auto &mode : ww->modes) {
+		// L'appareil est en blanc froid fixe : rien a piloter de ce cote.
+		CHECK(!mode.hasRole(ChannelRole::Red));
+		CHECK(!mode.hasRole(ChannelRole::Hue));
+		CHECK(!mode.hasRole(ChannelRole::Cct));
+	}
+
+	CHECK(ww->findMode("2ch")->hasRole(ChannelRole::Dimmer));
+	CHECK(ww->findMode("2ch")->hasRole(ChannelRole::Strobe));
+}

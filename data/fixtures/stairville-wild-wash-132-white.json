@@ -1,0 +1,67 @@
+{
+  "id": "stairville-wild-wash-132-white",
+  "manufacturer": "Stairville",
+  "model": "Wild Wash 132 LED White",
+  "default_mode": "2ch",
+  "note": "Article Thomann 399663. Blanc froid 6000 K non reglable : cet appareil n'a ni couleur ni temperature pilotable, seulement une intensite et un strobe.",
+  "modes": [
+    {
+      "id": "2ch",
+      "label": "Mode 2Ch — Intensité, strobe (2 canaux)",
+      "channels": [
+        {
+          "role": "dimmer",
+          "label": "Intensité"
+        },
+        {
+          "role": "strobe",
+          "label": "Strobe",
+          "range_min": 11,
+          "range_max": 250,
+          "off": 0,
+          "physical_min": 0,
+          "physical_max": 30
+        }
+      ]
+    },
+    {
+      "id": "3ch2",
+      "label": "Mode 3Ch2 — Intensité, strobe et effets, son (3 canaux)",
+      "channels": [
+        {
+          "role": "dimmer",
+          "label": "Intensité"
+        },
+        {
+          "role": "strobe",
+          "label": "Strobe et effets aléatoires",
+          "range_min": 128,
+          "range_max": 250,
+          "off": 0,
+          "physical_min": 0,
+          "physical_max": 30
+        },
+        {
+          "role": "unused",
+          "label": "Commande sonore intégrée de l'appareil (0 = désactivée)",
+          "default": 0
+        }
+      ]
+    },
+    {
+      "id": "1ch",
+      "label": "Mode 1Ch — Strobe seul (1 canal)",
+      "channels": [
+        {
+          "role": "strobe",
+          "label": "Strobe (0-10 éteint, 11-255 de 0 à 30 Hz)",
+          "range_min": 11,
+          "range_max": 255,
+          "off": 0,
+          "physical_min": 0,
+          "physical_max": 30
+        }
+      ]
+    }
+  ]
+}
