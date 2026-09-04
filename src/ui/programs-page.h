@@ -84,6 +84,7 @@ private:
 
 	QListWidget *effects_ = nullptr;
 	EffectEditor *effectEditor_ = nullptr;
+	QPushButton *addEffectButton_ = nullptr;
 	QPushButton *removeEffectButton_ = nullptr;
 
 	QTableWidget *scenes_ = nullptr;

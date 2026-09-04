@@ -149,9 +149,9 @@ ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvi
 	effectListColumn->addWidget(effects_, 1);
 
 	auto *effectButtons = new QHBoxLayout();
-	auto *addEffectButton = new QPushButton(tr_("Programs.Effects.Add"), effectBox);
+	addEffectButton_ = new QPushButton(tr_("Programs.Effects.Add"), effectBox);
 	removeEffectButton_ = new QPushButton(tr_("Programs.Effects.Remove"), effectBox);
-	effectButtons->addWidget(addEffectButton);
+	effectButtons->addWidget(addEffectButton_);
 	effectButtons->addWidget(removeEffectButton_);
 	effectListColumn->addLayout(effectButtons);
 	effectLayout->addLayout(effectListColumn);
@@ -182,6 +182,12 @@ ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvi
 	connect(removeButton_, &QPushButton::clicked, this, &ProgramsPage::removeProgram);
 	connect(fixtures_, &QListWidget::itemSelectionChanged, this, &ProgramsPage::onFixtureSelectionChanged);
 	connect(fixtures_, &QListWidget::itemChanged, this, &ProgramsPage::onFixtureChecked);
+
+	connect(effects_, &QListWidget::currentRowChanged, this, [this](int) { onEffectSelected(); });
+	connect(effects_, &QListWidget::itemChanged, this, &ProgramsPage::onEffectToggled);
+	connect(addEffectButton_, &QPushButton::clicked, this, &ProgramsPage::addEffect);
+	connect(removeEffectButton_, &QPushButton::clicked, this, &ProgramsPage::removeEffect);
+	connect(effectEditor_, &EffectEditor::effectChanged, this, &ProgramsPage::onEffectChanged);
 
 	for (SliderRow *slider : {intensity_, colorMix_, hue_, saturation_, cct_, greenMagenta_, strobe_})
 		connect(slider, &SliderRow::valueChanged, this, &ProgramsPage::onLightChanged);
@@ -322,6 +328,10 @@ void ProgramsPage::onProgramSelected()
 	controls_->setEnabled(hasProgram);
 	fixtures_->setEnabled(hasProgram);
 	removeButton_->setEnabled(hasProgram);
+	// Un effet appartient a un programme : sans programme choisi, il n'y a
+	// nulle part ou le mettre.
+	addEffectButton_->setEnabled(hasProgram);
+	effects_->setEnabled(hasProgram);
 
 	{
 		const QSignalBlocker blocker(fixtures_);
