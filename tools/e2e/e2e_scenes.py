@@ -1,11 +1,11 @@
-"""Pilote OBS par websocket et observe le DMX qui en sort."""
+"""Drives OBS over websocket and watches the DMX that comes out."""
 import base64, hashlib, json, socket, struct, threading, time, sys
 from urllib.request import urlopen  # noqa: F401  (garde stdlib only)
 
 PASSWORD = sys.argv[1]
 PORT = 4455
 
-# --- recepteur Art-Net, en tache de fond -----------------------------------
+# --- Art-Net receiver, in the background -----------------------------------
 latest = {"slots": None, "count": 0}
 stop = threading.Event()
 
@@ -25,7 +25,7 @@ def listen():
 
 threading.Thread(target=listen, daemon=True).start()
 
-# --- client websocket minimal (obs-websocket v5) ---------------------------
+# --- minimal websocket client (obs-websocket v5) ---------------------------
 class WS:
     def __init__(self, host, port):
         self.sock = socket.create_connection((host, port), timeout=10)
@@ -53,7 +53,7 @@ class WS:
     def _read(self, n):
         while len(self.buf) < n:
             chunk = self.sock.recv(65536)
-            if not chunk: raise ConnectionError("ferme")
+            if not chunk: raise ConnectionError("closed")
             self.buf += chunk
         out, self.buf = self.buf[:n], self.buf[n:]
         return out
@@ -74,8 +74,8 @@ if auth:
     identify["d"]["authentication"] = base64.b64encode(
         hashlib.sha256((secret + auth["challenge"]).encode()).digest()).decode()
 ws.send(identify)
-assert ws.recv()["op"] == 2, "identification refusee"
-print("connecte a obs-websocket")
+assert ws.recv()["op"] == 2, "identification refused"
+print("connected to obs-websocket")
 
 def request(kind, data=None):
     rid = str(time.time())
@@ -86,7 +86,7 @@ def request(kind, data=None):
             return msg["d"]
 
 scenes = request("GetSceneList")["responseData"]
-print("scenes :", [s["sceneName"] for s in scenes["scenes"]])
+print("scenes:", [s["sceneName"] for s in scenes["scenes"]])
 
 def switch(scene, settle=1.2):
     request("SetCurrentProgramScene", {"sceneName": scene})
@@ -101,7 +101,7 @@ def snapshot(label, scene):
     return slots
 
 def sample(scene, count, interval):
-    """Plusieurs releves successifs, pour observer ce qui bouge dans le temps."""
+    """Several successive readings, to watch what moves over time."""
     switch(scene)
     out = []
     for _ in range(count):
@@ -109,92 +109,92 @@ def sample(scene, count, interval):
         time.sleep(interval)
     return out
 
-a = snapshot("Programme 1 : plateau chaud", "Plateau")
-b = snapshot("Programme 2 : interview bleue", "Interview")
-c = snapshot("Retour au plateau", "Plateau")
+a = snapshot("Programme 1: warm stage look", "Plateau")
+b = snapshot("Programme 2: blue interview", "Interview")
+c = snapshot("Back to the stage look", "Plateau")
 
-# --- effets ---------------------------------------------------------------
-print("\n--- Chaser ---")
-chase = sample("Chaser", 12, 0.12)
-# Les intensites des quatre projecteurs, adresses 1, 11, 21, 31.
-motifs = {tuple(t[a] for a in (0, 10, 20, 30)) for t in chase}
-for m in sorted(motifs):
-    print(f"  motif {m}")
+# --- effects ---------------------------------------------------------------
+print("\n--- Chase ---")
+chase = sample("Chase", 12, 0.12)
+# Intensities of the four fixtures, at addresses 1, 11, 21, 31.
+patterns = {tuple(t[a] for a in (0, 10, 20, 30)) for t in chase}
+for m in sorted(patterns):
+    print(f"  pattern {m}")
 
 print("\n--- Strobe sur fond bleu ---")
-strobe = snapshot("Strobe materiel", "Strobe")
+strobe = snapshot("Hardware strobe", "Strobe")
 
-print("\n--- Effet embarque ---")
-fxslots = snapshot("Orage dans la lampe", "EffetIntegre")
+print("\n--- Built-in effect ---")
+fxslots = snapshot("Lightning inside the fixture", "EffetIntegre")
 print(f"  T4c effets, canaux 100-108: {fxslots[99:108]}")
 
-print("\n--- Canaux saisis a la main ---")
-manuel = snapshot("Canaux forces", "FxManuel")
+print("\n--- Hand-entered channels ---")
+manuel = snapshot("Forced channels", "FxManuel")
 
-print("\n--- Reaction au son ---")
-# Meme programme, sans source sonore : le temoin.
+print("\n--- Sound reaction ---")
+# Same programme, no sound source: the control.
 silence = sample("Silence", 3, 0.3)[-1]
-print(f"  temoin silencieux, canaux 1-9 : {silence[0:9]}")
+print(f"  silent control, channels 1-9 : {silence[0:9]}")
 musique = sample("Musique", 14, 0.25)
 niveaux = [t[0] for t in musique]
-print(f"  intensites relevees : {niveaux}")
+print(f"  intensities read : {niveaux}")
 
-print(f"\ntrames Art-Net recues : {latest['count']}")
+print(f"\nArt-Net frames received : {latest['count']}")
 stop.set(); time.sleep(0.4)
 
-# --- verifications ---------------------------------------------------------
+# --- checks ----------------------------------------------------------------
 ok = True
 def check(label, cond):
     global ok
-    print(f"  {'OK  ' if cond else 'ECHEC'} {label}")
+    print(f"  {'OK  ' if cond else 'FAIL'} {label}")
     ok = ok and cond
 
-print("\nverifications :")
-check("le changement de scene change bien le DMX", a != b)
-check("revenir a la scene rejoue le meme etat", a == c)
-# Plateau : blanc 3200 K, pleine intensite, fondu couleur ferme.
-check("plateau — intensite a fond", a[0] == 255)
-check("plateau — fondu vers la couleur ferme", a[3] == 0)
-check("plateau — saturation nulle", a[5] == 0)
-check("plateau — 3200 K sur la plage 2500-7500", abs(a[1] - 36) <= 2)
-# Interview : bleu sature a 60 %.
-check("interview — intensite a 60 %", abs(b[0] - 153) <= 2)
-check("interview — fondu vers la couleur ouvert", b[3] == 255)
-check("interview — teinte bleue (240 degres)", abs(b[4] - 170) <= 2)
-check("interview — saturation maximale", b[5] == 255)
-# Les deux projecteurs doivent recevoir la meme chose, a 9 canaux d'ecart.
-check("les deux projecteurs sont pilotes a l'identique", a[0:9] == a[10:19] and b[0:9] == b[10:19])
-# Le vert/magenta neutre du T4c est a 132, pas au milieu de 0-255.
-check("vert/magenta au neutre constructeur (132)", a[2] == 132 and b[2] == 132)
-check("strobe eteint", a[8] == 0 and b[8] == 0)
+print("\nchecks:")
+check("switching scene really does change the DMX", a != b)
+check("returning to a scene replays the same state", a == c)
+# Stage look: 3200 K white, full intensity, colour crossfade closed.
+check("stage look - intensity at full", a[0] == 255)
+check("stage look - colour crossfade closed", a[3] == 0)
+check("stage look - zero saturation", a[5] == 0)
+check("stage look - 3200 K over the 2500-7500 range", abs(a[1] - 36) <= 2)
+# Interview: saturated blue at 60%.
+check("interview - intensity at 60%", abs(b[0] - 153) <= 2)
+check("interview - colour crossfade open", b[3] == 255)
+check("interview - blue hue (240 degrees)", abs(b[4] - 170) <= 2)
+check("interview - full saturation", b[5] == 255)
+# Both fixtures must receive the same thing, nine channels apart.
+check("both fixtures are driven identically", a[0:9] == a[10:19] and b[0:9] == b[10:19])
+# The T4c's green/magenta neutral is at 132, not the middle of 0-255.
+check("green/magenta at the manufacturer's neutral (132)", a[2] == 132 and b[2] == 132)
+check("strobe off", a[8] == 0 and b[8] == 0)
 
-print("\neffets :")
-# Un chaser a deux pas sur quatre projecteurs : un sur deux allume, et le motif
-# doit s'inverser au fil du temps.
-check("le chaser alterne un projecteur sur deux", (255, 0, 255, 0) in motifs or (0, 255, 0, 255) in motifs)
-check("le chaser se deplace dans le temps", len(motifs) >= 2)
+print("\neffects:")
+# A two-step chase over four fixtures: every other one lit, and the pattern must
+# invert over time.
+check("the chase alternates every other fixture", (255, 0, 255, 0) in patterns or (0, 255, 0, 255) in patterns)
+check("the chase moves over time", len(patterns) >= 2)
 
-# Le T4c a un canal de strobe : il doit etre pilote plutot que module par nous.
-check("le strobe passe par le canal materiel", strobe[8] >= 20)
-check("le strobe garde le fond allume", strobe[0] > 0)
-check("le strobe garde la couleur du programme", strobe[3] == 255 and abs(strobe[4] - 170) <= 2)
+# The T4c has a strobe channel: it should be driven rather than modulated by us.
+check("the strobe goes through the hardware channel", strobe[8] >= 20)
+check("the strobe keeps the background lit", strobe[0] > 0)
+check("the strobe keeps the programme's colour", strobe[3] == 255 and abs(strobe[4] - 170) <= 2)
 
-# Mode FX : canal 3 du bloc, soit l'adresse 102, porte le choix de l'effet.
-check("l'effet embarque selectionne l'orage", fxslots[101] == 15)
-check("l'effet embarque est lance, pas arrete", fxslots[100] < 10)
-check("la vitesse de l'effet est ecrite", 30 <= fxslots[104] <= 39)
+# FX mode: channel 3 of the block, address 102, carries the effect selection.
+check("the built-in effect selects lightning", fxslots[101] == 15)
+check("the built-in effect is running, not stopped", fxslots[100] < 10)
+check("the effect's rate is written", 30 <= fxslots[104] <= 39)
 
-check("le canal 5 saisi a la main sort a 200", manuel[4] == 200)
-check("le canal 6 saisi a la main sort a 111", manuel[5] == 111)
-# Le canal 99 depasse les 9 canaux du T4c : l'ecrire piloterait son voisin.
-check("un canal hors de l'appareil n'ecrase pas son voisin", manuel[9] == 0 and manuel[98] == 0)
+check("hand-entered channel 5 comes out at 200", manuel[4] == 200)
+check("hand-entered channel 6 comes out at 111", manuel[5] == 111)
+# Channel 99 is past the T4c's 9 channels: writing it would drive its neighbour.
+check("a channel past the fixture does not overwrite its neighbour", manuel[9] == 0 and manuel[98] == 0)
 
-check("le meme programme sans son laisse la lumiere eteinte", silence[0] == 0)
-check("avec le son, la lumiere s'allume", max(niveaux) > 60)
-# La couleur propre a l'effet doit sortir, et non celle du programme.
+check("the same programme without sound leaves the lights out", silence[0] == 0)
+check("with sound, the lights come up", max(niveaux) > 60)
+# The effect's own colour must come out, not the programme's.
 teintes = [t[4] for t in musique if t[0] > 60]
-check("l'effet impose bien sa propre couleur (magenta)",
+check("the effect does impose its own colour (magenta)",
       bool(teintes) and all(abs(h - 212) <= 3 for h in teintes))
 
-print("\nRESULTAT :", "tout est conforme" if ok else "AU MOINS UNE VERIFICATION A ECHOUE")
+print("\nRESULT:", "everything checks out" if ok else "AT LEAST ONE CHECK FAILED")
 sys.exit(0 if ok else 1)

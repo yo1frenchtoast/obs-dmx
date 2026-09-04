@@ -26,8 +26,8 @@ MODULE_EXPORT const char *obs_module_name(void)
 
 namespace {
 
-/// Ces objets vivent aussi longtemps que le module. Le dock, lui, appartient a
-/// OBS des qu'il est enregistre : on ne le detruit pas nous-memes.
+/// These objects live as long as the module. The dock belongs to OBS the moment
+/// it is registered, so we never destroy it ourselves.
 std::unique_ptr<obsdmx::FixtureLibrary> g_library;
 std::unique_ptr<obsdmx::DmxEngine> g_engine;
 std::unique_ptr<obsdmx::Show> g_show;
@@ -40,9 +40,15 @@ void loadFixtureLibrary()
 {
 	g_library = std::make_unique<obsdmx::FixtureLibrary>();
 
+	// Profiles carry their own labels and so cannot go through the module's
+	// translation file: we tell them which language to pick among those they
+	// declare.
+	if (const char *locale = obs_get_locale())
+		g_library->setLanguage(locale);
+
 	char *path = obs_module_file("fixtures");
 	if (!path) {
-		blog(LOG_ERROR, "[obs-dmx] dossier de profils introuvable : la bibliotheque sera vide");
+		blog(LOG_ERROR, "[obs-dmx] fixture directory not found: the library will be empty");
 		return;
 	}
 
@@ -53,14 +59,14 @@ void loadFixtureLibrary()
 	for (const auto &warning : warnings)
 		blog(LOG_WARNING, "[obs-dmx] %s", warning.c_str());
 
-	blog(LOG_INFO, "[obs-dmx] %zu profil(s) de projecteur charge(s)", count);
+	blog(LOG_INFO, "[obs-dmx] %zu fixture profile(s) loaded", count);
 }
 
 void onBlackoutHotkey(void *, obs_hotkey_id, obs_hotkey_t *, bool pressed)
 {
 	if (!pressed || !g_dock)
 		return;
-	// Le raccourci bascule : un unique geste pour couper et pour rallumer.
+	// The hotkey toggles: one gesture to kill the lights and to bring them back.
 	g_dock->setBlackout(!g_engine->blackout());
 }
 
@@ -78,7 +84,7 @@ bool obs_module_load(void)
 
 	g_dock = new obsdmx::DmxDock(*g_engine, *g_show, *g_library, *g_audio);
 	if (!obs_frontend_add_dock_by_id("obs-dmx-dock", obs_module_text("Dock.Title"), g_dock)) {
-		blog(LOG_ERROR, "[obs-dmx] echec de l'enregistrement du dock");
+		blog(LOG_ERROR, "[obs-dmx] failed to register the dock");
 		delete g_dock;
 		g_dock = nullptr;
 		g_audio.reset();
@@ -100,7 +106,7 @@ bool obs_module_load(void)
 
 	g_engine->start();
 
-	blog(LOG_INFO, "[obs-dmx] charge (version %s)", PLUGIN_VERSION);
+	blog(LOG_INFO, "[obs-dmx] loaded (version %s)", PLUGIN_VERSION);
 	return true;
 }
 
@@ -111,15 +117,15 @@ void obs_module_unload(void)
 		g_blackoutHotkey = OBS_INVALID_HOTKEY_ID;
 	}
 
-	// L'ordre compte : on coupe d'abord les evenements, puis le thread du
-	// moteur, avant de liberer ce qu'ils utilisent.
+	// Order matters: stop the events first, then the engine thread, before
+	// releasing what they use.
 	g_binder.reset();
 
 	if (g_engine)
 		g_engine->stop();
 
-	// La prise audio s'arrete avant le moteur : le rappel temps reel ne doit
-	// plus pouvoir arriver quand l'analyseur disparait.
+	// The audio tap stops before the engine: the real-time callback must no
+	// longer be able to fire once the analyser goes away.
 	if (g_audio)
 		g_audio->stop();
 
@@ -129,5 +135,5 @@ void obs_module_unload(void)
 	g_show.reset();
 	g_library.reset();
 
-	blog(LOG_INFO, "[obs-dmx] decharge");
+	blog(LOG_INFO, "[obs-dmx] unloaded");
 }

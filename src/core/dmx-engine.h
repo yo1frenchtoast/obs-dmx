@@ -14,19 +14,19 @@
 
 namespace obsdmx {
 
-/// Cadence de rafraichissement DMX. 40 Hz est la valeur usuelle : au-dela le
-/// gain est nul, en deca les fondus deviennent visiblement saccades.
+/// DMX refresh rate. 40 Hz is the usual value: above it there is nothing to
+/// gain, below it fades become visibly steppy.
 inline constexpr auto kTickPeriod = std::chrono::milliseconds(25);
 
-/// Le moteur : un thread a cadence fixe qui, a chaque tick, fait rendre les
-/// programmes dans les univers puis pousse ceux-ci vers les sorties.
+/// The engine: a fixed-rate thread that, on every tick, renders the programmes
+/// into the universes and then pushes those to the outputs.
 ///
-/// Le thread audio d'OBS n'appelle jamais rien d'ici : il se contente d'ecrire
-/// des atomiques que le rendu vient lire.
+/// OBS's audio thread never calls anything here: it only writes atomics that the
+/// render reads.
 class DmxEngine {
 public:
-	/// Rendu d'une trame. Recoit les univers remis a zero, a charge pour la
-	/// fonction de les remplir. now sert aux effets temporels.
+	/// Renders one frame. Receives the universes cleared to zero and is
+	/// expected to fill them. now drives the time-based effects.
 	using RenderFn = std::function<void(std::vector<Universe> &, std::chrono::steady_clock::time_point now)>;
 
 	DmxEngine();
@@ -39,12 +39,12 @@ public:
 	void stop();
 	bool running() const { return running_.load(std::memory_order_relaxed); }
 
-	/// Nombre d'univers gerés. Redimensionne a chaud.
+	/// Number of universes handled. Resizes on the fly.
 	void setUniverseCount(size_t count);
 	size_t universeCount() const;
 
-	/// Numero DMX d'un univers. C'est lui qui part dans l'en-tete Art-Net,
-	/// il doit correspondre a celui configure sur le boitier.
+	/// DMX number of a universe. This is what goes into the Art-Net header, so
+	/// it must match what the node is configured for.
 	void setUniverseId(size_t index, uint16_t id);
 
 	void setRenderFn(RenderFn fn);
@@ -52,14 +52,14 @@ public:
 	void addOutput(std::shared_ptr<DmxOutput> output);
 	void clearOutputs();
 
-	/// Coupe tout : les univers sont emis a zero, le rendu est ignore.
+	/// Kills everything: universes are sent as zero and the render is skipped.
 	void setBlackout(bool on) { blackout_.store(on, std::memory_order_relaxed); }
 	bool blackout() const { return blackout_.load(std::memory_order_relaxed); }
 
-	/// Copie de l'etat courant des univers, pour l'affichage.
+	/// Copy of the current universes, for display.
 	std::vector<Universe> snapshot() const;
 
-	/// Nombre de trames emises depuis le demarrage, pour verifier la cadence.
+	/// Frames sent since start-up, to check the actual rate.
 	uint64_t framesSent() const { return frames_.load(std::memory_order_relaxed); }
 
 private:

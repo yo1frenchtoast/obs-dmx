@@ -12,48 +12,48 @@
 
 namespace obsdmx {
 
-/// Ce qu'un programme demande a un projecteur.
+/// What a programme asks of one fixture.
 struct FixtureLook {
 	std::string fixtureId;
 	LightState state;
 };
 
-/// Une ambiance lumineuse, associable a une scene OBS.
+/// A lighting look, attachable to an OBS scene.
 struct Program {
 	std::string id;
 	std::string name;
-	/// La base : les projecteurs non cites restent eteints.
+	/// The base: fixtures not listed stay dark.
 	std::vector<FixtureLook> looks;
-	/// Les effets s'empilent par-dessus la base, dans l'ordre.
+	/// Effects stack on top of the base, in order.
 	std::vector<Effect> effects;
 
 	const LightState *lookFor(const std::string &fixtureId) const;
 };
 
-/// Association entre une scene OBS et un programme.
+/// Attachment between an OBS scene and a programme.
 struct SceneBinding {
-	/// Identifiant unique de la scene OBS. On n'utilise pas son nom, qui
-	/// change des que l'utilisateur la renomme.
+	/// Unique identifier of the OBS scene. Not its name, which changes the
+	/// moment the user renames it.
 	std::string sceneUuid;
-	/// Dernier nom connu, uniquement pour l'affichage.
+	/// Last known name, for display only.
 	std::string sceneName;
 	std::string programId;
-	/// Duree du fondu a l'entree, en millisecondes.
+	/// Fade-in duration, in milliseconds.
 	int fadeMs = 500;
 };
 
-/// Le spectacle : les projecteurs, les programmes, et ce qui les declenche.
+/// The show: the fixtures, the programmes, and what triggers them.
 ///
-/// Cet objet est lu par le thread du moteur et modifie par l'interface : toutes
-/// ses methodes publiques prennent son verrou. Elles ne doivent jamais appeler
-/// le moteur en retour, sous peine d'interblocage.
+/// This object is read by the engine thread and modified by the interface, so
+/// every public method takes its lock. None of them may call back into the
+/// engine, on pain of deadlock.
 class Show {
 public:
 	using Clock = std::chrono::steady_clock;
 
 	explicit Show(const FixtureLibrary &library) : patch_(library) {}
 
-	/// Acces au patch. L'appelant doit tenir le verrou via withPatch().
+	/// Access to the patch. The caller holds the lock through withPatch().
 	template <typename Fn> auto withPatch(Fn &&fn)
 	{
 		std::lock_guard<std::mutex> lock(mutex_);
@@ -74,30 +74,30 @@ public:
 
 	std::vector<SceneBinding> bindings() const;
 	void setBindings(std::vector<SceneBinding> bindings);
-	/// Associe une scene a un programme. Un programme vide dissocie la scene.
+	/// Attaches a scene to a programme. An empty programme detaches the scene.
 	void bindScene(const std::string &sceneUuid, const std::string &sceneName, const std::string &programId,
 		       int fadeMs);
 	std::optional<SceneBinding> bindingFor(const std::string &sceneUuid) const;
 
-	/// Declenche le programme associe a cette scene, avec son fondu.
+	/// Triggers the programme attached to this scene, with its fade.
 	void activateScene(const std::string &sceneUuid, Clock::time_point now);
-	/// Declenche un programme directement, par exemple depuis un raccourci.
+	/// Triggers a programme directly, for instance from a hotkey.
 	void activateProgram(const std::string &programId, int fadeMs, Clock::time_point now);
 
 	std::string activeProgramId() const;
 
-	/// Programme en cours d'edition : il prend la main sur la sortie tant que
-	/// l'editeur est ouvert, pour que l'utilisateur voie ce qu'il fait.
+	/// Programme being edited: it takes over the output while the editor is
+	/// open, so the user can see what they are doing.
 	void setPreview(std::optional<Program> program);
 	bool hasPreview() const;
 
-	/// Rendu d'une trame. Appele depuis le thread du moteur.
+	/// Renders one frame. Called from the engine thread.
 	void render(std::vector<Universe> &universes, Clock::time_point now, const AudioSnapshot &audio);
 
 	void clear();
 
 private:
-	/// Etat courant de chaque projecteur, fige au debut d'une transition.
+	/// Current state of every fixture, frozen when a transition starts.
 	std::unordered_map<std::string, LightState> currentStates(Clock::time_point now) const;
 
 	void beginTransition(const std::string &programId, int fadeMs, Clock::time_point now);
@@ -111,7 +111,7 @@ private:
 	std::string activeProgramId_;
 	std::optional<Program> preview_;
 
-	/// Etats de depart du fondu en cours.
+	/// Starting states of the running fade.
 	std::unordered_map<std::string, LightState> fadeFrom_;
 	EffectRunner effects_;
 	Clock::time_point fadeStart_{};

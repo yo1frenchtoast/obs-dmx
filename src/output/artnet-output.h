@@ -8,16 +8,16 @@
 
 namespace obsdmx {
 
-/// Sortie Art-Net (ArtDMX) en UDP.
+/// Art-Net (ArtDMX) output over UDP.
 ///
-/// Art-Net numerote les univers sur 15 bits : les 8 bits bas forment le
-/// SubUni, les 7 bits hauts le Net. On expose a l'utilisateur un simple
-/// numero 0-32767 et on fait la decomposition ici.
+/// Art-Net numbers universes on 15 bits: the low 8 form the SubUni, the high 7
+/// the Net. The user is shown a plain 0-32767 number and the split happens
+/// here.
 class ArtnetOutput final : public DmxOutput {
 public:
 	static constexpr uint16_t kPort = 6454;
 
-	/// host : adresse du noeud, ou une adresse de diffusion.
+	/// host: the node's address, or a broadcast address.
 	ArtnetOutput(std::string host, uint16_t port = kPort);
 	~ArtnetOutput() override;
 
@@ -27,7 +27,7 @@ public:
 	void close() override;
 	void send(const Universe &universe) override;
 
-	/// Construit une trame ArtDMX complete. Expose pour les tests.
+	/// Builds a complete ArtDMX frame. Exposed for the tests.
 	static std::vector<uint8_t> buildPacket(uint16_t universeId, uint8_t sequence, const uint8_t *slots,
 						size_t slotCount);
 

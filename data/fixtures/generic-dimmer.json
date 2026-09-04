@@ -6,11 +6,17 @@
   "modes": [
     {
       "id": "1ch",
-      "label": "1 canal — Intensite",
+      "label": {
+        "en": "1 channel — Intensity",
+        "fr": "1 canal — Intensite"
+      },
       "channels": [
         {
           "role": "dimmer",
-          "label": "Intensite"
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensite"
+          }
         }
       ]
     }

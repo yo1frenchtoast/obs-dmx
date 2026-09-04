@@ -18,10 +18,9 @@ namespace obsdmx {
 class DmxEngine;
 class Universe;
 
-/// Reglages de sortie : protocole, destination, univers, plus un banc d'essai
-/// par canal. Ces reglages dependent de la machine et non du projet OBS : ils
-/// sont donc ranges dans la configuration du module, pas dans la collection de
-/// scenes.
+/// Output settings: protocol, destination, universe, plus a per-channel test
+/// bench. These depend on the machine rather than on the OBS project, so they
+/// live in the module's configuration and not in the scene collection.
 class OutputSettingsPage : public QWidget {
 	Q_OBJECT
 
@@ -31,12 +30,11 @@ public:
 	void load();
 	void save() const;
 
-	/// Ouvre la sortie choisie et la donne au moteur.
+	/// Opens the chosen output and hands it to the engine.
 	void applyToEngine();
 
-	/// Injecte la valeur du banc d'essai. Appele depuis le thread du moteur,
-	/// donc uniquement a travers des atomiques : lire un widget Qt hors du
-	/// thread graphique n'est pas sur.
+	/// Injects the test bench value. Called from the engine thread, so only
+	/// through atomics: reading a Qt widget off the GUI thread is not safe.
 	void renderTest(Universe &universe) const;
 
 private slots:
@@ -59,15 +57,15 @@ private:
 	QCheckBox *enabled_ = nullptr;
 	QLabel *status_ = nullptr;
 
-	// Les lignes du formulaire, pour n'afficher que celles qui concernent le
-	// protocole choisi.
+	// The form rows, so only those relevant to the chosen protocol are
+	// shown.
 	QWidget *hostLabel_ = nullptr;
 	QWidget *universeLabel_ = nullptr;
 	QWidget *priorityLabel_ = nullptr;
 	QWidget *serialLabel_ = nullptr;
 
-	/// Identifiant de source sACN, tire une fois puis conserve : deux sources
-	/// partageant un CID se perturbent mutuellement.
+	/// sACN source identifier, drawn once and then kept: two sources sharing a
+	/// CID interfere with each other.
 	std::array<uint8_t, 16> sacnCid_{};
 
 	QCheckBox *testEnabledBox_ = nullptr;
@@ -75,7 +73,7 @@ private:
 	QSlider *testValueSlider_ = nullptr;
 	QLabel *testValueLabel_ = nullptr;
 
-	// Partages avec le thread du moteur.
+	// Shared with the engine thread.
 	std::atomic<bool> testEnabled_{false};
 	std::atomic<int> testChannel_{1};
 	std::atomic<int> testValue_{0};

@@ -1,4 +1,5 @@
 #include "ui/dmx-dock.h"
+#include "ui/localized.h"
 
 #include "core/dmx-engine.h"
 #include "audio/obs-audio-tap.h"
@@ -18,24 +19,19 @@ namespace obsdmx {
 
 namespace {
 
-QString tr_(const char *key)
-{
-	return QString::fromUtf8(obs_module_text(key));
-}
-
-/// Rend une page defilante.
+/// Makes a page scrollable.
 ///
-/// Le dock est etroit et haut, et son contenu depasse souvent la hauteur
-/// disponible. Sans cela, Qt comprime tout : les tableaux sont ecrases a rien
-/// et les textes explicatifs sont coupes en plein milieu.
+/// The dock is narrow and tall, and its content often exceeds the height
+/// available. Without this Qt squeezes everything: tables are crushed to nothing
+/// and explanatory text is cut off mid-sentence.
 QScrollArea *scrollable(QWidget *page, QWidget *parent)
 {
 	auto *area = new QScrollArea(parent);
 	area->setWidget(page);
-	// La page suit la largeur du dock ; seule la hauteur defile.
+	// The page follows the dock's width; only the height scrolls.
 	area->setWidgetResizable(true);
-	// Jamais AlwaysOff : si un contenu depasse malgre tout en largeur, il
-	// serait coupe sans aucun moyen d'y acceder.
+	// Never AlwaysOff: if something still overflows horizontally it would be
+	// clipped with no way to reach it.
 	area->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 	area->setFrameShape(QFrame::NoFrame);
 	return area;
@@ -64,13 +60,12 @@ DmxDock::DmxDock(DmxEngine &engine, Show &show, const FixtureLibrary &library, O
 	connect(blackoutButton_, &QPushButton::clicked, this, &DmxDock::toggleBlackout);
 	layout->addWidget(blackoutButton_);
 
-	// Ajouter ou deplacer un projecteur change la liste que voit l'editeur
-	// de programmes.
+	// Adding or moving a fixture changes the list the programme editor
+	// shows.
 	connect(patchPage_, &PatchPage::patchChanged, programsPage_, &ProgramsPage::reloadFixtures);
 
-	// Le rendu tourne sur le thread du moteur. Le spectacle prend son propre
-	// verrou ; le banc d'essai passe par des atomiques. Aucun widget n'est
-	// touche ici.
+	// The render runs on the engine thread. The show takes its own lock; the
+	// test bench goes through atomics. No widget is touched here.
 	engine_.setRenderFn([this](std::vector<Universe> &universes, std::chrono::steady_clock::time_point now) {
 		show_.render(universes, now, audio_.snapshot());
 		outputPage_->renderTest(universes[0]);
@@ -79,8 +74,8 @@ DmxDock::DmxDock(DmxEngine &engine, Show &show, const FixtureLibrary &library, O
 
 DmxDock::~DmxDock()
 {
-	// Le moteur survit au dock : on retire le rendu avant que les pages ne
-	// disparaissent, sinon le thread appellerait des objets detruits.
+	// The engine outlives the dock: drop the render before the pages go away,
+	// otherwise the thread would call into destroyed objects.
 	engine_.setRenderFn(nullptr);
 }
 

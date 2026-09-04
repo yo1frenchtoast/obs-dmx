@@ -6,63 +6,105 @@
   "modes": [
     {
       "id": "3ch",
-      "label": "3 canaux — RVB",
+      "label": {
+        "en": "3 channels — RVB",
+        "fr": "3 canaux — RVB"
+      },
       "channels": [
         {
           "role": "red",
-          "label": "Rouge"
+          "label": {
+            "en": "Red",
+            "fr": "Rouge"
+          }
         },
         {
           "role": "green",
-          "label": "Vert"
+          "label": {
+            "en": "Green",
+            "fr": "Vert"
+          }
         },
         {
           "role": "blue",
-          "label": "Bleu"
+          "label": {
+            "en": "Blue",
+            "fr": "Bleu"
+          }
         }
       ]
     },
     {
       "id": "4ch",
-      "label": "4 canaux — Intensite + RVB",
+      "label": {
+        "en": "4 channels — Intensity + RVB",
+        "fr": "4 canaux — Intensite + RVB"
+      },
       "channels": [
         {
           "role": "dimmer",
-          "label": "Intensite"
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensite"
+          }
         },
         {
           "role": "red",
-          "label": "Rouge"
+          "label": {
+            "en": "Red",
+            "fr": "Rouge"
+          }
         },
         {
           "role": "green",
-          "label": "Vert"
+          "label": {
+            "en": "Green",
+            "fr": "Vert"
+          }
         },
         {
           "role": "blue",
-          "label": "Bleu"
+          "label": {
+            "en": "Blue",
+            "fr": "Bleu"
+          }
         }
       ]
     },
     {
       "id": "6ch",
-      "label": "6 canaux — Intensite, RVB, strobe",
+      "label": {
+        "en": "6 channels — Intensity, RVB, strobe",
+        "fr": "6 canaux — Intensite, RVB, strobe"
+      },
       "channels": [
         {
           "role": "dimmer",
-          "label": "Intensite"
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensite"
+          }
         },
         {
           "role": "red",
-          "label": "Rouge"
+          "label": {
+            "en": "Red",
+            "fr": "Rouge"
+          }
         },
         {
           "role": "green",
-          "label": "Vert"
+          "label": {
+            "en": "Green",
+            "fr": "Vert"
+          }
         },
         {
           "role": "blue",
-          "label": "Bleu"
+          "label": {
+            "en": "Blue",
+            "fr": "Bleu"
+          }
         },
         {
           "role": "strobe",
@@ -75,7 +117,10 @@
         },
         {
           "role": "unused",
-          "label": "Programmes internes"
+          "label": {
+            "en": "Built-in programmes",
+            "fr": "Programmes internes"
+          }
         }
       ]
     }

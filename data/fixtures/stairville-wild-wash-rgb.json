@@ -3,19 +3,31 @@
   "manufacturer": "Stairville",
   "model": "Wild Wash 132 / 648 LED RGB",
   "default_mode": "6ch",
-  "note": "Articles Thomann 399664 (132 LED) et 399658 (648 LED). Le mode se choisit sur l'ecran de l'appareil. Seuls les modes 3Ch3 et 6Ch exposent le rouge, le vert et le bleu : dans les autres, la couleur passe par une macro figee que le selecteur de couleur ne pilote pas.",
+  "note": {
+    "en": "Thomann items 399664 (132 LED) and 399658 (648 LED). The mode is chosen on the fixture's own screen. Only modes 3Ch3 and 6Ch expose red, green and blue: in the others the colour comes from a fixed macro that the colour picker cannot drive.",
+    "fr": "Articles Thomann 399664 (132 LED) et 399658 (648 LED). Le mode se choisit sur l'ecran de l'appareil. Seuls les modes 3Ch3 et 6Ch exposent le rouge, le vert et le bleu : dans les autres, la couleur passe par une macro figee que le selecteur de couleur ne pilote pas."
+  },
   "modes": [
     {
       "id": "6ch",
-      "label": "Mode 6Ch — Intensité, strobe, RVB, son (6 canaux)",
+      "label": {
+        "en": "Mode 6Ch — Intensity, strobe, RVB, sound (6 channels)",
+        "fr": "Mode 6Ch — Intensité, strobe, RVB, son (6 canaux)"
+      },
       "channels": [
         {
           "role": "dimmer",
-          "label": "Intensité"
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensité"
+          }
         },
         {
           "role": "strobe",
-          "label": "Strobe et effets aléatoires",
+          "label": {
+            "en": "Strobe and random effects",
+            "fr": "Strobe et effets aléatoires"
+          },
           "range_min": 128,
           "range_max": 250,
           "off": 0,
@@ -24,34 +36,55 @@
         },
         {
           "role": "red",
-          "label": "Rouge"
+          "label": {
+            "en": "Red",
+            "fr": "Rouge"
+          }
         },
         {
           "role": "green",
-          "label": "Vert"
+          "label": {
+            "en": "Green",
+            "fr": "Vert"
+          }
         },
         {
           "role": "blue",
-          "label": "Bleu"
+          "label": {
+            "en": "Blue",
+            "fr": "Bleu"
+          }
         },
         {
           "role": "unused",
-          "label": "Commande sonore intégrée de l'appareil (0 = désactivée)",
+          "label": {
+            "en": "Fixture's own sound control (0 = off)",
+            "fr": "Commande sonore intégrée de l'appareil (0 = désactivée)"
+          },
           "default": 0
         }
       ]
     },
     {
       "id": "4ch",
-      "label": "Mode 4Ch — Intensité, strobe, macro, son (4 canaux)",
+      "label": {
+        "en": "Mode 4Ch — Intensity, strobe, macro, sound (4 channels)",
+        "fr": "Mode 4Ch — Intensité, strobe, macro, son (4 canaux)"
+      },
       "channels": [
         {
           "role": "dimmer",
-          "label": "Intensité"
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensité"
+          }
         },
         {
           "role": "strobe",
-          "label": "Strobe et effets aléatoires",
+          "label": {
+            "en": "Strobe and random effects",
+            "fr": "Strobe et effets aléatoires"
+          },
           "range_min": 128,
           "range_max": 250,
           "off": 0,
@@ -60,41 +93,65 @@
         },
         {
           "role": "color_wheel",
-          "label": "Macro de couleurs (0 = noir, 110 = blanc)",
+          "label": {
+            "en": "Colour macro (0 = blackout, 110 = white)",
+            "fr": "Macro de couleurs (0 = noir, 110 = blanc)"
+          },
           "default": 110
         },
         {
           "role": "unused",
-          "label": "Commande sonore intégrée de l'appareil (0 = désactivée)",
+          "label": {
+            "en": "Fixture's own sound control (0 = off)",
+            "fr": "Commande sonore intégrée de l'appareil (0 = désactivée)"
+          },
           "default": 0
         }
       ]
     },
     {
       "id": "3ch3",
-      "label": "Mode 3Ch3 — RVB seul (3 canaux)",
+      "label": {
+        "en": "Mode 3Ch3 — RVB only (3 channels)",
+        "fr": "Mode 3Ch3 — RVB seul (3 canaux)"
+      },
       "channels": [
         {
           "role": "red",
-          "label": "Rouge"
+          "label": {
+            "en": "Red",
+            "fr": "Rouge"
+          }
         },
         {
           "role": "green",
-          "label": "Vert"
+          "label": {
+            "en": "Green",
+            "fr": "Vert"
+          }
         },
         {
           "role": "blue",
-          "label": "Bleu"
+          "label": {
+            "en": "Blue",
+            "fr": "Bleu"
+          }
         }
       ]
     },
     {
       "id": "3ch2",
-      "label": "Mode 3Ch2 — Intensité, strobe, macro (3 canaux)",
+      "label": {
+        "en": "Mode 3Ch2 — Intensity, strobe, macro (3 channels)",
+        "fr": "Mode 3Ch2 — Intensité, strobe, macro (3 canaux)"
+      },
       "channels": [
         {
           "role": "dimmer",
-          "label": "Intensité"
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensité"
+          }
         },
         {
           "role": "strobe",
@@ -107,18 +164,27 @@
         },
         {
           "role": "color_wheel",
-          "label": "Macro de couleurs (0 = noir, 110 = blanc)",
+          "label": {
+            "en": "Colour macro (0 = blackout, 110 = white)",
+            "fr": "Macro de couleurs (0 = noir, 110 = blanc)"
+          },
           "default": 110
         }
       ]
     },
     {
       "id": "3ch1",
-      "label": "Mode 3Ch1 — Intensité, strobe, éclair (3 canaux)",
+      "label": {
+        "en": "Mode 3Ch1 — Intensity, strobe, flash (3 channels)",
+        "fr": "Mode 3Ch1 — Intensité, strobe, éclair (3 canaux)"
+      },
       "channels": [
         {
           "role": "dimmer",
-          "label": "Intensité"
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensité"
+          }
         },
         {
           "role": "strobe",
@@ -131,18 +197,27 @@
         },
         {
           "role": "unused",
-          "label": "Durée de l'éclair (0 à 510 ms)",
+          "label": {
+            "en": "Flash duration (0 to 510 ms)",
+            "fr": "Durée de l'éclair (0 à 510 ms)"
+          },
           "default": 0
         }
       ]
     },
     {
       "id": "2ch2",
-      "label": "Mode 2Ch2 — Intensité, strobe (2 canaux)",
+      "label": {
+        "en": "Mode 2Ch2 — Intensity, strobe (2 channels)",
+        "fr": "Mode 2Ch2 — Intensité, strobe (2 canaux)"
+      },
       "channels": [
         {
           "role": "dimmer",
-          "label": "Intensité"
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensité"
+          }
         },
         {
           "role": "strobe",
@@ -157,26 +232,41 @@
     },
     {
       "id": "2ch1",
-      "label": "Mode 2Ch1 — Intensité, macro de couleurs (2 canaux)",
+      "label": {
+        "en": "Mode 2Ch1 — Intensity, macro de colours (2 channels)",
+        "fr": "Mode 2Ch1 — Intensité, macro de couleurs (2 canaux)"
+      },
       "channels": [
         {
           "role": "dimmer",
-          "label": "Intensité"
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensité"
+          }
         },
         {
           "role": "color_wheel",
-          "label": "Macro de couleurs (0 = noir, 110 = blanc)",
+          "label": {
+            "en": "Colour macro (0 = blackout, 110 = white)",
+            "fr": "Macro de couleurs (0 = noir, 110 = blanc)"
+          },
           "default": 110
         }
       ]
     },
     {
       "id": "1ch",
-      "label": "Mode 1Ch — Strobe seul (1 canal)",
+      "label": {
+        "en": "Mode 1Ch — Strobe only (1 channel)",
+        "fr": "Mode 1Ch — Strobe seul (1 canal)"
+      },
       "channels": [
         {
           "role": "strobe",
-          "label": "Strobe (0-10 éteint, 11-255 de 0 à 30 Hz)",
+          "label": {
+            "en": "Strobe (0-10 off, 11-255 from 0 to 30 Hz)",
+            "fr": "Strobe (0-10 éteint, 11-255 de 0 à 30 Hz)"
+          },
           "range_min": 11,
           "range_max": 255,
           "off": 0,

@@ -6,75 +6,126 @@
   "modes": [
     {
       "id": "4ch",
-      "label": "4 canaux — RVBB",
+      "label": {
+        "en": "4 channels — RVBB",
+        "fr": "4 canaux — RVBB"
+      },
       "channels": [
         {
           "role": "red",
-          "label": "Rouge"
+          "label": {
+            "en": "Red",
+            "fr": "Rouge"
+          }
         },
         {
           "role": "green",
-          "label": "Vert"
+          "label": {
+            "en": "Green",
+            "fr": "Vert"
+          }
         },
         {
           "role": "blue",
-          "label": "Bleu"
+          "label": {
+            "en": "Blue",
+            "fr": "Bleu"
+          }
         },
         {
           "role": "white",
-          "label": "Blanc"
+          "label": {
+            "en": "White",
+            "fr": "Blanc"
+          }
         }
       ]
     },
     {
       "id": "5ch",
-      "label": "5 canaux — Intensite + RVBB",
+      "label": {
+        "en": "5 channels — Intensity + RVBB",
+        "fr": "5 canaux — Intensite + RVBB"
+      },
       "channels": [
         {
           "role": "dimmer",
-          "label": "Intensite"
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensite"
+          }
         },
         {
           "role": "red",
-          "label": "Rouge"
+          "label": {
+            "en": "Red",
+            "fr": "Rouge"
+          }
         },
         {
           "role": "green",
-          "label": "Vert"
+          "label": {
+            "en": "Green",
+            "fr": "Vert"
+          }
         },
         {
           "role": "blue",
-          "label": "Bleu"
+          "label": {
+            "en": "Blue",
+            "fr": "Bleu"
+          }
         },
         {
           "role": "white",
-          "label": "Blanc"
+          "label": {
+            "en": "White",
+            "fr": "Blanc"
+          }
         }
       ]
     },
     {
       "id": "7ch",
-      "label": "7 canaux — Intensite, RVBB, strobe",
+      "label": {
+        "en": "7 channels — Intensity, RVBB, strobe",
+        "fr": "7 canaux — Intensite, RVBB, strobe"
+      },
       "channels": [
         {
           "role": "dimmer",
-          "label": "Intensite"
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensite"
+          }
         },
         {
           "role": "red",
-          "label": "Rouge"
+          "label": {
+            "en": "Red",
+            "fr": "Rouge"
+          }
         },
         {
           "role": "green",
-          "label": "Vert"
+          "label": {
+            "en": "Green",
+            "fr": "Vert"
+          }
         },
         {
           "role": "blue",
-          "label": "Bleu"
+          "label": {
+            "en": "Blue",
+            "fr": "Bleu"
+          }
         },
         {
           "role": "white",
-          "label": "Blanc"
+          "label": {
+            "en": "White",
+            "fr": "Blanc"
+          }
         },
         {
           "role": "strobe",
@@ -87,7 +138,10 @@
         },
         {
           "role": "unused",
-          "label": "Programmes internes"
+          "label": {
+            "en": "Built-in programmes",
+            "fr": "Programmes internes"
+          }
         }
       ]
     }

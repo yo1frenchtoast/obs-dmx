@@ -1,4 +1,5 @@
 #include "ui/add-fixture-dialog.h"
+#include "ui/localized.h"
 
 #include "core/fixture-library.h"
 #include "core/show.h"
@@ -17,11 +18,6 @@
 namespace obsdmx {
 
 namespace {
-
-QString tr_(const char *key)
-{
-	return QString::fromUtf8(obs_module_text(key));
-}
 
 constexpr int kProfileIdRole = Qt::UserRole;
 
@@ -53,6 +49,12 @@ AddFixtureDialog::AddFixtureDialog(const Show &show, const FixtureLibrary &libra
 	modeWarning_ = new QLabel(tr_("Patch.Add.ModeWarning"), this);
 	modeWarning_->setWordWrap(true);
 	form->addRow(modeWarning_);
+
+	// Each profile may carry a fixture-specific warning: here, at the moment of
+	// choosing, is where it earns its place.
+	profileNote_ = new QLabel(this);
+	profileNote_->setWordWrap(true);
+	form->addRow(profileNote_);
 
 	footprint_ = new QLabel(this);
 	form->addRow(tr_("Patch.Add.Footprint"), footprint_);
@@ -106,14 +108,19 @@ void AddFixtureDialog::onProfileChanged()
 	const FixtureProfile *profile = library_.find(profileId());
 	if (!profile) {
 		footprint_->clear();
+		profileNote_->clear();
 		return;
 	}
+
+	profileNote_->setText(profile->note.empty() ? QString()
+						   : QStringLiteral("\u2139 ") + QString::fromStdString(profile->note));
+	profileNote_->setVisible(!profile->note.empty());
 
 	for (const auto &mode : profile->modes)
 		modes_->addItem(QString::fromStdString(mode.label.empty() ? mode.id : mode.label),
 				QString::fromStdString(mode.id));
 
-	// Presente d'emblee le mode conseille par le profil.
+	// Offer the profile's recommended mode straight away.
 	if (const FixtureMode *preferred = profile->preferredMode()) {
 		const int index = modes_->findData(QString::fromStdString(preferred->id));
 		if (index >= 0)
@@ -146,8 +153,8 @@ void AddFixtureDialog::suggestAddress()
 		return patch.suggestAddress(static_cast<uint16_t>(universe_->value()), mode->channelCount());
 	});
 
-	// 0 signifie que l'univers est plein : on laisse l'adresse en place plutot
-	// que de la remettre a 1, ce qui creerait un chevauchement silencieux.
+	// 0 means the universe is full: leave the address alone rather than reset
+	// it to 1, which would create a silent overlap.
 	if (suggestion > 0)
 		address_->setValue(suggestion);
 }

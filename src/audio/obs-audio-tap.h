@@ -2,16 +2,16 @@
 
 #include "core/audio-analysis.h"
 
-// Sans cet en-tete, "struct audio_data" declare un type dans notre propre
-// namespace au lieu de designer celui de libobs.
+// Without this header, "struct audio_data" would declare a type in our own
+// namespace instead of naming libobs's.
 #include <media-io/audio-io.h>
 
 namespace obsdmx {
 
-/// Prend l'audio du mix final d'OBS et le donne a l'analyseur.
+/// Takes the audio from OBS's final mix and hands it to the analyser.
 ///
-/// On se branche sur le mix plutot que sur une source : c'est ce que le public
-/// entend, donc ce sur quoi la lumiere doit reagir.
+/// We tap the mix rather than a single source: that is what the audience hears,
+/// and therefore what the light should react to.
 class ObsAudioTap {
 public:
 	~ObsAudioTap();

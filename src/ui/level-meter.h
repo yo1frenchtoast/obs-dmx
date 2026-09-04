@@ -10,10 +10,10 @@
 
 namespace obsdmx {
 
-/// Trois barres montrant ce que l'analyse entend, plus un temoin de temps.
+/// Three bars showing what the analysis hears, plus a beat indicator.
 ///
-/// Sans cela, regler la sensibilite revient a tourner un bouton en esperant :
-/// l'utilisateur doit voir ce que la machine entend.
+/// Without it, setting the sensitivity means turning a knob and hoping: the user
+/// has to see what the machine hears.
 class LevelMeter : public QWidget {
 	Q_OBJECT
 
@@ -65,7 +65,7 @@ protected:
 			painter.drawRoundedRect(filled, 3, 3);
 		}
 
-		// Temoin de temps, a droite.
+		// Beat indicator, on the right.
 		const QRect beat(width() - 14, 0, 12, 12);
 		painter.setBrush(beatFlash_ > 0 ? palette().color(QPalette::Highlight)
 						: palette().color(QPalette::Base));

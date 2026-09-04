@@ -24,26 +24,26 @@ uint16_t read16(const std::vector<uint8_t> &packet, size_t offset)
 
 } // namespace
 
-TEST(sacn_taille_et_couche_racine)
+TEST(sacn_size_and_root_layer)
 {
 	uint8_t slots[512] = {};
 	const auto packet = SacnOutput::buildPacket(1, 7, 100, testCid(), "obs-dmx", slots, sizeof(slots));
 
-	// 126 octets d'en-tetes empiles + 512 emplacements.
+	// 126 bytes of stacked headers + 512 slots.
 	CHECK_EQ(packet.size(), size_t(638));
 
 	CHECK_EQ(read16(packet, 0), 0x0010); // preambule
 	CHECK_EQ(read16(packet, 2), 0x0000); // post-ambule
 	CHECK(std::memcmp(packet.data() + 4, "ASC-E1.17\0\0", 12) == 0);
 
-	// Longueur de PDU : marqueur 0x7 sur les 4 bits hauts, longueur sur 12.
+	// PDU length: 0x7 marker on the top 4 bits, length on the other 12.
 	CHECK_EQ(read16(packet, 16), uint16_t(0x7000 | (638 - 16)));
 	CHECK_EQ(packet[21], 0x04); // VECTOR_ROOT_E131_DATA
 
 	CHECK(std::memcmp(packet.data() + 22, testCid().data(), 16) == 0);
 }
 
-TEST(sacn_couche_de_tramage)
+TEST(sacn_framing_layer)
 {
 	uint8_t slots[512] = {};
 	const auto packet = SacnOutput::buildPacket(0x0102, 7, 42, testCid(), "obs-dmx", slots, sizeof(slots));
@@ -51,7 +51,7 @@ TEST(sacn_couche_de_tramage)
 	CHECK_EQ(read16(packet, 38), uint16_t(0x7000 | (638 - 38)));
 	CHECK_EQ(packet[43], 0x02); // VECTOR_E131_DATA_PACKET
 
-	// Nom de source : 64 octets, termine par un zero.
+	// Source name: 64 bytes, null-terminated.
 	CHECK(std::memcmp(packet.data() + 44, "obs-dmx", 7) == 0);
 	CHECK_EQ(packet[44 + 7], 0);
 
@@ -62,7 +62,7 @@ TEST(sacn_couche_de_tramage)
 	CHECK_EQ(read16(packet, 113), 0x0102); // univers, gros-boutiste
 }
 
-TEST(sacn_couche_dmp_et_donnees)
+TEST(sacn_dmp_layer_and_data)
 {
 	Universe universe(1);
 	universe.set(1, 255);
@@ -77,7 +77,7 @@ TEST(sacn_couche_dmp_et_donnees)
 	CHECK_EQ(read16(packet, 119), 0x0000);
 	CHECK_EQ(read16(packet, 121), 0x0001);
 
-	// 513 = le code de depart plus les 512 emplacements.
+	// 513 = the start code plus the 512 slots.
 	CHECK_EQ(read16(packet, 123), 513);
 	CHECK_EQ(packet[125], 0x00); // code de depart DMX
 
@@ -85,7 +85,7 @@ TEST(sacn_couche_dmp_et_donnees)
 	CHECK_EQ(packet[126 + 511], 42);  // adresse DMX 512
 }
 
-TEST(sacn_adresse_multicast_derive_de_l_univers)
+TEST(sacn_multicast_address_derives_from_the_universe)
 {
 	CHECK(SacnOutput::multicastAddress(1) == "239.255.0.1");
 	CHECK(SacnOutput::multicastAddress(255) == "239.255.0.255");
@@ -93,25 +93,25 @@ TEST(sacn_adresse_multicast_derive_de_l_univers)
 	CHECK(SacnOutput::multicastAddress(0x0102) == "239.255.1.2");
 }
 
-TEST(sacn_nom_de_source_trop_long_est_tronque)
+TEST(an_over_long_sacn_source_name_is_truncated)
 {
 	uint8_t slots[512] = {};
 	const std::string tresLong(200, 'x');
 	const auto packet = SacnOutput::buildPacket(1, 1, 100, testCid(), tresLong, slots, sizeof(slots));
 
 	CHECK_EQ(packet.size(), size_t(638));
-	// 63 caracteres au plus, puis un zero terminal : le champ ne doit pas
-	// deborder sur la priorite qui le suit.
+	// 63 characters at most, then a terminating zero: the field must not spill
+	// onto the priority that follows it.
 	CHECK_EQ(packet[44 + 63], 0);
 	CHECK_EQ(packet[108], 100);
 }
 
-TEST(sacn_cid_est_un_uuid_v4)
+TEST(the_sacn_cid_is_a_uuid_v4)
 {
 	const auto cid = SacnOutput::generateCid();
 	CHECK_EQ(cid[6] & 0xF0, 0x40); // version 4
 	CHECK_EQ(cid[8] & 0xC0, 0x80); // variante RFC 4122
 
-	// Deux tirages ne doivent pas coincider.
+	// Two draws must not coincide.
 	CHECK(SacnOutput::generateCid() != cid);
 }

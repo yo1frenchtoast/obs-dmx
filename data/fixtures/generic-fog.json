@@ -6,11 +6,17 @@
   "modes": [
     {
       "id": "1ch",
-      "label": "1 canal — Debit",
+      "label": {
+        "en": "1 channel — Debit",
+        "fr": "1 canal — Debit"
+      },
       "channels": [
         {
           "role": "fog",
-          "label": "Debit de fumee"
+          "label": {
+            "en": "Fog output",
+            "fr": "Debit de fumee"
+          }
         }
       ]
     }

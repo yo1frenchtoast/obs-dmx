@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Verifie que chaque slot Qt declare est effectivement relie a un signal.
+# Checks that every declared Qt slot is actually connected to a signal.
 #
-# Un slot que rien ne connecte compile sans le moindre avertissement : le
-# bouton existe, il est visible, et il ne fait rien. C'est exactement le
-# genre de defaut qui n'apparait qu'a l'usage.
+# A slot nothing connects compiles without the slightest warning: the button
+# exists, it is visible, and it does nothing. That is exactly the kind of fault
+# that only shows up in use.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
@@ -12,8 +12,8 @@ for header in $(ls src/*/*.h | sort -u); do
   source_file="${header%.h}.cpp"
   [ -f "$source_file" ] || continue
 
-  # Les noms declares apres "private slots:" ou "public slots:", jusqu'a la
-  # prochaine etiquette d'acces.
+  # Names declared after "private slots:" or "public slots:", up to the next
+  # access label.
   slots=$(awk '
     /(private|public|protected) slots:/ { in_slots = 1; next }
     /^[[:space:]]*(private|public|protected):/ { in_slots = 0 }
@@ -26,13 +26,13 @@ for header in $(ls src/*/*.h | sort -u); do
   for slot in $slots; do
     if ! grep -q "connect(.*&[A-Za-z]*::$slot\b" "$source_file" &&
        ! grep -qE "connect\(.*\{[^}]*$slot\(" "$source_file"; then
-      echo "$source_file : le slot '$slot' n'est relie a aucun signal"
+      echo "$source_file: slot '$slot' is connected to no signal"
       status=1
     fi
   done
 done
 
-# L'autre moitie du meme probleme : un signal que personne n'ecoute.
+# The other half of the same problem: a signal nobody listens to.
 for header in $(ls src/*/*.h | sort -u); do
   signals=$(awk '
     /^[[:space:]]*signals:/ { in_signals = 1; next }
@@ -45,11 +45,11 @@ for header in $(ls src/*/*.h | sort -u); do
 
   for signal in $signals; do
     if ! grep -rq "connect(.*::$signal\b" src/; then
-      echo "$header : le signal '$signal' n'a aucun destinataire"
+      echo "$header: signal '$signal' has no receiver"
       status=1
     fi
   done
 done
 
-[ "$status" -eq 0 ] && echo "Tous les slots et signaux Qt sont relies."
+[ "$status" -eq 0 ] && echo "Every Qt slot and signal is connected."
 exit "$status"

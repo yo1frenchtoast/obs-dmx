@@ -3,114 +3,570 @@
   "manufacturer": "Aputure amaran",
   "model": "T2c / T4c",
   "default_mode": "mode3",
-  "note": "Micrologiciel V1.4. Le mode DMX se choisit sur l'ecran de la lampe : celui selectionne ici doit lui correspondre. Le DMX filaire exige l'adaptateur amaran USB-C vers DMX.",
+  "note": {
+    "en": "Thomann/Aputure firmware V1.4. The DMX mode is chosen on the lamp's own screen: the one selected here must match it. Wired DMX requires the amaran USB-C to DMX adapter.",
+    "fr": "Micrologiciel V1.4. Le mode DMX se choisit sur l'ecran de la lampe : celui selectionne ici doit lui correspondre. Le DMX filaire exige l'adaptateur amaran USB-C vers DMX."
+  },
   "modes": [
     {
       "id": "mode3",
-      "label": "Mode 3 — CCT & HSI (9 canaux)",
+      "label": {
+        "en": "Mode 3 — CCT & HSI (9 channels)",
+        "fr": "Mode 3 — CCT & HSI (9 canaux)"
+      },
       "channels": [
-        { "role": "dimmer", "label": "Intensite" },
-        { "role": "cct", "label": "Temperature de couleur", "physical_min": 2500, "physical_max": 7500 },
-        { "role": "green_magenta", "label": "Vert / Magenta", "range_min": 21, "range_max": 244, "neutral": 132, "default": 132 },
-        { "role": "color_mix", "label": "Fondu blanc vers couleur" },
-        { "role": "hue", "label": "Teinte" },
-        { "role": "saturation", "label": "Saturation" },
-        { "role": "unused", "label": "Reserve" },
-        { "role": "unused", "label": "Reserve" },
-        { "role": "strobe", "label": "Strobe", "range_min": 20, "range_max": 255, "off": 0, "physical_min": 1, "physical_max": 25 }
+        {
+          "role": "dimmer",
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensite"
+          }
+        },
+        {
+          "role": "cct",
+          "label": {
+            "en": "Colour temperature",
+            "fr": "Temperature de couleur"
+          },
+          "physical_min": 2500,
+          "physical_max": 7500
+        },
+        {
+          "role": "green_magenta",
+          "label": {
+            "en": "Green / magenta",
+            "fr": "Vert / Magenta"
+          },
+          "range_min": 21,
+          "range_max": 244,
+          "neutral": 132,
+          "default": 132
+        },
+        {
+          "role": "color_mix",
+          "label": {
+            "en": "White-to-colour crossfade",
+            "fr": "Fondu blanc vers couleur"
+          }
+        },
+        {
+          "role": "hue",
+          "label": {
+            "en": "Hue",
+            "fr": "Teinte"
+          }
+        },
+        {
+          "role": "saturation",
+          "label": "Saturation"
+        },
+        {
+          "role": "unused",
+          "label": {
+            "en": "Reserved",
+            "fr": "Reserve"
+          }
+        },
+        {
+          "role": "unused",
+          "label": {
+            "en": "Reserved",
+            "fr": "Reserve"
+          }
+        },
+        {
+          "role": "strobe",
+          "label": "Strobe",
+          "range_min": 20,
+          "range_max": 255,
+          "off": 0,
+          "physical_min": 1,
+          "physical_max": 25
+        }
       ]
     },
     {
       "id": "mode1",
-      "label": "Mode 1 — CCT & RGB (10 canaux)",
+      "label": {
+        "en": "Mode 1 — CCT & RGB (10 channels)",
+        "fr": "Mode 1 — CCT & RGB (10 canaux)"
+      },
       "channels": [
-        { "role": "dimmer", "label": "Intensite" },
-        { "role": "cct", "label": "Temperature de couleur", "physical_min": 2500, "physical_max": 7500 },
-        { "role": "green_magenta", "label": "Vert / Magenta", "range_min": 21, "range_max": 244, "neutral": 132, "default": 132 },
-        { "role": "color_mix", "label": "Fondu blanc vers couleur" },
-        { "role": "red", "label": "Rouge" },
-        { "role": "green", "label": "Vert" },
-        { "role": "blue", "label": "Bleu" },
-        { "role": "unused", "label": "Reserve" },
-        { "role": "unused", "label": "Reserve" },
-        { "role": "strobe", "label": "Strobe", "range_min": 20, "range_max": 255, "off": 0, "physical_min": 1, "physical_max": 25 }
+        {
+          "role": "dimmer",
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensite"
+          }
+        },
+        {
+          "role": "cct",
+          "label": {
+            "en": "Colour temperature",
+            "fr": "Temperature de couleur"
+          },
+          "physical_min": 2500,
+          "physical_max": 7500
+        },
+        {
+          "role": "green_magenta",
+          "label": {
+            "en": "Green / magenta",
+            "fr": "Vert / Magenta"
+          },
+          "range_min": 21,
+          "range_max": 244,
+          "neutral": 132,
+          "default": 132
+        },
+        {
+          "role": "color_mix",
+          "label": {
+            "en": "White-to-colour crossfade",
+            "fr": "Fondu blanc vers couleur"
+          }
+        },
+        {
+          "role": "red",
+          "label": {
+            "en": "Red",
+            "fr": "Rouge"
+          }
+        },
+        {
+          "role": "green",
+          "label": {
+            "en": "Green",
+            "fr": "Vert"
+          }
+        },
+        {
+          "role": "blue",
+          "label": {
+            "en": "Blue",
+            "fr": "Bleu"
+          }
+        },
+        {
+          "role": "unused",
+          "label": {
+            "en": "Reserved",
+            "fr": "Reserve"
+          }
+        },
+        {
+          "role": "unused",
+          "label": {
+            "en": "Reserved",
+            "fr": "Reserve"
+          }
+        },
+        {
+          "role": "strobe",
+          "label": "Strobe",
+          "range_min": 20,
+          "range_max": 255,
+          "off": 0,
+          "physical_min": 1,
+          "physical_max": 25
+        }
       ]
     },
     {
       "id": "mode2",
-      "label": "Mode 2 — CCT (6 canaux)",
+      "label": {
+        "en": "Mode 2 — CCT (6 channels)",
+        "fr": "Mode 2 — CCT (6 canaux)"
+      },
       "channels": [
-        { "role": "dimmer", "label": "Intensite" },
-        { "role": "cct", "label": "Temperature de couleur", "physical_min": 2500, "physical_max": 7500 },
-        { "role": "green_magenta", "label": "Vert / Magenta", "range_min": 21, "range_max": 244, "neutral": 132, "default": 132 },
-        { "role": "unused", "label": "Reserve" },
-        { "role": "unused", "label": "Reserve" },
-        { "role": "strobe", "label": "Strobe", "range_min": 20, "range_max": 255, "off": 0, "physical_min": 1, "physical_max": 25 }
+        {
+          "role": "dimmer",
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensite"
+          }
+        },
+        {
+          "role": "cct",
+          "label": {
+            "en": "Colour temperature",
+            "fr": "Temperature de couleur"
+          },
+          "physical_min": 2500,
+          "physical_max": 7500
+        },
+        {
+          "role": "green_magenta",
+          "label": {
+            "en": "Green / magenta",
+            "fr": "Vert / Magenta"
+          },
+          "range_min": 21,
+          "range_max": 244,
+          "neutral": 132,
+          "default": 132
+        },
+        {
+          "role": "unused",
+          "label": {
+            "en": "Reserved",
+            "fr": "Reserve"
+          }
+        },
+        {
+          "role": "unused",
+          "label": {
+            "en": "Reserved",
+            "fr": "Reserve"
+          }
+        },
+        {
+          "role": "strobe",
+          "label": "Strobe",
+          "range_min": 20,
+          "range_max": 255,
+          "off": 0,
+          "physical_min": 1,
+          "physical_max": 25
+        }
       ]
     },
     {
       "id": "mode4",
-      "label": "Mode 4 — RGB (7 canaux)",
+      "label": {
+        "en": "Mode 4 — RGB (7 channels)",
+        "fr": "Mode 4 — RGB (7 canaux)"
+      },
       "channels": [
-        { "role": "dimmer", "label": "Intensite" },
-        { "role": "red", "label": "Rouge" },
-        { "role": "green", "label": "Vert" },
-        { "role": "blue", "label": "Bleu" },
-        { "role": "unused", "label": "Reserve" },
-        { "role": "unused", "label": "Reserve" },
-        { "role": "strobe", "label": "Strobe", "range_min": 20, "range_max": 255, "off": 0, "physical_min": 1, "physical_max": 25 }
+        {
+          "role": "dimmer",
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensite"
+          }
+        },
+        {
+          "role": "red",
+          "label": {
+            "en": "Red",
+            "fr": "Rouge"
+          }
+        },
+        {
+          "role": "green",
+          "label": {
+            "en": "Green",
+            "fr": "Vert"
+          }
+        },
+        {
+          "role": "blue",
+          "label": {
+            "en": "Blue",
+            "fr": "Bleu"
+          }
+        },
+        {
+          "role": "unused",
+          "label": {
+            "en": "Reserved",
+            "fr": "Reserve"
+          }
+        },
+        {
+          "role": "unused",
+          "label": {
+            "en": "Reserved",
+            "fr": "Reserve"
+          }
+        },
+        {
+          "role": "strobe",
+          "label": "Strobe",
+          "range_min": 20,
+          "range_max": 255,
+          "off": 0,
+          "physical_min": 1,
+          "physical_max": 25
+        }
       ]
     },
     {
       "id": "mode5",
-      "label": "Mode 5 — HSI (6 canaux)",
+      "label": {
+        "en": "Mode 5 — HSI (6 channels)",
+        "fr": "Mode 5 — HSI (6 canaux)"
+      },
       "channels": [
-        { "role": "dimmer", "label": "Intensite" },
-        { "role": "hue", "label": "Teinte" },
-        { "role": "saturation", "label": "Saturation" },
-        { "role": "unused", "label": "Reserve" },
-        { "role": "unused", "label": "Reserve" },
-        { "role": "strobe", "label": "Strobe", "range_min": 20, "range_max": 255, "off": 0, "physical_min": 1, "physical_max": 25 }
+        {
+          "role": "dimmer",
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensite"
+          }
+        },
+        {
+          "role": "hue",
+          "label": {
+            "en": "Hue",
+            "fr": "Teinte"
+          }
+        },
+        {
+          "role": "saturation",
+          "label": "Saturation"
+        },
+        {
+          "role": "unused",
+          "label": {
+            "en": "Reserved",
+            "fr": "Reserve"
+          }
+        },
+        {
+          "role": "unused",
+          "label": {
+            "en": "Reserved",
+            "fr": "Reserve"
+          }
+        },
+        {
+          "role": "strobe",
+          "label": "Strobe",
+          "range_min": 20,
+          "range_max": 255,
+          "off": 0,
+          "physical_min": 1,
+          "physical_max": 25
+        }
       ]
     },
     {
       "id": "mode6",
-      "label": "Mode 6 — GEL (8 canaux)",
+      "label": {
+        "en": "Mode 6 — GEL (8 channels)",
+        "fr": "Mode 6 — GEL (8 canaux)"
+      },
       "channels": [
-        { "role": "dimmer", "label": "Intensite" },
-        { "role": "fx_parameter", "label": "Base : 3200 K ou 5600 K" },
-        { "role": "fx_parameter", "label": "Rosco ou Lee" },
-        { "role": "fx_parameter", "label": "Serie" },
-        { "role": "fx_parameter", "label": "Categorie de gelatine" },
-        { "role": "unused", "label": "Reserve" },
-        { "role": "unused", "label": "Reserve" },
-        { "role": "strobe", "label": "Strobe", "range_min": 20, "range_max": 255, "off": 0, "physical_min": 1, "physical_max": 25 }
+        {
+          "role": "dimmer",
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensite"
+          }
+        },
+        {
+          "role": "fx_parameter",
+          "label": {
+            "en": "Base: 3200 K or 5600 K",
+            "fr": "Base : 3200 K ou 5600 K"
+          }
+        },
+        {
+          "role": "fx_parameter",
+          "label": {
+            "en": "Rosco or Lee",
+            "fr": "Rosco ou Lee"
+          }
+        },
+        {
+          "role": "fx_parameter",
+          "label": {
+            "en": "Series",
+            "fr": "Serie"
+          }
+        },
+        {
+          "role": "fx_parameter",
+          "label": {
+            "en": "Gel category",
+            "fr": "Categorie de gelatine"
+          }
+        },
+        {
+          "role": "unused",
+          "label": {
+            "en": "Reserved",
+            "fr": "Reserve"
+          }
+        },
+        {
+          "role": "unused",
+          "label": {
+            "en": "Reserved",
+            "fr": "Reserve"
+          }
+        },
+        {
+          "role": "strobe",
+          "label": "Strobe",
+          "range_min": 20,
+          "range_max": 255,
+          "off": 0,
+          "physical_min": 1,
+          "physical_max": 25
+        }
       ]
     },
     {
       "id": "mode7",
-      "label": "Mode 7 — Effets embarques (9 canaux)",
+      "label": {
+        "en": "Mode 7 — Built-in effects (9 channels)",
+        "fr": "Mode 7 — Effets embarques (9 canaux)"
+      },
       "channels": [
-        { "role": "dimmer", "label": "Intensite" },
-        { "role": "fx_control", "label": "Marche / arret de l'effet" },
-        { "role": "fx_select", "label": "Choix de l'effet" },
-        { "role": "fx_parameter", "label": "Parametre 1" },
-        { "role": "fx_parameter", "label": "Parametre 2" },
-        { "role": "fx_parameter", "label": "Parametre 3" },
-        { "role": "fx_parameter", "label": "Parametre 4" },
-        { "role": "fx_parameter", "label": "Parametre 5" },
-        { "role": "fx_parameter", "label": "Parametre 6" }
+        {
+          "role": "dimmer",
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensite"
+          }
+        },
+        {
+          "role": "fx_control",
+          "label": {
+            "en": "Effect start / stop",
+            "fr": "Marche / arret de l'effet"
+          }
+        },
+        {
+          "role": "fx_select",
+          "label": {
+            "en": "Effect selection",
+            "fr": "Choix de l'effet"
+          }
+        },
+        {
+          "role": "fx_parameter",
+          "label": {
+            "en": "Parameter 1",
+            "fr": "Parametre 1"
+          }
+        },
+        {
+          "role": "fx_parameter",
+          "label": {
+            "en": "Parameter 2",
+            "fr": "Parametre 2"
+          }
+        },
+        {
+          "role": "fx_parameter",
+          "label": {
+            "en": "Parameter 3",
+            "fr": "Parametre 3"
+          }
+        },
+        {
+          "role": "fx_parameter",
+          "label": {
+            "en": "Parameter 4",
+            "fr": "Parametre 4"
+          }
+        },
+        {
+          "role": "fx_parameter",
+          "label": {
+            "en": "Parameter 5",
+            "fr": "Parametre 5"
+          }
+        },
+        {
+          "role": "fx_parameter",
+          "label": {
+            "en": "Parameter 6",
+            "fr": "Parametre 6"
+          }
+        }
       ],
       "effects": [
-        { "id": "paparazzi",    "label": "Paparazzi",        "select": 5,  "frequency_channel": 5, "random": false },
-        { "id": "lightning",    "label": "Orage",            "select": 15, "frequency_channel": 5, "random": true  },
-        { "id": "tv",           "label": "Televiseur",       "select": 25, "frequency_channel": 4, "random": true  },
-        { "id": "fire",         "label": "Feu",              "select": 35, "frequency_channel": 4, "random": false },
-        { "id": "faulty_bulb",  "label": "Ampoule fatiguee", "select": 45, "frequency_channel": 6, "random": true  },
-        { "id": "pulsing",      "label": "Pulsation",        "select": 55, "frequency_channel": 6, "random": false },
-        { "id": "cop_car",      "label": "Gyrophare",        "select": 65, "frequency_channel": 4, "random": false },
-        { "id": "party_lights", "label": "Lumieres de fete", "select": 75, "frequency_channel": 4, "random": false },
-        { "id": "fireworks",    "label": "Feu d'artifice",   "select": 85, "frequency_channel": 4, "random": true  }
+        {
+          "id": "paparazzi",
+          "label": "Paparazzi",
+          "select": 5,
+          "frequency_channel": 5,
+          "random": false
+        },
+        {
+          "id": "lightning",
+          "label": {
+            "en": "Lightning",
+            "fr": "Orage"
+          },
+          "select": 15,
+          "frequency_channel": 5,
+          "random": true
+        },
+        {
+          "id": "tv",
+          "label": {
+            "en": "TV",
+            "fr": "Televiseur"
+          },
+          "select": 25,
+          "frequency_channel": 4,
+          "random": true
+        },
+        {
+          "id": "fire",
+          "label": {
+            "en": "Fire",
+            "fr": "Feu"
+          },
+          "select": 35,
+          "frequency_channel": 4,
+          "random": false
+        },
+        {
+          "id": "faulty_bulb",
+          "label": {
+            "en": "Faulty bulb",
+            "fr": "Ampoule fatiguee"
+          },
+          "select": 45,
+          "frequency_channel": 6,
+          "random": true
+        },
+        {
+          "id": "pulsing",
+          "label": {
+            "en": "Pulsing",
+            "fr": "Pulsation"
+          },
+          "select": 55,
+          "frequency_channel": 6,
+          "random": false
+        },
+        {
+          "id": "cop_car",
+          "label": {
+            "en": "Cop car",
+            "fr": "Gyrophare"
+          },
+          "select": 65,
+          "frequency_channel": 4,
+          "random": false
+        },
+        {
+          "id": "party_lights",
+          "label": {
+            "en": "Party lights",
+            "fr": "Lumieres de fete"
+          },
+          "select": 75,
+          "frequency_channel": 4,
+          "random": false
+        },
+        {
+          "id": "fireworks",
+          "label": {
+            "en": "Fireworks",
+            "fr": "Feu d'artifice"
+          },
+          "select": 85,
+          "frequency_channel": 4,
+          "random": true
+        }
       ]
     }
   ]

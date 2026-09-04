@@ -1,4 +1,5 @@
 #include "ui/effect-editor.h"
+#include "ui/localized.h"
 
 #include "core/show.h"
 #include "core/universe.h"
@@ -29,23 +30,18 @@ namespace obsdmx {
 
 namespace {
 
-QString tr_(const char *key)
-{
-	return QString::fromUtf8(obs_module_text(key));
-}
-
 constexpr int kFixtureIdRole = Qt::UserRole;
 
-/// Une liste deroulante exige par defaut la largeur de son plus long element,
-/// ce qui suffit a rendre tout le dock trop etroit. On la laisse se replier :
-/// le texte complet reste lisible une fois la liste deroulee.
+/// A combo box demands the width of its longest item by default, which alone is
+/// enough to make the whole dock too narrow. Let it shrink: the full text stays
+/// readable once the list is dropped down.
 void shrinkable(QComboBox *box)
 {
 	box->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
 	box->setMinimumContentsLength(8);
 }
 
-/// Les pages de la pile suivent l'ordre de EffectType.
+/// The stacked pages follow the order of EffectType.
 int pageFor(EffectType type)
 {
 	return static_cast<int>(type);
@@ -72,8 +68,8 @@ EffectEditor::EffectEditor(Show &show, std::function<AudioSnapshot()> audioProvi
 	targetsHint->setWordWrap(true);
 	targetsLayout->addWidget(targetsHint);
 	targets_ = new QListWidget(targetsBox);
-	// Une hauteur minimale donne a la page une taille propre : c'est elle qui
-	// declenche le defilement au lieu de l'ecrasement.
+	// A minimum height gives the page a size of its own: that is what triggers
+	// scrolling instead of squeezing.
 	targets_->setMinimumHeight(90);
 	targets_->setMaximumHeight(160);
 	targetsLayout->addWidget(targets_);
@@ -86,8 +82,8 @@ EffectEditor::EffectEditor(Show &show, std::function<AudioSnapshot()> audioProvi
 	pages_->addWidget(buildBuiltinPage());
 	layout->addWidget(pages_);
 
-	// Les modes de fusion sont un vocabulaire de console : ils vivent sous un
-	// repli, pas au premier plan.
+	// Blend modes are lighting-desk vocabulary: they live behind a fold, not in
+	// the foreground.
 	auto *advanced = new QGroupBox(tr_("Effect.Advanced"), this);
 	advanced->setCheckable(true);
 	advanced->setChecked(false);
@@ -186,7 +182,7 @@ QWidget *EffectEditor::buildChaserPage()
 		connect(slider, &SliderRow::valueChanged, this, [this](float) { commitStep(); });
 
 	connect(useBpm_, &QCheckBox::toggled, this, [this](bool bpm) {
-		// Les deux reglages s'excluent : n'afficher que celui qui agit.
+		// The two settings are exclusive: only enable the one that acts.
 		stepMs_->setEnabled(!bpm);
 		bpm_->setEnabled(bpm);
 		commit();
@@ -263,7 +259,7 @@ QWidget *EffectEditor::buildSoundPage()
 	form->addRow(QString(), soundUseBase_);
 	layout->addLayout(form);
 
-	// Couleur propre a l'effet, quand on ne veut pas celle du programme.
+	// The effect's own colour, for when the programme's is not wanted.
 	soundColorBox_ = new QWidget(page);
 	auto *colorForm = new QFormLayout(soundColorBox_);
 	colorForm->setContentsMargins(0, 0, 0, 0);
@@ -283,8 +279,9 @@ QWidget *EffectEditor::buildSoundPage()
 	colorForm->addRow(tr_("Programs.Cct"), soundCct_);
 	layout->addWidget(soundColorBox_);
 
-	// « Le plus lumineux gagne » ne peut qu'eclaircir : sur un programme deja
-	// allume, l'effet parait inerte. Le dire vaut mieux que laisser chercher.
+	// "Brightest wins" can only brighten: on a programme that already lights the
+	// fixtures, the effect looks inert. Saying so beats letting the user
+	// hunt.
 	soundBlendWarning_ = new QLabel(page);
 	soundBlendWarning_->setWordWrap(true);
 	layout->addWidget(soundBlendWarning_);
@@ -327,8 +324,8 @@ QWidget *EffectEditor::buildBuiltinPage()
 	builtinWarning_->setWordWrap(true);
 	form->addRow(builtinWarning_);
 
-	// Repli quand le profil ne decrit pas les effets de l'appareil :
-	// l'utilisateur recopie la table de canaux du constructeur.
+	// Fallback for when the profile does not describe the fixture's effects: the
+	// user copies the manufacturer's channel chart.
 	builtinManual_ = new QCheckBox(tr_("Effect.Builtin.Manual"), page);
 	builtinManual_->setToolTip(tr_("Effect.Builtin.Manual.Hint"));
 	form->addRow(QString(), builtinManual_);
@@ -346,8 +343,8 @@ QWidget *EffectEditor::buildBuiltinPage()
 						  tr_("Effect.Builtin.Manual.Value")});
 	builtinTable_->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 	builtinTable_->verticalHeader()->setVisible(false);
-	// Sans hauteur minimale, la table est ecrasee a rien des que le dock
-	// manque de place, et ses en-tetes recouvrent les boutons.
+	// Without a minimum height the table is crushed to nothing as soon as the
+	// dock runs short of room, and its headers cover the buttons.
 	builtinTable_->setMinimumHeight(120);
 	builtinTable_->setMaximumHeight(220);
 	manualLayout->addWidget(builtinTable_);
@@ -459,8 +456,8 @@ void EffectEditor::refreshStepList()
 		auto *item = new QListWidgetItem(
 			tr_("Effect.Chaser.Step").arg(i + 1).arg(int(state.intensity * 100.0f)), steps_);
 
-		// Une pastille de couleur : lire une liste de nombres ne dit rien
-		// de ce que le chaser va donner.
+		// A colour swatch: reading a list of numbers says nothing about what
+		// the chase will look like.
 		const Rgb tint = hsToRgb(state.hue, state.saturation);
 		const Rgb white = cctToRgb(state.cct);
 		const float mix = std::clamp(state.colorMix, 0.0f, 1.0f);
@@ -522,8 +519,8 @@ void EffectEditor::addStep()
 	if (!valid_)
 		return;
 
-	// Le nouveau pas reprend le precedent : construire une suite se fait en
-	// dupliquant puis en ajustant, pas en repartant du noir a chaque fois.
+	// A new step copies the previous one: sequences are built by duplicating and
+	// adjusting, not by starting from black each time.
 	LightState state;
 	state.intensity = 1.0f;
 	if (!effect_.chaser.steps.empty())
@@ -548,8 +545,8 @@ void EffectEditor::removeStep()
 
 void EffectEditor::refreshSoundPage()
 {
-	// La teinte est calculee a partir du son dans ce mode : imposer une
-	// couleur n'aurait pas de sens.
+	// The hue is computed from the sound in this mode, so imposing a colour
+	// would make no sense.
 	const bool computedHue = effect_.sound.target == SoundTarget::Hue;
 	soundUseBase_->setVisible(!computedHue);
 	soundColorBox_->setVisible(!computedHue && !effect_.sound.useBaseColor);
@@ -565,7 +562,7 @@ void EffectEditor::refreshBuiltinEffects()
 	const QSignalBlocker blocker(builtinEffect_);
 	builtinEffect_->clear();
 
-	// On ne propose que les effets que les projecteurs vises savent faire.
+	// Offer only the effects the targeted fixtures can actually perform.
 	std::vector<std::pair<std::string, std::string>> available;
 	show_.withPatch([&](const Patch &patch) {
 		for (const auto &fixtureId : effect_.fixtureIds) {
@@ -597,8 +594,8 @@ void EffectEditor::refreshBuiltinEffects()
 	if (frequencyIndex >= 0)
 		builtinFrequency_->setCurrentIndex(frequencyIndex);
 
-	// Sans effet connu, la saisie manuelle est la seule voie : on l'impose
-	// plutot que de laisser une liste vide sans explication.
+	// With no known effect, manual entry is the only way through: force it
+	// rather than leave an empty list with no explanation.
 	if (available.empty() && !effect_.builtin.useManual) {
 		effect_.builtin.useManual = true;
 		const QSignalBlocker manualBlocker(builtinManual_);
@@ -606,8 +603,8 @@ void EffectEditor::refreshBuiltinEffects()
 	}
 	builtinManual_->setEnabled(!available.empty());
 
-	// setRowVisible plutot que setVisible : cacher le seul champ laisserait
-	// son etiquette seule dans le formulaire.
+	// setRowVisible rather than setVisible: hiding the field alone would leave
+	// its label stranded in the form.
 	const bool manual = effect_.builtin.useManual;
 	builtinForm_->setRowVisible(builtinEffect_, !manual);
 	builtinForm_->setRowVisible(builtinFrequency_, !manual);
@@ -621,8 +618,8 @@ void EffectEditor::refreshBuiltinEffects()
 
 size_t EffectEditor::smallestFootprint() const
 {
-	// Le plus petit denominateur : ecrire au-dela ne toucherait qu'une partie
-	// des projecteurs vises, ce qui serait deroutant.
+	// The smallest common denominator: writing beyond it would reach only some
+	// of the targeted fixtures, which would be baffling.
 	size_t smallest = 0;
 	bool first = true;
 
@@ -660,8 +657,8 @@ void EffectEditor::refreshManualTable()
 		return;
 	}
 
-	// Un canal hors de l'empreinte du projecteur n'est pas emis : le dire,
-	// plutot que de laisser l'utilisateur chercher pourquoi rien ne bouge.
+	// A channel outside the fixture's footprint is not sent: say so, rather than
+	// leave the user wondering why nothing moves.
 	QStringList tooHigh;
 	for (const auto &entry : effect_.builtin.manual)
 		if (entry.channel < 1 || entry.channel > static_cast<int>(footprint))
@@ -702,7 +699,7 @@ void EffectEditor::addManualChannel()
 	if (!valid_)
 		return;
 
-	// Le canal suivant celui deja saisi : on recopie une table de haut en bas.
+	// The channel after the last entered: charts are copied top to bottom.
 	ManualChannel entry;
 	if (!effect_.builtin.manual.empty())
 		entry.channel = effect_.builtin.manual.back().channel + 1;
@@ -766,8 +763,8 @@ void EffectEditor::commit()
 	effect_.builtin.frequency = builtinFrequency_->currentData().toInt();
 	effect_.builtin.useManual = builtinManual_->isChecked();
 
-	// La liste des effets embarques depend des projecteurs vises, qui viennent
-	// peut-etre de changer.
+	// The list of built-in effects depends on the targeted fixtures, which may
+	// have just changed.
 	if (effect_.type == EffectType::BuiltinFx)
 		refreshBuiltinEffects();
 

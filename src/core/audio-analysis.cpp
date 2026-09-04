@@ -9,14 +9,14 @@ namespace {
 
 constexpr float kPi = 3.14159265358979f;
 
-/// Facteur de qualite de Butterworth. Deux sections en cascade donnent un
-/// Linkwitz-Riley d'ordre 4 : les trois voies se recombinent alors sans bosse
-/// ni creux aux frequences de coupure.
+/// Butterworth Q. Two cascaded sections give a fourth-order Linkwitz-Riley, so
+/// the three bands recombine without a bump or a dip at the crossover
+/// frequencies.
 constexpr float kButterworthQ = 0.70710678f;
 
-/// Un signal de musique ne monte jamais a pleine echelle dans une seule bande.
-/// Ce gain amene un mix ordinaire autour de la moitie de l'echelle, pour que
-/// le reglage de sensibilite parte d'un endroit utilisable.
+/// A music signal never reaches full scale within a single band. This gain
+/// brings an ordinary mix to around half scale, so the sensitivity control
+/// starts somewhere usable.
 constexpr float kBandGain = 2.5f;
 
 } // namespace
@@ -55,30 +55,30 @@ void AudioAnalyzer::prepare(float sampleRate)
 {
 	sampleRate_ = sampleRate > 0.0f ? sampleRate : 48000.0f;
 
-	// Grave : passe-bas sous la premiere coupure.
+	// Bass: low-pass below the first crossover.
 	bands_[0].sectionCount = 2;
 	for (int i = 0; i < 2; ++i)
 		bands_[0].sections[static_cast<size_t>(i)].setLowpass(sampleRate_, kLowCrossover, kButterworthQ);
 
-	// Medium : entre les deux coupures.
+	// Mids: between the two crossovers.
 	bands_[1].sectionCount = 4;
 	for (int i = 0; i < 2; ++i)
 		bands_[1].sections[static_cast<size_t>(i)].setHighpass(sampleRate_, kLowCrossover, kButterworthQ);
 	for (int i = 2; i < 4; ++i)
 		bands_[1].sections[static_cast<size_t>(i)].setLowpass(sampleRate_, kHighCrossover, kButterworthQ);
 
-	// Aigu : passe-haut au-dessus de la seconde coupure.
+	// Treble: high-pass above the second crossover.
 	bands_[2].sectionCount = 2;
 	for (int i = 0; i < 2; ++i)
 		bands_[2].sections[static_cast<size_t>(i)].setHighpass(sampleRate_, kHighCrossover, kButterworthQ);
 
-	// Attaque instantanee, retombee en 120 ms : la lumiere doit claquer sur
-	// l'attaque et retomber doucement, pas suivre chaque oscillation.
+	// Instant attack, 120 ms release: the light must snap on the attack and
+	// fall back gently, not follow every oscillation.
 	releaseCoeff_ = std::exp(-1.0f / (sampleRate_ * 0.120f));
-	// Moyenne longue pour le seuil adaptatif : environ une seconde.
+	// Long average for the adaptive threshold: about one second.
 	averageCoeff_ = std::exp(-1.0f / (sampleRate_ * 1.0f));
-	// 250 ms de garde : au-dela de 240 temps par minute on ne parle plus de
-	// tempo, et cela evite de compter deux fois la meme frappe.
+	// 250 ms of guard: past 240 beats per minute we are no longer talking about
+	// tempo, and it avoids counting the same hit twice.
 	refractorySamples_ = static_cast<int>(sampleRate_ * 0.25f);
 
 	reset();
@@ -120,9 +120,9 @@ void AudioAnalyzer::updateBeat(float lowEnergy)
 	if (refractory_ > 0)
 		--refractory_;
 
-	// Seuil adaptatif : ce qui compte est le depassement par rapport a ce que
-	// le morceau fait d'habitude, et non un niveau absolu qui dependrait du
-	// reglage de la console.
+	// Adaptive threshold: what matters is how far the level rises above what
+	// the track usually does, not an absolute level that would depend on how
+	// the desk is set.
 	const bool loudEnough = lowEnergy > 0.05f;
 	if (refractory_ == 0 && loudEnough && lowEnergy > energyAverage_ * beatFactor_) {
 		beatCount_.fetch_add(1, std::memory_order_relaxed);

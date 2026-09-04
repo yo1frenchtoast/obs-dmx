@@ -6,15 +6,24 @@
   "modes": [
     {
       "id": "2ch",
-      "label": "2 canaux — Intensite + temperature",
+      "label": {
+        "en": "2 channels — Intensity + temperature",
+        "fr": "2 canaux — Intensite + temperature"
+      },
       "channels": [
         {
           "role": "dimmer",
-          "label": "Intensite"
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensite"
+          }
         },
         {
           "role": "cct",
-          "label": "Temperature de couleur",
+          "label": {
+            "en": "Colour temperature",
+            "fr": "Temperature de couleur"
+          },
           "physical_min": 3200,
           "physical_max": 5600
         }
@@ -22,21 +31,33 @@
     },
     {
       "id": "4ch",
-      "label": "4 canaux — Intensite, temperature, vert/magenta, strobe",
+      "label": {
+        "en": "4 channels — Intensity, temperature, vert/magenta, strobe",
+        "fr": "4 canaux — Intensite, temperature, vert/magenta, strobe"
+      },
       "channels": [
         {
           "role": "dimmer",
-          "label": "Intensite"
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensite"
+          }
         },
         {
           "role": "cct",
-          "label": "Temperature de couleur",
+          "label": {
+            "en": "Colour temperature",
+            "fr": "Temperature de couleur"
+          },
           "physical_min": 2700,
           "physical_max": 6500
         },
         {
           "role": "green_magenta",
-          "label": "Vert / Magenta",
+          "label": {
+            "en": "Green / magenta",
+            "fr": "Vert / Magenta"
+          },
           "neutral": 128,
           "default": 128
         },

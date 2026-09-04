@@ -7,8 +7,8 @@ group = f"239.255.{(universe >> 8) & 0xFF}.{universe & 0xFF}"
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 s.bind(("", 5568))
-# S'abonner sur toutes les interfaces : l'emetteur choisit la sienne selon la
-# route par defaut, pas forcement la loopback.
+# Subscribe on every interface: the sender picks its own from the default
+# route, which is not necessarily the loopback.
 for iface in ("0.0.0.0", "127.0.0.1"):
     try:
         s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP,
@@ -16,7 +16,7 @@ for iface in ("0.0.0.0", "127.0.0.1"):
     except OSError as e:
         print(f"  (abonnement via {iface} refuse : {e})")
 s.settimeout(timeout)
-print(f"ecoute sur {group}:5568 (univers {universe})")
+print(f"listening on {group}:5568 (univers {universe})")
 
 frames, t0, tlast, seqs = 0, None, None, []
 try:
@@ -44,8 +44,8 @@ except socket.timeout:
     pass
 
 if frames:
-    print(f"\n{frames} trames en {tlast-t0:.2f}s  ->  {(frames-1)/(tlast-t0):.1f} Hz")
+    print(f"\n{frames} frames in {tlast-t0:.2f}s  ->  {(frames-1)/(tlast-t0):.1f} Hz")
     ok = all(b == (a + 1) % 256 for a, b in zip(seqs, seqs[1:]))
-    print(f"sequence incrementale (E1.31 utilise toute la plage) : {ok}")
+    print(f"sequence increments (E1.31 uses the full range) : {ok}")
 else:
-    print("aucune trame E1.31 recue")
+    print("no E1.31 packet received")

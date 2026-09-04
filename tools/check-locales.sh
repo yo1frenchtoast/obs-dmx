@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Verifie que chaque chaine d'interface a sa traduction, dans les deux langues.
-# Une clef manquante s'affiche telle quelle dans OBS : le defaut est visible
-# mais silencieux, d'ou ce controle.
+# Checks that every interface string has a translation, in both languages.
+#
+# A missing key shows up verbatim in OBS: the fault is visible but silent, hence
+# this check.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -15,23 +16,28 @@ grep -oE '^[A-Za-z0-9_.]+=' data/locale/fr-FR.ini | tr -d '=' | sort -u > "$fr"
 
 status=0
 if missing=$(comm -23 "$used" "$en") && [ -n "$missing" ]; then
-  echo "Clefs utilisees mais absentes de en-US.ini :"; echo "$missing" | sed 's/^/  /'; status=1
+  echo "Keys used in the code but missing from en-US.ini:"
+  echo "$missing" | sed 's/^/  /'
+  status=1
 fi
-# Une clef peut etre citee indirectement, par un champ de structure plutot que
-# dans un appel litteral : on la cherche alors comme simple chaine avant de la
-# declarer inutilisee.
+
+# A key may be referenced indirectly, through a struct field rather than a
+# literal call, so look for it as a plain string before calling it unused.
 orphans=""
 for key in $(comm -13 "$used" "$en"); do
   grep -rqF "\"$key\"" src/ || orphans="$orphans $key"
 done
 if [ -n "$orphans" ]; then
-  echo "Clefs traduites mais introuvables dans le code :"
+  echo "Translated keys found nowhere in the code:"
   for key in $orphans; do echo "  $key"; done
   status=1
 fi
+
 if ! diff -q "$en" "$fr" >/dev/null; then
-  echo "en-US.ini et fr-FR.ini n'ont pas les memes clefs :"; diff "$en" "$fr" | sed 's/^/  /'; status=1
+  echo "en-US.ini and fr-FR.ini do not carry the same keys:"
+  diff "$en" "$fr" | sed 's/^/  /'
+  status=1
 fi
 
-[ "$status" -eq 0 ] && echo "Traductions completes : $(wc -l < "$en") clefs."
+[ "$status" -eq 0 ] && echo "Translations complete: $(wc -l < "$en") keys."
 exit "$status"

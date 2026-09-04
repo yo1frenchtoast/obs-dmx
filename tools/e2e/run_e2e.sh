@@ -1,16 +1,20 @@
 #!/usr/bin/env bash
-# Test de bout en bout : OBS change de scene, on regarde le DMX qui sort.
+# End-to-end test: OBS switches scene, we watch the DMX that comes out.
 set -uo pipefail
 SCRATCH="$(cd "$(dirname "$0")" && pwd)"
 CFG=~/.var/app/com.obsproject.Studio/config/obs-studio
 
+if flatpak ps 2>/dev/null | grep -qi obsproject; then
+  echo "OBS is already running: refusing to kill a session you may be working in." >&2
+  exit 1
+fi
 flatpak kill com.obsproject.Studio 2>/dev/null; sleep 3
-# Sans cela, l'arret force du test precedent fait apparaitre le dialogue de
-# mode securise, qui bloque le demarrage.
+# Without this, force-killing OBS at the end of the previous test brings up the
+# safe-mode dialog, which blocks start-up.
 rm -f "$CFG"/.sentinel/run_*
 
-# Le bac a sable d'OBS ne voit pas /tmp de l'hote : le son de test doit vivre
-# sous $HOME.
+# OBS's sandbox cannot see the host's /tmp, so the test tone must live under
+# $HOME.
 TONE="$CFG/obs-dmx-test-tone.wav"
 python3 "$SCRATCH/make_tone.py" "$TONE" >/dev/null
 python3 "$SCRATCH/setup_collection.py" "$TONE" || exit 1
@@ -18,12 +22,12 @@ python3 "$SCRATCH/setup_collection.py" "$TONE" || exit 1
 python3 - "$CFG" <<'PY'
 import json, pathlib, sys
 cfg = pathlib.Path(sys.argv[1])
-# Sortie DMX vers la loopback, pour que le recepteur du test la voie.
+# DMX output to the loopback, so the test receiver can see it.
 p = cfg / "plugin_config/obs-dmx/output.json"
 d = json.loads(p.read_text())
 d.update(protocol="artnet", host="127.0.0.1", universe=0, enabled=True)
 p.write_text(json.dumps(d))
-# obs-websocket sert a piloter les changements de scene.
+# obs-websocket is what drives the scene changes.
 w = cfg / "plugin_config/obs-websocket/config.json"
 ws = json.loads(w.read_text())
 ws["server_enabled"] = True

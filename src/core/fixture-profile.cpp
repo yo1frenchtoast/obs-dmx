@@ -12,8 +12,8 @@ struct RoleName {
 	std::string_view name;
 };
 
-/// Table unique, parcourue dans les deux sens, pour que l'ecriture et la
-/// lecture d'un profil ne puissent pas diverger.
+/// One table, walked in both directions, so that writing and reading a profile
+/// cannot drift apart.
 constexpr std::array kRoleNames = {
 	RoleName{ChannelRole::Dimmer, "dimmer"},
 	RoleName{ChannelRole::Red, "red"},

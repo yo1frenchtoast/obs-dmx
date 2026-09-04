@@ -33,7 +33,7 @@ std::string ArtnetOutput::name() const
 std::vector<uint8_t> ArtnetOutput::buildPacket(uint16_t universeId, uint8_t sequence, const uint8_t *slots,
 					       size_t slotCount)
 {
-	// Art-Net impose un nombre pair d'emplacements, entre 2 et 512.
+	// Art-Net requires an even slot count, between 2 and 512.
 	if (slotCount > kSlotsPerUniverse)
 		slotCount = kSlotsPerUniverse;
 	if (slotCount < 2)
@@ -45,7 +45,7 @@ std::vector<uint8_t> ArtnetOutput::buildPacket(uint16_t universeId, uint8_t sequ
 
 	std::memcpy(packet.data(), kArtnetId, sizeof(kArtnetId));
 
-	// OpCode : petit-boutiste, contrairement au reste de l'en-tete.
+	// OpCode: little-endian, unlike the rest of the header.
 	packet[8] = static_cast<uint8_t>(kOpDmx & 0xFF);
 	packet[9] = static_cast<uint8_t>(kOpDmx >> 8);
 
@@ -57,7 +57,7 @@ std::vector<uint8_t> ArtnetOutput::buildPacket(uint16_t universeId, uint8_t sequ
 	packet[14] = static_cast<uint8_t>(universeId & 0xFF);        // SubUni
 	packet[15] = static_cast<uint8_t>((universeId >> 8) & 0x7F); // Net
 
-	// Longueur : gros-boutiste.
+	// Length: big-endian.
 	packet[16] = static_cast<uint8_t>(slotCount >> 8);
 	packet[17] = static_cast<uint8_t>(slotCount & 0xFF);
 
@@ -77,8 +77,8 @@ bool ArtnetOutput::open(std::string &error)
 		return false;
 	}
 
-	// Autoriser la diffusion : c'est le mode le plus courant pour decouvrir
-	// un noeud dont on ignore l'adresse.
+	// Allow broadcast: it is the usual way to reach a node whose address is
+	// unknown.
 	int broadcast = 1;
 	if (::setsockopt(socket_, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast)) < 0) {
 		error = std::string("setsockopt(SO_BROADCAST): ") + std::strerror(errno);
@@ -90,13 +90,13 @@ bool ArtnetOutput::open(std::string &error)
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port_);
 	if (::inet_pton(AF_INET, host_.c_str(), &addr.sin_addr) != 1) {
-		error = "adresse IPv4 invalide : " + host_;
+		error = "invalid IPv4 address: " + host_;
 		close();
 		return false;
 	}
 
-	// Socket connecte : on evite de repasser l'adresse a chaque trame, et le
-	// noyau nous remonte les erreurs ICMP.
+	// Connected socket: avoids repeating the address on every frame, and lets
+	// the kernel report ICMP errors back to us.
 	if (::connect(socket_, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) < 0) {
 		error = std::string("connect(): ") + std::strerror(errno);
 		close();
@@ -120,15 +120,15 @@ void ArtnetOutput::send(const Universe &universe)
 	if (socket_ < 0)
 		return;
 
-	// La sequence sert au recepteur a detecter les trames dans le desordre.
-	// La valeur 0 signifie "non utilisee", on l'evite donc en bouclant.
+	// The sequence lets the receiver spot out-of-order frames. Value 0 means
+	// "not in use", so we skip it when wrapping.
 	if (++sequence_ == 0)
 		sequence_ = 1;
 
 	const auto packet = buildPacket(universe.id(), sequence_, universe.data(), Universe::size());
 
-	// MSG_DONTWAIT : perdre une trame vaut mieux que bloquer le moteur. La
-	// suivante arrive dans 25 ms de toute facon.
+	// MSG_DONTWAIT: dropping a frame beats blocking the engine. The next one
+	// arrives in 25 ms anyway.
 	::send(socket_, packet.data(), packet.size(), MSG_DONTWAIT);
 }
 

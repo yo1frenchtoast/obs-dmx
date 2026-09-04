@@ -6,22 +6,22 @@
 
 namespace obsdmx {
 
-/// Interface commune a toutes les sorties DMX (Art-Net, sACN, Enttec).
-/// Les implementations sont appelees depuis le thread du moteur, jamais
-/// depuis le thread audio ni depuis l'interface.
+/// Common interface to every DMX output (Art-Net, sACN, Enttec).
+/// Implementations are called from the engine thread, never from the audio
+/// thread nor from the interface.
 class DmxOutput {
 public:
 	virtual ~DmxOutput() = default;
 
-	/// Nom affiche a l'utilisateur.
+	/// Name shown to the user.
 	virtual std::string name() const = 0;
 
-	/// Ouvre la sortie. Renvoie false et remplit error en cas d'echec.
+	/// Opens the output. Returns false and fills error on failure.
 	virtual bool open(std::string &error) = 0;
 
 	virtual void close() = 0;
 
-	/// Emet un univers. Appele a chaque tick du moteur (40 Hz).
+	/// Sends one universe. Called on every engine tick (40 Hz).
 	virtual void send(const Universe &universe) = 0;
 };
 

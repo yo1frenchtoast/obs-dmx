@@ -6,16 +6,16 @@ namespace obsdmx {
 
 namespace {
 
-/// Le mix principal. OBS peut en avoir plusieurs ; c'est celui-ci que la
-/// diffusion utilise par defaut.
+/// The main mix. OBS can have several; this is the one streaming uses by
+/// default.
 constexpr size_t kMainMix = 0;
 
 audio_convert_info requestedFormat(uint32_t sampleRate)
 {
 	audio_convert_info info = {};
 	info.samples_per_sec = sampleRate;
-	// Un seul canal en virgule flottante : OBS fait lui-meme le melange et la
-	// conversion, ce qui evite de le refaire ici, dans un rappel temps reel.
+	// A single floating-point channel: OBS does the downmix and conversion
+	// itself, which saves doing it here, inside a real-time callback.
 	info.format = AUDIO_FORMAT_FLOAT_PLANAR;
 	info.speakers = SPEAKERS_MONO;
 	info.allow_clipping = false;
@@ -36,7 +36,7 @@ void ObsAudioTap::start()
 
 	audio_t *audio = obs_get_audio();
 	if (!audio) {
-		blog(LOG_WARNING, "[obs-dmx] audio d'OBS indisponible : la reaction au son restera inerte");
+		blog(LOG_WARNING, "[obs-dmx] OBS audio unavailable: the sound-reactive effects will stay inert");
 		return;
 	}
 
@@ -47,7 +47,7 @@ void ObsAudioTap::start()
 	obs_add_raw_audio_callback(kMainMix, &format, &ObsAudioTap::onAudio, this);
 	active_ = true;
 
-	blog(LOG_INFO, "[obs-dmx] ecoute du mix audio a %u Hz", sampleRate);
+	blog(LOG_INFO, "[obs-dmx] listening to the audio mix at %u Hz", sampleRate);
 }
 
 void ObsAudioTap::stop()
@@ -60,8 +60,8 @@ void ObsAudioTap::stop()
 
 void ObsAudioTap::onAudio(void *param, size_t, audio_data *data)
 {
-	// Thread audio, temps reel : aucune allocation, aucun verrou, aucun log.
-	// L'analyseur n'ecrit que des atomiques.
+	// Audio thread, real time: no allocation, no lock, no logging. The analyser
+	// writes only atomics.
 	if (!data || !data->data[0] || data->frames == 0)
 		return;
 

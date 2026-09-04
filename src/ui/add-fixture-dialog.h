@@ -15,11 +15,11 @@ namespace obsdmx {
 class FixtureLibrary;
 class Show;
 
-/// Boite d'ajout d'un projecteur : on choisit un modele, un mode, une adresse.
+/// Dialog for adding a fixture: pick a model, a mode and an address.
 ///
-/// Le choix du mode est le piege principal de tout le plugin : il doit
-/// correspondre au reglage fait sur l'ecran de l'appareil, et rien ne permet
-/// de le verifier depuis le logiciel. L'ecran le dit donc explicitement.
+/// Choosing the mode is the single biggest trap in the whole plugin: it must
+/// match what is set on the fixture's own screen, and nothing here can verify
+/// it. The dialog therefore says so outright.
 class AddFixtureDialog : public QDialog {
 	Q_OBJECT
 
@@ -48,6 +48,7 @@ private:
 	QListWidget *profiles_ = nullptr;
 	QComboBox *modes_ = nullptr;
 	QLabel *modeWarning_ = nullptr;
+	QLabel *profileNote_ = nullptr;
 	QLabel *footprint_ = nullptr;
 	QLineEdit *name_ = nullptr;
 	QSpinBox *universe_ = nullptr;

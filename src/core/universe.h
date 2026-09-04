@@ -8,7 +8,7 @@ namespace obsdmx {
 
 inline constexpr int kSlotsPerUniverse = 512;
 
-/// Un univers DMX : 512 emplacements, adresses 1 a 512 pour l'utilisateur.
+/// A DMX universe: 512 slots, addressed 1 to 512 from the user's point of view.
 class Universe {
 public:
 	explicit Universe(uint16_t id = 0) : id_(id) { clear(); }
@@ -18,7 +18,7 @@ public:
 
 	void clear() { slots_.fill(0); }
 
-	/// address est l'adresse DMX vue par l'utilisateur : 1 a 512.
+	/// address is the DMX address as the user sees it: 1 to 512.
 	void set(int address, uint8_t value)
 	{
 		if (address < 1 || address > kSlotsPerUniverse)
@@ -33,7 +33,7 @@ public:
 		return slots_[static_cast<size_t>(address - 1)];
 	}
 
-	/// Fusion HTP (highest takes precedence), comme sur une console.
+	/// HTP merge (highest takes precedence), as on a lighting desk.
 	void mergeHtp(int address, uint8_t value)
 	{
 		if (address < 1 || address > kSlotsPerUniverse)

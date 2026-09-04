@@ -1,7 +1,7 @@
 #pragma once
 
-// Un harnais minimal : le moteur n'a aucune dependance, on ne va pas lui en
-// ajouter une pour trois assertions.
+// A minimal harness: the engine has no dependencies, and we are not about to
+// add one for three assertions.
 
 #include <cstdio>
 #include <string>
@@ -42,7 +42,7 @@ struct Registrar {
 inline void reportFailure(const char *file, int line, const std::string &message)
 {
 	++failures();
-	std::fprintf(stderr, "  ECHEC %s:%d\n    %s\n", file, line, message.c_str());
+	std::fprintf(stderr, "  FAIL %s:%d\n    %s\n", file, line, message.c_str());
 }
 
 } // namespace testing
@@ -65,6 +65,6 @@ inline void reportFailure(const char *file, int line, const std::string &message
 		if (!(actual_ == expected_))                                                  \
 			::testing::reportFailure(__FILE__, __LINE__,                          \
 						 std::string(#actual) + " = " +               \
-							 std::to_string(actual_) + ", attendu " + \
+							 std::to_string(actual_) + ", expected " + \
 							 std::to_string(expected_));          \
 	} while (0)

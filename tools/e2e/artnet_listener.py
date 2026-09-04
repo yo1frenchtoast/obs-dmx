@@ -24,22 +24,22 @@ try:
         frames += 1
         seqs.append(seq)
         if frames == 1:
-            print(f"1re trame : version={ver} net={net} subuni={subuni} longueur={length}")
+            print(f"first frame : version={ver} net={net} subuni={subuni} longueur={length}")
             print(f"           canaux 1-6 = {list(slots[:6])}  canal 512 = {slots[511]}")
 except socket.timeout:
     pass
 
 if frames:
     dur = tlast - t0
-    print(f"\n{frames} trames en {dur:.2f}s  ->  {frames/dur:.1f} Hz")
-    # Art-Net : la sequence court de 0x01 a 0xff, 0x00 signifiant "desactivee".
-    # Le passage de 255 a 1 est donc un enchainement legitime, pas un saut.
+    print(f"\n{frames} frames in {dur:.2f}s  ->  {frames/dur:.1f} Hz")
+    # Art-Net: the sequence runs 0x01 to 0xff, 0x00 meaning "disabled".
+    # Going from 255 to 1 is therefore a legitimate step, not a jump.
     def suivant(a, b):
         return b == (a + 1) if a < 255 else b == 1
     fautes = [(a, b) for a, b in zip(seqs, seqs[1:]) if not suivant(a, b)]
-    print(f"sequence conforme (0x01-0xff, sans 0) : {not fautes}")
+    print(f"sequence conformant (0x01-0xff, no 0) : {not fautes}")
     if fautes:
         print(f"  {len(fautes)} rupture(s), p.ex. {fautes[:5]}")
-    print(f"aucune sequence a 0 (valeur reservee) : {0 not in seqs}")
+    print(f"no sequence at 0 (reserved value) : {0 not in seqs}")
 else:
-    print("aucune trame ArtDMX recue")
+    print("no ArtDMX frame received")

@@ -14,8 +14,8 @@ float clamp01(float value)
 	return std::clamp(value, 0.0f, 1.0f);
 }
 
-/// Generateur simple et reproductible : on ne veut pas d'un chaser aleatoire
-/// qui depende de l'etat global du programme.
+/// A simple, reproducible generator: we do not want a random chase whose
+/// pattern depends on global program state.
 uint32_t nextRandom(uint32_t &state)
 {
 	state ^= state << 13;
@@ -28,7 +28,7 @@ double stepDurationMs(const ChaserSettings &chaser)
 {
 	if (!chaser.useBpm)
 		return std::max(1, chaser.stepMs);
-	// Un pas par temps : 60000 ms divisees par le tempo.
+	// One step per beat: 60000 ms divided by the tempo.
 	return 60000.0 / std::max(1.0f, chaser.bpm);
 }
 
@@ -39,9 +39,9 @@ LightState blend(const LightState &base, const LightState &overlay, BlendMode mo
 	if (mode == BlendMode::Replace)
 		return overlay;
 
-	// Le plus fort l'emporte. On prend l'etat entier du gagnant plutot que de
-	// melanger canal par canal : melanger deux teintes donnerait une troisieme
-	// couleur que personne n'a demandee.
+	// Brightest wins. We take the winner's whole state rather than mixing
+	// channel by channel: blending two hues would give a third colour nobody
+	// asked for.
 	return overlay.intensity >= base.intensity ? overlay : base;
 }
 
@@ -81,8 +81,8 @@ void EffectRunner::apply(const std::vector<Effect> &effects, const Patch &patch,
 			applySound(effect, runtime, audio, states);
 			break;
 		case EffectType::BuiltinFx:
-			// Les effets embarques ne passent pas par un etat lumineux :
-			// ils forcent directement des canaux, plus tard dans le rendu.
+			// Built-in effects do not go through a lighting state: they
+			// force channels directly, later in the render.
 			break;
 		}
 	}
@@ -103,8 +103,8 @@ void EffectRunner::applyChaser(const Effect &effect, Runtime &runtime, const Aud
 	const int elapsedSteps = static_cast<int>(elapsedMs / durationMs);
 	const double phase = std::fmod(elapsedMs, durationMs) / durationMs;
 
-	// Position du motif. Pour le sens aleatoire on ne recalcule que lorsque le
-	// pas change, sinon le motif sauterait a chaque trame.
+	// Position of the pattern. For the random direction we only recompute when
+	// the step changes, otherwise the pattern would jump every frame.
 	int offset = 0;
 	switch (chaser.direction) {
 	case ChaserDirection::Forward:
@@ -114,7 +114,7 @@ void EffectRunner::applyChaser(const Effect &effect, Runtime &runtime, const Aud
 		offset = -elapsedSteps;
 		break;
 	case ChaserDirection::PingPong: {
-		// Aller-retour sans repeter les extremites.
+		// Back and forth without repeating the end points.
 		const int span = std::max(1, stepCount - 1);
 		const int position = elapsedSteps % (2 * span);
 		offset = position <= span ? position : 2 * span - position;
@@ -129,7 +129,7 @@ void EffectRunner::applyChaser(const Effect &effect, Runtime &runtime, const Aud
 		break;
 	}
 
-	// Le fondu ne couvre qu'une part du pas : au-dela, la couleur est stable.
+	// The fade covers only part of the step: beyond it the colour is steady.
 	const float fade = clamp01(chaser.fadeRatio);
 	const float mix = fade <= 0.0f ? 1.0f : clamp01(static_cast<float>(phase) / fade);
 
@@ -138,8 +138,8 @@ void EffectRunner::applyChaser(const Effect &effect, Runtime &runtime, const Aud
 	for (size_t i = 0; i < effect.fixtureIds.size(); ++i) {
 		const std::string &fixtureId = effect.fixtureIds[i];
 
-		// Chaque projecteur est decale d'un cran : c'est ce decalage qui fait
-		// courir la lumiere le long de la rampe.
+		// Each fixture is offset by one: that offset is what makes the light
+		// run along the row.
 		const int index = static_cast<int>(i) + offset;
 		const int current = ((index % stepCount) + stepCount) % stepCount;
 		const int previous = ((current - 1) % stepCount + stepCount) % stepCount;
@@ -176,8 +176,8 @@ void EffectRunner::applyStrobe(const Effect &effect, const Patch &patch, Clock::
 		const bool hardware = strobe.preferHardware && mode && mode->hasRole(ChannelRole::Strobe);
 
 		if (hardware) {
-			// L'appareil genere lui-meme le clignotement : bien plus net
-			// qu'une modulation a 40 Hz, et sans crenelage.
+			// The fixture generates the flashing itself: far crisper than
+			// modulating at 40 Hz, and free of aliasing.
 			value.strobeHz = hz;
 			if (strobe.useBaseColor)
 				value.intensity = base.intensity;
@@ -205,9 +205,9 @@ void EffectRunner::applySound(const Effect &effect, Runtime &runtime, const Audi
 		auto it = states.find(fixtureId);
 		const LightState base = it != states.end() ? it->second : LightState::black();
 
-		// La couleur vient du programme ou de l'effet, au choix de
-		// l'utilisateur. Sans ce choix, un projecteur absent de la base
-		// heritait d'une teinte arbitraire que rien ne permettait de changer.
+		// The colour comes from the programme or from the effect, as the user
+		// chooses. Without that choice, a fixture missing from the base
+		// inherited an arbitrary hue that nothing could change.
 		LightState value = sound.useBaseColor ? base : sound.color;
 
 		switch (sound.target) {
@@ -216,8 +216,8 @@ void EffectRunner::applySound(const Effect &effect, Runtime &runtime, const Audi
 			break;
 
 		case SoundTarget::Hue:
-			// Les trois bandes deviennent une position sur le cercle
-			// chromatique : les graves au rouge, les aigus au bleu.
+			// The three bands become a position on the colour circle:
+			// bass towards red, treble towards blue.
 			value.colorMix = 1.0f;
 			value.hue = std::fmod(audio.bands[0] * 60.0f + audio.bands[1] * 180.0f +
 						      audio.bands[2] * 300.0f,
@@ -227,13 +227,13 @@ void EffectRunner::applySound(const Effect &effect, Runtime &runtime, const Audi
 			break;
 
 		case SoundTarget::FlashOnBeat:
-			// L'eclat dure une trame ; c'est court, mais a 40 Hz l'oeil le
-			// voit, et cela evite de tenir un minuteur ici.
+			// The flash lasts one frame; that is short, but at 40 Hz the
+			// eye catches it, and it saves keeping a timer here.
 			value.intensity = beat ? 1.0f : 0.0f;
 			break;
 
 		case SoundTarget::StepOnBeat:
-			// Traite par le chaser associe : rien a faire sur l'etat.
+			// Handled by the paired chase: nothing to do to the state.
 			value = base;
 			break;
 		}
@@ -246,17 +246,17 @@ std::vector<std::pair<int, uint8_t>> builtinFxChannels(const FixtureMode &mode, 
 {
 	std::vector<std::pair<int, uint8_t>> values;
 
-	// Saisie directe : le profil ne decrit pas les effets de cet appareil,
-	// l'utilisateur recopie sa table de canaux.
+	// Direct entry: the profile does not describe this fixture's effects, so
+	// the user copies its channel chart.
 	if (settings.useManual) {
 		for (const auto &entry : settings.manual) {
-			// Les numeros du constructeur commencent a 1 ; en interne les
-			// canaux sont indices depuis 0.
+			// Manufacturer numbering starts at 1; internally channels are
+			// indexed from 0.
 			const int index = entry.channel - 1;
 
-			// Ecrire au-dela de l'empreinte du projecteur reviendrait a
-			// piloter son voisin : on refuse plutot que de causer un
-			// degat a distance.
+			// Writing past the fixture's footprint would drive its
+			// neighbour: refuse rather than cause damage at a
+			// distance.
 			if (index >= 0 && index < static_cast<int>(mode.channelCount()))
 				values.emplace_back(index, entry.value);
 		}
@@ -273,15 +273,15 @@ std::vector<std::pair<int, uint8_t>> builtinFxChannels(const FixtureMode &mode, 
 		return values;
 	values.emplace_back(selectChannel, effect->selectValue);
 
-	// Le canal de commande demarre la boucle. La valeur haute vaut "arret" :
-	// on reste donc dans la plage basse.
+	// The control channel starts the loop. High values mean "stop", so we stay
+	// in the low range.
 	if (const int control = mode.findRole(ChannelRole::FxControl); control >= 0)
 		values.emplace_back(control, 0);
 
 	if (effect->hasFrequency && effect->frequencyChannel >= 0 &&
 	    effect->frequencyChannel < static_cast<int>(mode.channelCount())) {
-		// Les frequences 1 a 10 occupent des tranches de dix valeurs ; la
-		// valeur aleatoire, quand elle existe, occupe la tranche suivante.
+		// Rates 1 to 10 occupy ten-value slices; the random setting, where it
+		// exists, occupies the next slice.
 		const int slot = settings.frequency == 0 && effect->hasRandomFrequency
 					 ? 10
 					 : std::clamp(settings.frequency, 1, 10) - 1;

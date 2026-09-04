@@ -21,19 +21,19 @@ FixtureLibrary loadShipped(std::vector<std::string> &warnings)
 
 } // namespace
 
-TEST(profils_livres_se_chargent_tous_sans_avertissement)
+TEST(every_shipped_profile_loads_without_a_warning)
 {
 	std::vector<std::string> warnings;
 	const auto library = loadShipped(warnings);
 
 	for (const auto &warning : warnings)
-		std::fprintf(stderr, "    avertissement : %s\n", warning.c_str());
+		std::fprintf(stderr, "    warning: %s\n", warning.c_str());
 
 	CHECK(warnings.empty());
 	CHECK(library.profiles().size() >= 10);
 }
 
-TEST(profil_t4c_couvre_les_sept_modes_du_constructeur)
+TEST(the_t4c_profile_covers_the_manufacturers_seven_modes)
 {
 	std::vector<std::string> warnings;
 	const auto library = loadShipped(warnings);
@@ -45,7 +45,7 @@ TEST(profil_t4c_couvre_les_sept_modes_du_constructeur)
 
 	CHECK_EQ(t4c->modes.size(), size_t(7));
 
-	// Nombres de canaux repris du document Aputure, micrologiciel V1.4.
+	// Channel counts taken from the Aputure document, firmware V1.4.
 	CHECK_EQ(t4c->findMode("mode1")->channelCount(), size_t(10));
 	CHECK_EQ(t4c->findMode("mode2")->channelCount(), size_t(6));
 	CHECK_EQ(t4c->findMode("mode3")->channelCount(), size_t(9));
@@ -54,12 +54,12 @@ TEST(profil_t4c_couvre_les_sept_modes_du_constructeur)
 	CHECK_EQ(t4c->findMode("mode6")->channelCount(), size_t(8));
 	CHECK_EQ(t4c->findMode("mode7")->channelCount(), size_t(9));
 
-	// Le mode 3 est celui propose par defaut : c'est le seul qui offre a la
-	// fois la teinte et la temperature de couleur.
+	// Mode 3 is the one offered by default: it is the only one giving both hue
+	// and colour temperature.
 	CHECK(t4c->preferredMode()->id == "mode3");
 }
 
-TEST(profil_t4c_mode_3_a_les_roles_attendus)
+TEST(the_t4c_mode_3_has_the_expected_roles)
 {
 	std::vector<std::string> warnings;
 	const auto library = loadShipped(warnings);
@@ -73,7 +73,7 @@ TEST(profil_t4c_mode_3_a_les_roles_attendus)
 	CHECK_EQ(mode->findRole(ChannelRole::Saturation), 5);
 	CHECK_EQ(mode->findRole(ChannelRole::Strobe), 8);
 
-	// Les plages particulieres du constructeur doivent avoir survecu au JSON.
+	// The manufacturer's peculiar ranges must have survived the JSON.
 	CHECK_EQ(mode->channels[2].neutralValue, 132);
 	CHECK_EQ(mode->channels[2].rangeMin, 21);
 	CHECK_EQ(mode->channels[8].rangeMin, 20);
@@ -81,7 +81,7 @@ TEST(profil_t4c_mode_3_a_les_roles_attendus)
 	CHECK_EQ(mode->channels[1].physicalMax, 7500.0f);
 }
 
-TEST(profil_t4c_expose_les_neuf_effets_embarques)
+TEST(the_t4c_profile_exposes_the_nine_built_in_effects)
 {
 	std::vector<std::string> warnings;
 	const auto library = loadShipped(warnings);
@@ -90,7 +90,7 @@ TEST(profil_t4c_expose_les_neuf_effets_embarques)
 	CHECK_EQ(fx->effects.size(), size_t(9));
 	CHECK_EQ(fx->findRole(ChannelRole::FxSelect), 2);
 
-	// Chaque effet doit designer un canal de frequence qui existe.
+	// Every effect must point at a rate channel that exists.
 	for (const auto &effect : fx->effects) {
 		CHECK(!effect.id.empty());
 		CHECK(effect.hasFrequency);
@@ -98,14 +98,13 @@ TEST(profil_t4c_expose_les_neuf_effets_embarques)
 		CHECK(effect.frequencyChannel < static_cast<int>(fx->channelCount()));
 	}
 
-	// Les valeurs de selection doivent etre distinctes, sans quoi deux effets
-	// se confondraient.
+	// Selection values must be distinct, otherwise two effects would collide.
 	for (size_t i = 0; i < fx->effects.size(); ++i)
 		for (size_t j = i + 1; j < fx->effects.size(); ++j)
 			CHECK(fx->effects[i].selectValue != fx->effects[j].selectValue);
 }
 
-TEST(aucun_profil_livre_ne_depasse_un_univers)
+TEST(no_shipped_profile_exceeds_one_universe)
 {
 	std::vector<std::string> warnings;
 	const auto library = loadShipped(warnings);
@@ -117,21 +116,21 @@ TEST(aucun_profil_livre_ne_depasse_un_univers)
 		}
 }
 
-TEST(chaque_profil_livre_a_un_mode_par_defaut_valide)
+TEST(every_shipped_profile_has_a_valid_default_mode)
 {
 	std::vector<std::string> warnings;
 	const auto library = loadShipped(warnings);
 
 	for (const auto &profile : library.profiles()) {
 		CHECK(profile.preferredMode() != nullptr);
-		// Un default_mode qui designe un mode inexistant est une faute de
-		// frappe silencieuse : on la fait remonter.
+		// A default_mode naming a mode that does not exist is a silent typo:
+		// surface it.
 		if (!profile.defaultMode.empty())
 			CHECK(profile.findMode(profile.defaultMode) != nullptr);
 	}
 }
 
-TEST(effets_embarques_du_t4c_produisent_les_bons_canaux)
+TEST(the_t4c_built_in_effects_produce_the_right_channels)
 {
 	std::vector<std::string> warnings;
 	const auto library = loadShipped(warnings);
@@ -143,12 +142,12 @@ TEST(effets_embarques_du_t4c_produisent_les_bons_canaux)
 
 	const auto channels = builtinFxChannels(*fx, settings);
 
-	// Canal 3 du mode FX : choix de l'effet. L'orage occupe 10 a 19.
+	// Channel 3 of the FX mode: effect selection. Lightning occupies 10 to 19.
 	bool foundSelect = false, foundFrequency = false, foundControl = false;
 	for (const auto &[index, value] : channels) {
 		if (index == 2) { foundSelect = true; CHECK_EQ(value, 15); }
 		if (index == 1) { foundControl = true; CHECK(value < 10); } // en boucle, pas a l'arret
-		// La frequence 3 tombe dans la tranche 20-29.
+		// Rate 3 falls in the 20-29 slice.
 		if (index == 5) { foundFrequency = true; CHECK(value >= 20 && value <= 29); }
 	}
 	CHECK(foundSelect);
@@ -156,13 +155,13 @@ TEST(effets_embarques_du_t4c_produisent_les_bons_canaux)
 	CHECK(foundFrequency);
 }
 
-TEST(frequence_aleatoire_n_est_offerte_que_par_les_effets_qui_l_acceptent)
+TEST(the_random_rate_is_offered_only_by_effects_that_accept_it)
 {
 	std::vector<std::string> warnings;
 	const auto library = loadShipped(warnings);
 	const auto *fx = library.find("aputure-amaran-t4c")->findMode("mode7");
 
-	// L'orage accepte l'aleatoire : il occupe la tranche 100-109.
+	// Lightning accepts random: it occupies the 100-109 slice.
 	BuiltinFxSettings orage;
 	orage.effectId = "lightning";
 	orage.frequency = 0;
@@ -170,8 +169,8 @@ TEST(frequence_aleatoire_n_est_offerte_que_par_les_effets_qui_l_acceptent)
 		if (index == 5)
 			CHECK(value >= 100 && value <= 109);
 
-	// Le gyrophare ne l'accepte pas : on retombe sur une frequence valide
-	// plutot que d'ecrire une valeur reservee.
+	// Cop car does not, so we fall back on a valid rate rather than writing a
+	// reserved value.
 	BuiltinFxSettings gyrophare;
 	gyrophare.effectId = "cop_car";
 	gyrophare.frequency = 0;
@@ -180,7 +179,7 @@ TEST(frequence_aleatoire_n_est_offerte_que_par_les_effets_qui_l_acceptent)
 			CHECK(value < 100);
 }
 
-TEST(un_effet_embarque_inconnu_ne_produit_aucun_canal)
+TEST(an_unknown_built_in_effect_produces_no_channel)
 {
 	std::vector<std::string> warnings;
 	const auto library = loadShipped(warnings);
@@ -190,18 +189,18 @@ TEST(un_effet_embarque_inconnu_ne_produit_aucun_canal)
 	settings.effectId = "effet-inexistant";
 	CHECK(builtinFxChannels(*fx, settings).empty());
 
-	// Et un mode sans effets non plus, meme avec un identifiant valide.
+	// Nor does a mode without effects, even given a valid identifier.
 	const auto *mode3 = library.find("aputure-amaran-t4c")->findMode("mode3");
 	settings.effectId = "lightning";
 	CHECK(builtinFxChannels(*mode3, settings).empty());
 }
 
-TEST(saisie_manuelle_force_les_canaux_demandes)
+TEST(manual_entry_forces_the_channels_asked_for)
 {
 	std::vector<std::string> warnings;
 	const auto library = loadShipped(warnings);
-	// Le mode 3 ne declare aucun effet : c'est justement le cas ou la saisie
-	// manuelle sert.
+	// Mode 3 declares no effects, which is exactly the case manual entry is
+	// there for.
 	const auto *mode3 = library.find("aputure-amaran-t4c")->findMode("mode3");
 
 	BuiltinFxSettings settings;
@@ -211,7 +210,7 @@ TEST(saisie_manuelle_force_les_canaux_demandes)
 	const auto channels = builtinFxChannels(*mode3, settings);
 	CHECK_EQ(channels.size(), size_t(3));
 
-	// Les numeros du constructeur commencent a 1, les indices internes a 0.
+	// Manufacturer numbering starts at 1, internal indices at 0.
 	CHECK_EQ(channels[0].first, 0);
 	CHECK_EQ(channels[0].second, 255);
 	CHECK_EQ(channels[1].first, 4);
@@ -220,7 +219,7 @@ TEST(saisie_manuelle_force_les_canaux_demandes)
 	CHECK_EQ(channels[2].second, 42);
 }
 
-TEST(saisie_manuelle_refuse_de_deborder_sur_le_projecteur_voisin)
+TEST(manual_entry_refuses_to_spill_onto_the_neighbouring_fixture)
 {
 	std::vector<std::string> warnings;
 	const auto library = loadShipped(warnings);
@@ -229,7 +228,7 @@ TEST(saisie_manuelle_refuse_de_deborder_sur_le_projecteur_voisin)
 
 	BuiltinFxSettings settings;
 	settings.useManual = true;
-	// 10 depasse les 9 canaux de l'appareil : l'ecrire piloterait son voisin.
+	// 10 is past the fixture's 9 channels: writing it would drive its neighbour.
 	settings.manual = {{9, 10}, {10, 20}, {100, 30}, {0, 40}, {-1, 50}};
 
 	const auto channels = builtinFxChannels(*mode3, settings);
@@ -238,14 +237,14 @@ TEST(saisie_manuelle_refuse_de_deborder_sur_le_projecteur_voisin)
 	CHECK_EQ(channels[0].second, 10);
 }
 
-TEST(saisie_manuelle_ignore_la_bibliotheque_d_effets)
+TEST(manual_entry_overrides_the_effect_library)
 {
 	std::vector<std::string> warnings;
 	const auto library = loadShipped(warnings);
 	const auto *fx = library.find("aputure-amaran-t4c")->findMode("mode7");
 
-	// Meme sur un mode qui connait des effets, la saisie manuelle prend la
-	// main : c'est le point de sortie quand la bibliotheque se trompe.
+	// Even on a mode that knows effects, manual entry takes over: it is the way
+	// out when the library gets something wrong.
 	BuiltinFxSettings settings;
 	settings.useManual = true;
 	settings.effectId = "lightning";
@@ -257,7 +256,7 @@ TEST(saisie_manuelle_ignore_la_bibliotheque_d_effets)
 	CHECK_EQ(channels[0].second, 77);
 }
 
-TEST(saisie_manuelle_vide_n_ecrit_rien)
+TEST(empty_manual_entry_writes_nothing)
 {
 	std::vector<std::string> warnings;
 	const auto library = loadShipped(warnings);
@@ -268,7 +267,7 @@ TEST(saisie_manuelle_vide_n_ecrit_rien)
 	CHECK(builtinFxChannels(*mode3, settings).empty());
 }
 
-TEST(profil_wild_wash_rgb_reprend_les_modes_de_la_notice)
+TEST(the_wild_wash_rgb_profile_matches_the_manual)
 {
 	std::vector<std::string> warnings;
 	const auto library = loadShipped(warnings);
@@ -278,7 +277,7 @@ TEST(profil_wild_wash_rgb_reprend_les_modes_de_la_notice)
 	if (!ww)
 		return;
 
-	// Huit modes, tels que listes dans le menu de l'appareil.
+	// Eight modes, as listed in the fixture's own menu.
 	CHECK_EQ(ww->modes.size(), size_t(8));
 	CHECK_EQ(ww->findMode("1ch")->channelCount(), size_t(1));
 	CHECK_EQ(ww->findMode("2ch1")->channelCount(), size_t(2));
@@ -289,11 +288,11 @@ TEST(profil_wild_wash_rgb_reprend_les_modes_de_la_notice)
 	CHECK_EQ(ww->findMode("4ch")->channelCount(), size_t(4));
 	CHECK_EQ(ww->findMode("6ch")->channelCount(), size_t(6));
 
-	// Le 6Ch est le seul qui offre a la fois gradateur, strobe et RVB.
+	// 6Ch is the only one offering dimmer, strobe and RGB together.
 	CHECK(ww->preferredMode()->id == "6ch");
 }
 
-TEST(wild_wash_6ch_pilote_bien_le_rouge_le_vert_et_le_bleu)
+TEST(wild_wash_6ch_drives_red_green_and_blue)
 {
 	std::vector<std::string> warnings;
 	const auto library = loadShipped(warnings);
@@ -314,7 +313,7 @@ TEST(wild_wash_6ch_pilote_bien_le_rouge_le_vert_et_le_bleu)
 	CHECK_EQ(values[5], 0);   // commande sonore de l'appareil : laissee coupee
 }
 
-TEST(wild_wash_le_strobe_ne_commence_pas_au_meme_endroit_selon_le_mode)
+TEST(wild_wash_strobe_starts_at_a_different_place_per_mode)
 {
 	std::vector<std::string> warnings;
 	const auto library = loadShipped(warnings);
@@ -323,31 +322,31 @@ TEST(wild_wash_le_strobe_ne_commence_pas_au_meme_endroit_selon_le_mode)
 	LightState state;
 	state.intensity = 1.0f;
 
-	// Sans strobe, les deux modes laissent les diodes allumees (0-5), et non
-	// dans la zone de noir (6-10).
+	// With no strobe, both modes leave the LEDs lit (0-5), not in the blackout
+	// zone (6-10).
 	CHECK_EQ(renderState(*ww->findMode("6ch"), state)[1], 0);
 	CHECK_EQ(renderState(*ww->findMode("3ch2"), state)[1], 0);
 
 	state.strobeHz = 0.1f;
 
-	// En 3Ch2 la plage de strobe demarre a 11.
+	// In 3Ch2 the strobe range starts at 11.
 	const int simple = renderState(*ww->findMode("3ch2"), state)[1];
 	CHECK(simple >= 11 && simple <= 14);
 
-	// En 6Ch, les valeurs 11 a 127 sont prises par les effets aleatoires de
-	// l'appareil : le strobe regulier ne commence qu'a 128. Confondre les deux
-	// declencherait un effet aleatoire au lieu d'un strobe.
+	// In 6Ch, values 11 to 127 are taken by the fixture's random effects: the
+	// steady strobe only starts at 128. Confusing the two would fire a random
+	// effect instead of a strobe.
 	const int etendu = renderState(*ww->findMode("6ch"), state)[1];
 	CHECK(etendu >= 128 && etendu <= 131);
 
-	// A pleine vitesse, les deux plafonnent a 250, pas a 255 : au-dela
-	// l'appareil repasse en eclairage fixe.
+	// At full speed both cap at 250, not 255: beyond that the fixture returns to
+	// steady light.
 	state.strobeHz = 30.0f;
 	CHECK_EQ(renderState(*ww->findMode("3ch2"), state)[1], 250);
 	CHECK_EQ(renderState(*ww->findMode("6ch"), state)[1], 250);
 }
 
-TEST(wild_wash_la_macro_de_couleurs_par_defaut_ne_laisse_pas_l_appareil_noir)
+TEST(the_wild_wash_default_colour_macro_does_not_leave_it_dark)
 {
 	std::vector<std::string> warnings;
 	const auto library = loadShipped(warnings);
@@ -356,9 +355,9 @@ TEST(wild_wash_la_macro_de_couleurs_par_defaut_ne_laisse_pas_l_appareil_noir)
 	LightState state;
 	state.intensity = 1.0f;
 
-	// Le canal de macro n'est pas pilote par une intention lumineuse. A zero
-	// il vaut « noir » : le projecteur resterait eteint quoi qu'on fasse du
-	// gradateur. Le profil le laisse donc sur le blanc.
+	// The macro channel is not driven by a lighting intent. At zero it means
+	// blackout, so the fixture would stay dark whatever the dimmer did. The
+	// profile therefore leaves it on white.
 	for (const char *modeId : {"2ch1", "3ch2", "4ch"}) {
 		const auto *mode = ww->findMode(modeId);
 		const int macro = mode->findRole(ChannelRole::ColorWheel);
@@ -370,7 +369,7 @@ TEST(wild_wash_la_macro_de_couleurs_par_defaut_ne_laisse_pas_l_appareil_noir)
 	}
 }
 
-TEST(profil_wild_wash_blanc_n_expose_ni_couleur_ni_temperature)
+TEST(the_wild_wash_white_profile_exposes_no_colour_or_temperature)
 {
 	std::vector<std::string> warnings;
 	const auto library = loadShipped(warnings);
@@ -382,7 +381,7 @@ TEST(profil_wild_wash_blanc_n_expose_ni_couleur_ni_temperature)
 
 	CHECK_EQ(ww->modes.size(), size_t(3));
 	for (const auto &mode : ww->modes) {
-		// L'appareil est en blanc froid fixe : rien a piloter de ce cote.
+		// The fixture is fixed cold white: nothing to drive on that side.
 		CHECK(!mode.hasRole(ChannelRole::Red));
 		CHECK(!mode.hasRole(ChannelRole::Hue));
 		CHECK(!mode.hasRole(ChannelRole::Cct));
@@ -390,4 +389,55 @@ TEST(profil_wild_wash_blanc_n_expose_ni_couleur_ni_temperature)
 
 	CHECK(ww->findMode("2ch")->hasRole(ChannelRole::Dimmer));
 	CHECK(ww->findMode("2ch")->hasRole(ChannelRole::Strobe));
+}
+
+TEST(labels_follow_the_requested_language)
+{
+	// Profiles carry their own labels: they cannot go through the module's
+	// translation file, which only knows fixed keys.
+	FixtureLibrary anglais;
+	anglais.setLanguage("en-US");
+	std::vector<std::string> warnings;
+	anglais.loadDirectory(OBS_DMX_FIXTURES_DIR, warnings);
+
+	FixtureLibrary francais;
+	francais.setLanguage("fr-FR");
+	francais.loadDirectory(OBS_DMX_FIXTURES_DIR, warnings);
+
+	const auto *en = anglais.find("aputure-amaran-t4c")->findMode("mode3");
+	const auto *fr = francais.find("aputure-amaran-t4c")->findMode("mode3");
+
+	CHECK(en->channels[0].label == "Intensity");
+	CHECK(fr->channels[0].label == "Intensite");
+	CHECK(en->label != fr->label);
+
+	// The technical values, by contrast, do not depend on the language.
+	CHECK_EQ(en->channelCount(), fr->channelCount());
+	CHECK_EQ(en->channels[2].neutralValue, fr->channels[2].neutralValue);
+}
+
+TEST(an_unknown_language_falls_back_to_english)
+{
+	FixtureLibrary library;
+	library.setLanguage("ja-JP");
+	std::vector<std::string> warnings;
+	library.loadDirectory(OBS_DMX_FIXTURES_DIR, warnings);
+
+	// A label in the wrong language is still more useful than an empty field.
+	const auto *mode = library.find("aputure-amaran-t4c")->findMode("mode3");
+	CHECK(mode->channels[0].label == "Intensity");
+	CHECK(!mode->label.empty());
+}
+
+TEST(a_plain_string_label_is_still_accepted)
+{
+	// A hand-written profile can make do with a plain string.
+	FixtureLibrary library;
+	std::string error;
+	CHECK(library.loadJson(R"({"id":"x","model":"X","modes":[
+		{"id":"m","label":"Simple","channels":[{"role":"dimmer","label":"Dimmer"}]}]})", error));
+
+	const auto *mode = library.find("x")->findMode("m");
+	CHECK(mode->label == "Simple");
+	CHECK(mode->channels[0].label == "Dimmer");
 }

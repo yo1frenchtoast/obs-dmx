@@ -7,21 +7,20 @@
 
 namespace obsdmx {
 
-/// L'intention lumineuse, exprimee independamment de tout materiel.
+/// The lighting intent, expressed independently of any hardware.
 ///
-/// C'est ce que manipulent les programmes et les effets ; la traduction vers
-/// les canaux est faite une seule fois, ici, en fonction de ce que l'appareil
-/// sait faire.
+/// This is what programmes and effects manipulate; the translation onto channels
+/// happens once, here, according to what the fixture can actually do.
 struct LightState {
 	float intensity = 0.0f; ///< 0 a 1
 
-	/// Dosage entre le moteur blanc et le moteur couleur : 0 pour un blanc
-	/// defini par sa temperature, 1 pour une teinte.
+	/// Balance between the white engine and the colour engine: 0 for a white
+	/// defined by its temperature, 1 for a hue.
 	///
-	/// C'est une grandeur continue et non un choix binaire, parce que le
-	/// materiel la traite ainsi : le T4c y consacre un canal de fondu. Cela
-	/// rend aussi les transitions entre programmes interpolables sans
-	/// discontinuite.
+	/// This is a continuous quantity rather than a binary choice, because the
+	/// hardware treats it that way: the T4c devotes a crossfade channel to it.
+	/// It also makes transitions between programmes interpolable without a
+	/// discontinuity.
 	float colorMix = 1.0f;
 
 	float hue = 0.0f;        ///< degres, 0 a 360
@@ -39,7 +38,7 @@ struct LightState {
 		return state;
 	}
 
-	/// Blanc a la temperature donnee.
+	/// White at the given temperature.
 	static LightState white(float kelvin)
 	{
 		LightState state;
@@ -49,10 +48,10 @@ struct LightState {
 	}
 };
 
-/// Interpolation entre deux etats, pour les fondus entre programmes.
+/// Interpolates between two states, for fades between programmes.
 ///
-/// La teinte suit le plus court chemin sur le cercle : sans cela, un fondu du
-/// rouge (350 degres) vers l'orange (10 degres) traverserait tout le spectre.
+/// Hue takes the shortest way round the circle: without that, a fade from red
+/// (350 degrees) to orange (10 degrees) would sweep the whole spectrum.
 LightState lerp(const LightState &from, const LightState &to, float t);
 
 struct Rgb {
@@ -61,16 +60,16 @@ struct Rgb {
 	float b = 0.0f;
 };
 
-/// Teinte et saturation vers RVB, a luminosite maximale : l'intensite est
-/// portee separement par le gradateur.
+/// Hue and saturation to RGB at full brightness: intensity is carried
+/// separately by the dimmer.
 Rgb hsToRgb(float hueDegrees, float saturation);
 
-/// Approximation du rayonnement du corps noir, pour les appareils qui n'ont pas
-/// de canal de temperature de couleur.
+/// Black-body approximation, for fixtures without a colour temperature
+/// channel.
 Rgb cctToRgb(float kelvin);
 
-/// Traduit une intention en valeurs DMX pour un mode donne.
-/// Le vecteur renvoye a exactement mode.channelCount() elements.
+/// Translates an intent into DMX values for a given mode.
+/// The returned vector has exactly mode.channelCount() elements.
 std::vector<uint8_t> renderState(const FixtureMode &mode, const LightState &state);
 
 } // namespace obsdmx

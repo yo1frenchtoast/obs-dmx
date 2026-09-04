@@ -1,4 +1,4 @@
-"""Installe une collection de scenes jetable pour le test de bout en bout."""
+"""Installs a throwaway scene collection for the end-to-end test."""
 import json, pathlib, os, sys, uuid
 
 cfg = pathlib.Path(os.path.expanduser("~/.var/app/com.obsproject.Studio/config/obs-studio"))
@@ -21,8 +21,8 @@ def scene(name, items=()):
     return source(name, "scene", {"custom_size": False, "id_counter": len(items),
                                   "items": list(items)})
 
-# Une source audio qui joue en boucle : le mix la voit, les haut-parleurs non,
-# le monitoring restant desactive.
+# An audio source playing on a loop: the mix sees it, the speakers do not,
+# monitoring being left off.
 media = source("Basse de test", "ffmpeg_source", {
     "local_file": tone, "looping": True, "restart_on_activate": True,
     "close_when_inactive": False, "hw_decode": False,
@@ -39,15 +39,15 @@ def item(src, ident):
 
 plateau = scene("Plateau")
 interview = scene("Interview")
-chase = scene("Chaser")
+chase = scene("Chase")
 strobe = scene("Strobe")
 fx = scene("EffetIntegre")
 musique = scene("Musique", [item(media, 1)] if tone else [])
-# Meme programme que Musique, mais sans source sonore : c'est le temoin qui
-# permet d'affirmer que c'est bien le son qui allume la lumiere.
+# Same programme as Musique, but with no sound source: the control that lets us
+# claim it really is the sound lighting the fixtures.
 silence = scene("Silence")
-# Saisie directe des canaux, pour un appareil dont le profil ne connait pas les
-# effets : on force ici le canal 5 a 200 sur un T4c en mode 3.
+# Direct channel entry, for a fixture whose profile does not know its effects:
+# here channel 5 is forced to 200 on a T4c in mode 3.
 fxmanuel = scene("FxManuel")
 
 scenes = [plateau, interview, chase, strobe, fx, musique, silence, fxmanuel]
@@ -90,7 +90,7 @@ show = {
          "looks": [look(f, 1.0, 0.0, 0.0, 0.0, 3200.0) for f in fixtures]},
         {"id": "program-2", "name": "Interview bleue",
          "looks": [look(f, 0.6, 1.0, 240.0, 1.0) for f in fixtures]},
-        {"id": "program-3", "name": "Chaser",
+        {"id": "program-3", "name": "Chase",
          "looks": [],
          "effects": [effect("chaser", 0, fixtures,
                             chaser={"steps": [allume, eteint], "step_ms": 500})]},
@@ -119,7 +119,7 @@ show = {
     "bindings": [
         {"scene_uuid": plateau["uuid"], "scene_name": "Plateau", "program": "program-1", "fade_ms": 0},
         {"scene_uuid": interview["uuid"], "scene_name": "Interview", "program": "program-2", "fade_ms": 0},
-        {"scene_uuid": chase["uuid"], "scene_name": "Chaser", "program": "program-3", "fade_ms": 0},
+        {"scene_uuid": chase["uuid"], "scene_name": "Chase", "program": "program-3", "fade_ms": 0},
         {"scene_uuid": strobe["uuid"], "scene_name": "Strobe", "program": "program-4", "fade_ms": 0},
         {"scene_uuid": fx["uuid"], "scene_name": "EffetIntegre", "program": "program-5", "fade_ms": 0},
         {"scene_uuid": musique["uuid"], "scene_name": "Musique", "program": "program-6", "fade_ms": 0},
@@ -130,8 +130,8 @@ show = {
 
 collection = dict(base)
 
-# Couper les entrees audio globales : elles sont mixees quelle que soit la
-# scene active, et le bruit de la piece rendrait le temoin silencieux faux.
+# Mute the global audio inputs: they are mixed whatever scene is active, and
+# room noise would make the silent control meaningless.
 for key in ("DesktopAudioDevice1", "AuxAudioDevice1"):
     device = collection.get(key)
     if isinstance(device, dict):
@@ -148,4 +148,4 @@ collection.update({
     "modules": {**base.get("modules", {}), "obs-dmx": show},
 })
 p.write_text(json.dumps(collection, indent=4))
-print("collection installee :", [s["name"] for s in scenes])
+print("collection installed :", [s["name"] for s in scenes])

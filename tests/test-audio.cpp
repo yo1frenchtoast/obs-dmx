@@ -30,7 +30,7 @@ AudioSnapshot analyze(const std::vector<float> &samples)
 
 } // namespace
 
-TEST(le_silence_ne_produit_aucun_niveau)
+TEST(silence_produces_no_level)
 {
 	const std::vector<float> silence(4800, 0.0f);
 	const auto snap = analyze(silence);
@@ -40,11 +40,11 @@ TEST(le_silence_ne_produit_aucun_niveau)
 	CHECK_EQ(snap.beatCount, uint64_t(0));
 }
 
-TEST(chaque_bande_repond_a_sa_plage_de_frequences)
+TEST(each_band_answers_its_own_frequency_range)
 {
 	const auto grave = analyze(sine(80.0f, 0.3f));
 	CHECK(grave.bands[0] > 0.3f);
-	// Une basse ne doit quasiment rien mettre dans les aigus.
+	// A bass tone must put almost nothing into the treble band.
 	CHECK(grave.bands[2] < grave.bands[0] * 0.05f);
 
 	const auto aigu = analyze(sine(5000.0f, 0.3f));
@@ -56,11 +56,11 @@ TEST(chaque_bande_repond_a_sa_plage_de_frequences)
 	CHECK(medium.bands[1] > medium.bands[2] * 10.0f);
 }
 
-TEST(les_trois_voies_couvrent_le_spectre_sans_trou)
+TEST(the_three_bands_cover_the_spectrum_without_gaps)
 {
-	// Trois passe-bande etroits laisseraient des creux entre eux : un morceau
-	// dont l'essentiel y tombe n'allumerait rien. Une separation en voies,
-	// elle, se recombine a l'unite partout.
+	// Three narrow band-pass filters would leave dips between them, and a track
+	// whose energy fell in one would light nothing. A crossover split, by
+	// contrast, recombines to unity everywhere.
 	for (float frequency : {50.0f, 150.0f, 300.0f, 600.0f, 1200.0f, 3000.0f, 8000.0f}) {
 		const auto snap = analyze(sine(frequency, 0.3f));
 		const float somme = snap.bands[0] + snap.bands[1] + snap.bands[2];
@@ -68,10 +68,10 @@ TEST(les_trois_voies_couvrent_le_spectre_sans_trou)
 	}
 }
 
-TEST(les_coupures_partagent_l_energie_entre_deux_voies)
+TEST(crossovers_split_the_energy_between_two_bands)
 {
-	// A la frequence de coupure, les deux voies voisines doivent se partager
-	// le signal a peu pres a egalite.
+	// At the crossover frequency the two neighbouring bands should share the
+	// signal roughly equally.
 	const auto basse = analyze(sine(AudioAnalyzer::kLowCrossover, 0.3f));
 	CHECK(basse.bands[0] > 0.1f);
 	CHECK(basse.bands[1] > 0.1f);
@@ -83,15 +83,15 @@ TEST(les_coupures_partagent_l_energie_entre_deux_voies)
 	CHECK(std::abs(haute.bands[1] - haute.bands[2]) < 0.25f);
 }
 
-TEST(les_niveaux_restent_bornes_a_un)
+TEST(levels_stay_bounded_at_one)
 {
-	// Un signal sature ne doit pas faire deborder l'echelle.
+	// A clipped signal must not push the scale past its limit.
 	const auto snap = analyze(sine(80.0f, 0.3f, 4.0f));
 	for (float band : snap.bands)
 		CHECK(band <= 1.0f);
 }
 
-TEST(l_enveloppe_retombe_apres_le_son)
+TEST(the_envelope_falls_back_after_the_sound)
 {
 	AudioAnalyzer analyzer;
 	analyzer.prepare(kSampleRate);
@@ -101,20 +101,19 @@ TEST(l_enveloppe_retombe_apres_le_son)
 	const float pendant = analyzer.snapshot().bands[0];
 	CHECK(pendant > 0.3f);
 
-	// Une demi-seconde de silence : la retombee est de 120 ms, il ne doit
-	// rester presque rien.
+	// Half a second of silence: the release is 120 ms, so almost nothing should
+	// be left.
 	const std::vector<float> silence(static_cast<size_t>(kSampleRate * 0.5f), 0.0f);
 	analyzer.process(silence.data(), silence.size());
 	CHECK(analyzer.snapshot().bands[0] < pendant * 0.05f);
 }
 
-TEST(les_temps_sont_comptes_sur_une_pulsation_reguliere)
+TEST(beats_are_counted_on_a_steady_pulse)
 {
 	AudioAnalyzer analyzer;
 	analyzer.prepare(kSampleRate);
 
-	// Huit frappes de grosse caisse a 120 temps par minute, soit une toutes
-	// les 500 ms.
+	// Eight kick drum hits at 120 beats per minute, one every 500 ms.
 	const size_t periode = static_cast<size_t>(kSampleRate * 0.5f);
 	const size_t frappe = static_cast<size_t>(kSampleRate * 0.05f);
 
@@ -129,20 +128,20 @@ TEST(les_temps_sont_comptes_sur_une_pulsation_reguliere)
 	analyzer.process(piste.data(), piste.size());
 	const uint64_t temps = analyzer.snapshot().beatCount;
 
-	// On veut le bon ordre de grandeur, pas le compte exact : une detection
-	// par energie manque parfois la premiere frappe, le temps que la moyenne
-	// glissante s'etablisse.
+	// We want the right order of magnitude, not an exact count: energy-based
+	// detection sometimes misses the first hit while the running average
+	// settles.
 	CHECK(temps >= 6);
 	CHECK(temps <= 9);
 }
 
-TEST(la_periode_refractaire_empeche_de_compter_deux_fois_la_meme_frappe)
+TEST(the_refractory_period_stops_one_hit_counting_twice)
 {
 	AudioAnalyzer analyzer;
 	analyzer.prepare(kSampleRate);
 
-	// Une seule frappe, longue : sans garde, chaque echantillon au-dessus du
-	// seuil compterait pour un temps.
+	// A single, long hit: without a guard, every sample above the threshold
+	// would count as a beat.
 	std::vector<float> piste(static_cast<size_t>(kSampleRate * 0.2f));
 	for (size_t n = 0; n < piste.size(); ++n)
 		piste[n] = std::sin(2.0f * 3.14159265f * 60.0f * float(n) / kSampleRate);
@@ -151,23 +150,23 @@ TEST(la_periode_refractaire_empeche_de_compter_deux_fois_la_meme_frappe)
 	CHECK(analyzer.snapshot().beatCount <= 1);
 }
 
-TEST(un_niveau_continu_ne_bat_pas)
+TEST(a_steady_level_produces_no_beat)
 {
 	AudioAnalyzer analyzer;
 	analyzer.prepare(kSampleRate);
 
-	// Un bourdon constant : le seuil adaptatif doit le rejoindre et cesser de
-	// declencher, sinon la lumiere clignoterait sur une nappe.
+	// A constant drone: the adaptive threshold must catch up and stop firing,
+	// otherwise the light would flicker on a sustained pad.
 	const auto bourdon = sine(80.0f, 3.0f);
 	analyzer.process(bourdon.data(), bourdon.size());
 	const uint64_t apresTroisSecondes = analyzer.snapshot().beatCount;
 
 	analyzer.process(bourdon.data(), bourdon.size());
-	// Les trois secondes suivantes ne doivent presque rien ajouter.
+	// The next three seconds should add next to nothing.
 	CHECK(analyzer.snapshot().beatCount - apresTroisSecondes <= 1);
 }
 
-TEST(un_appel_vide_est_sans_effet)
+TEST(an_empty_call_does_nothing)
 {
 	AudioAnalyzer analyzer;
 	analyzer.prepare(kSampleRate);

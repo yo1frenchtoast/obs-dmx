@@ -5,7 +5,7 @@
 using obsdmx::EnttecOutput;
 using obsdmx::Universe;
 
-TEST(enttec_encapsulation_du_message)
+TEST(enttec_message_framing)
 {
 	Universe universe;
 	universe.set(1, 255);
@@ -13,13 +13,13 @@ TEST(enttec_encapsulation_du_message)
 
 	const auto message = EnttecOutput::buildMessage(universe.data(), Universe::size());
 
-	// 0x7E, label, 2 octets de longueur, code de depart, 512 valeurs, 0xE7.
+	// 0x7E, label, 2 length bytes, start code, 512 values, 0xE7.
 	CHECK_EQ(message.size(), size_t(5 + 512 + 1));
 
 	CHECK_EQ(message[0], 0x7E);
 	CHECK_EQ(message[1], 6); // etiquette : emission DMX
 
-	// Longueur en petit-boutiste : 513 = code de depart + 512 emplacements.
+	// Length little-endian: 513 = start code + 512 slots.
 	CHECK_EQ(message[2], uint8_t(513 & 0xFF));
 	CHECK_EQ(message[3], uint8_t(513 >> 8));
 
@@ -31,11 +31,11 @@ TEST(enttec_encapsulation_du_message)
 	CHECK_EQ(message.back(), 0xE7);
 }
 
-TEST(enttec_respecte_le_minimum_de_24_emplacements)
+TEST(enttec_honours_the_24_slot_minimum)
 {
 	uint8_t slots[512] = {};
 
-	// Le micrologiciel rejette les trames plus courtes : on complete.
+	// The firmware rejects shorter frames, so we pad.
 	const auto court = EnttecOutput::buildMessage(slots, 4);
 	CHECK_EQ(court.size(), size_t(5 + 24 + 1));
 	CHECK_EQ(court[2], uint8_t(25)); // 24 emplacements + code de depart
@@ -44,7 +44,7 @@ TEST(enttec_respecte_le_minimum_de_24_emplacements)
 	CHECK_EQ(enorme.size(), size_t(5 + 512 + 1));
 }
 
-TEST(enttec_ouverture_d_un_port_absent_est_signalee)
+TEST(opening_a_missing_enttec_port_is_reported)
 {
 	EnttecOutput output("/dev/ttyUSB-inexistant");
 	std::string error;

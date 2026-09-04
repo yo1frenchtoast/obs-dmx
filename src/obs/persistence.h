@@ -6,11 +6,11 @@ namespace obsdmx {
 
 class Show;
 
-/// Le patch, les programmes et les associations sont ranges dans la collection
-/// de scenes : le montage lumiere suit ainsi le projet OBS. Les reglages de
-/// sortie, eux, dependent de la machine et vivent ailleurs.
+/// The patch, the programmes and the scene attachments live in the scene
+/// collection, so the lighting rig follows the OBS project. Output settings
+/// depend on the machine and live elsewhere.
 ///
-/// Cle utilisee dans le document de la collection.
+/// Key used inside the collection document.
 inline constexpr const char *kShowDataKey = "obs-dmx";
 
 void saveShow(const Show &show, obs_data_t *collectionData);

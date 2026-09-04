@@ -8,9 +8,9 @@
 
 namespace obsdmx {
 
-/// Sortie vers une interface Enttec DMX USB Pro, ou un clone parlant le meme
-/// protocole. L'interface se presente comme un port serie et genere elle-meme
-/// le chronometrage DMX : nous n'avons qu'a lui passer les 512 valeurs.
+/// Output to an Enttec DMX USB Pro, or a clone speaking the same protocol.
+/// The device appears as a serial port and generates the DMX timing itself: all
+/// we have to do is hand it the 512 values.
 class EnttecOutput final : public DmxOutput {
 public:
 	explicit EnttecOutput(std::string devicePath);
@@ -22,10 +22,10 @@ public:
 	void close() override;
 	void send(const Universe &universe) override;
 
-	/// Encapsule les valeurs dans un message Enttec. Expose pour les tests.
+	/// Wraps the values in an Enttec message. Exposed for the tests.
 	static std::vector<uint8_t> buildMessage(const uint8_t *slots, size_t slotCount);
 
-	/// Ports serie plausibles presents sur la machine.
+	/// Serial ports on this machine that could plausibly be one.
 	static std::vector<std::string> listCandidatePorts();
 
 private:

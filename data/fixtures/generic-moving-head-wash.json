@@ -6,7 +6,10 @@
   "modes": [
     {
       "id": "12ch",
-      "label": "12 canaux",
+      "label": {
+        "en": "12 channels",
+        "fr": "12 canaux"
+      },
       "channels": [
         {
           "role": "pan",
@@ -14,7 +17,10 @@
         },
         {
           "role": "pan_fine",
-          "label": "Pan fin"
+          "label": {
+            "en": "Pan fine",
+            "fr": "Pan fin"
+          }
         },
         {
           "role": "tilt",
@@ -22,15 +28,24 @@
         },
         {
           "role": "tilt_fine",
-          "label": "Tilt fin"
+          "label": {
+            "en": "Tilt fine",
+            "fr": "Tilt fin"
+          }
         },
         {
           "role": "unused",
-          "label": "Vitesse de deplacement"
+          "label": {
+            "en": "Movement speed",
+            "fr": "Vitesse de deplacement"
+          }
         },
         {
           "role": "dimmer",
-          "label": "Intensite"
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensite"
+          }
         },
         {
           "role": "strobe",
@@ -43,23 +58,38 @@
         },
         {
           "role": "red",
-          "label": "Rouge"
+          "label": {
+            "en": "Red",
+            "fr": "Rouge"
+          }
         },
         {
           "role": "green",
-          "label": "Vert"
+          "label": {
+            "en": "Green",
+            "fr": "Vert"
+          }
         },
         {
           "role": "blue",
-          "label": "Bleu"
+          "label": {
+            "en": "Blue",
+            "fr": "Bleu"
+          }
         },
         {
           "role": "white",
-          "label": "Blanc"
+          "label": {
+            "en": "White",
+            "fr": "Blanc"
+          }
         },
         {
           "role": "unused",
-          "label": "Programmes internes"
+          "label": {
+            "en": "Built-in programmes",
+            "fr": "Programmes internes"
+          }
         }
       ]
     }

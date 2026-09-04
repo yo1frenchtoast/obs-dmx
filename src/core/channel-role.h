@@ -5,18 +5,18 @@
 
 namespace obsdmx {
 
-/// Ce que fait un canal DMX, independamment du modele de projecteur.
+/// What a DMX channel does, independently of the fixture model.
 ///
-/// C'est ce typage qui permet a l'interface de proposer une roue de couleur
-/// plutot que des curseurs numerotes, et au moteur de traduire une intention
-/// ("bleu a 40 %") vers les canaux dont l'appareil dispose reellement.
+/// This typing is what lets the interface offer a colour wheel rather than
+/// numbered sliders, and lets the engine translate an intent ("blue at 40%")
+/// onto whatever channels the fixture actually has.
 enum class ChannelRole : uint8_t {
-	/// Canal ignore par le moteur, laisse a sa valeur par defaut.
+	/// Ignored by the engine, left at its default value.
 	Unused = 0,
 
 	Dimmer,
 
-	// Melange additif classique.
+	// Plain additive mixing.
 	Red,
 	Green,
 	Blue,
@@ -24,21 +24,21 @@ enum class ChannelRole : uint8_t {
 	Amber,
 	UltraViolet,
 
-	// Modele teinte / saturation, natif chez amaran et beaucoup de LED recentes.
+	// Hue / saturation model, native to amaran and many recent LED fixtures.
 	Hue,
 	Saturation,
 
-	// Blanc variable.
+	// Variable white.
 	Cct,
 	GreenMagenta,
 
-	/// Fondu enchaine entre le moteur blanc et le moteur couleur. Sans lui,
-	/// un T4c en mode 3 reste blanc quoi qu'on ecrive dans Hue.
+	/// Crossfade between the white engine and the colour engine. Without it a
+	/// T4c in mode 3 stays white whatever is written to Hue.
 	ColorMix,
 
 	Strobe,
 
-	// Machinerie.
+	// Mechanics.
 	Pan,
 	PanFine,
 	Tilt,
@@ -47,9 +47,9 @@ enum class ChannelRole : uint8_t {
 	ColorWheel,
 	Fog,
 
-	/// Selection d'un effet embarque dans l'appareil.
+	/// Selects an effect built into the fixture.
 	FxSelect,
-	/// Parametres de cet effet : frequence, variante de couleur, etc.
+	/// Parameters of that effect: rate, colour variant, and so on.
 	FxControl,
 	FxParameter,
 };
@@ -85,8 +85,8 @@ constexpr std::string_view toString(ChannelRole role)
 	return "unused";
 }
 
-/// Renvoie Unused si le nom est inconnu : un profil peut nommer un canal que
-/// cette version ne connait pas encore, ce n'est pas une raison pour le rejeter.
+/// Returns Unused for an unknown name: a profile may name a channel this
+/// version does not know yet, which is no reason to reject the whole file.
 ChannelRole roleFromString(std::string_view name);
 
 } // namespace obsdmx

@@ -16,12 +16,12 @@ enum class EffectType : uint8_t {
 	BuiltinFx,
 };
 
-/// Comment un effet se combine a ce qui est deja en place.
+/// How an effect combines with what is already there.
 enum class BlendMode : uint8_t {
-	/// L'effet remplace la base sur les projecteurs qu'il vise.
+	/// The effect replaces the base on the fixtures it targets.
 	Replace,
-	/// Le plus fort l'emporte, comme sur une console. Un strobe se superpose
-	/// ainsi a un fond colore sans l'effacer entre deux eclats.
+	/// Brightest wins, as on a lighting desk. A strobe can then flash over a
+	/// coloured background without erasing it between flashes.
 	Htp,
 };
 
@@ -32,76 +32,75 @@ enum class ChaserDirection : uint8_t {
 	Random,
 };
 
-/// Le chaser fait tourner une suite de couleurs sur les projecteurs vises,
-/// dans l'ordre ou ils sont listes. C'est le modele des jeux de lumiere
-/// classiques, et il se regle avec deux nombres au lieu d'un tableau.
+/// A chase runs a sequence of colours along the targeted fixtures, in the order
+/// they are listed. It is the classic running-light model, and it is set up with
+/// two numbers instead of a table.
 struct ChaserSettings {
 	std::vector<LightState> steps;
-	/// Duree d'un pas. Ignoree quand la synchro BPM est active.
+	/// Duration of one step. Ignored when tempo sync is on.
 	int stepMs = 500;
 	bool useBpm = false;
 	float bpm = 120.0f;
-	/// Part du pas consacree au fondu : 0 pour une coupure franche, 1 pour un
-	/// fondu permanent.
+	/// Share of each step spent fading: 0 for a hard cut, 1 for a continuous
+	/// fade.
 	float fadeRatio = 0.0f;
 	ChaserDirection direction = ChaserDirection::Forward;
 };
 
 struct StrobeSettings {
 	float hz = 8.0f;
-	/// Part du cycle pendant laquelle la lampe est allumee.
+	/// Share of each cycle the fixture stays lit.
 	float dutyCycle = 0.5f;
-	/// Reprendre la couleur du programme au lieu d'imposer la sienne.
+	/// Take the programme's colour instead of imposing its own.
 	bool useBaseColor = true;
 	LightState color;
-	/// Passer par le canal strobe de l'appareil quand il en a un : a 40 Hz de
-	/// rafraichissement, un strobe logiciel crenelle au-dela d'une dizaine de
-	/// hertz.
+	/// Use the fixture's own strobe channel when it has one: at a 40 Hz refresh
+	/// rate, a software strobe aliases above roughly ten hertz.
 	bool preferHardware = true;
 };
 
-/// De quoi le sound-reactive fait varier la lumiere.
+/// What the sound-reactive effect drives.
 enum class SoundTarget : uint8_t {
 	Intensity,  ///< l'intensite suit le volume
 	Hue,        ///< la teinte suit le contenu frequentiel
-	StepOnBeat, ///< le chaser avance d'un pas a chaque temps
+	StepOnBeat,  ///< the paired chase advances one step per beat
 	FlashOnBeat,///< un eclat a chaque temps
 };
 
 struct SoundSettings {
 	SoundTarget target = SoundTarget::Intensity;
-	/// Bande ecoutee : 0 grave, 1 medium, 2 aigu.
+	/// Band listened to: 0 bass, 1 mids, 2 treble.
 	int band = 0;
 	float sensitivity = 1.0f;
 	float threshold = 0.05f;
-	/// Constante de lissage, en millisecondes, pour la descente.
+	/// Smoothing constant, in milliseconds, for the decay.
 	float smoothingMs = 120.0f;
 
-	/// Reprendre la couleur du programme au lieu d'imposer la sienne.
+	/// Take the programme's colour instead of imposing its own.
 	bool useBaseColor = true;
 	LightState color;
 };
 
-/// Un canal force a la main.
+/// A channel forced by hand.
 ///
-/// Le numero est celui du document du constructeur : 1 designe le premier
-/// canal du projecteur, pas l'adresse DMX absolue. C'est ainsi que les tables
-/// de canaux sont ecrites, et cela suit l'appareil si on le readresse.
+/// The number is the one in the manufacturer's chart: 1 is the fixture's first
+/// channel, not an absolute DMX address. That is how channel tables are written,
+/// and it follows the fixture if it is readdressed.
 struct ManualChannel {
 	int channel = 1;
 	uint8_t value = 0;
 };
 
-/// Un effet embarque dans l'appareil, comme le mode FX du T4c.
+/// An effect built into the fixture, such as the T4c's FX mode.
 struct BuiltinFxSettings {
 	std::string effectId;
-	/// 1 a 10, ou 0 pour la valeur aleatoire quand l'effet l'accepte.
+	/// 1 to 10, or 0 for the random setting where the effect allows it.
 	int frequency = 5;
-	/// Variante de l'effet : combinaison de couleurs, plage de temperature.
+	/// Variant of the effect: colour combination, temperature range.
 	int variant = 0;
 
-	/// Saisie directe des canaux, pour les appareils dont le profil ne decrit
-	/// pas les effets. L'utilisateur recopie alors la table du constructeur.
+	/// Direct channel entry, for fixtures whose profile does not describe their
+	/// effects. The user then copies the manufacturer's chart.
 	bool useManual = false;
 	std::vector<ManualChannel> manual;
 };
@@ -113,8 +112,8 @@ struct Effect {
 	bool enabled = true;
 	BlendMode blend = BlendMode::Htp;
 
-	/// Projecteurs vises, dans l'ordre : c'est cet ordre qui donne son sens
-	/// au deplacement d'un chaser.
+	/// Targeted fixtures, in order: that order is what gives a chase its
+	/// direction.
 	std::vector<std::string> fixtureIds;
 
 	ChaserSettings chaser;
@@ -123,17 +122,17 @@ struct Effect {
 	BuiltinFxSettings builtin;
 };
 
-/// Ce que le moteur sait de l'audio a un instant donne. Rempli par le thread
-/// audio a travers des atomiques, lu par le thread de rendu.
+/// What the engine knows about the audio at a given instant. Filled by the audio
+/// thread through atomics, read by the render thread.
 struct AudioSnapshot {
-	/// Enveloppes par bande, 0 a 1 : grave, medium, aigu.
+	/// Per-band envelopes, 0 to 1: bass, mids, treble.
 	float bands[3] = {0.0f, 0.0f, 0.0f};
-	/// Nombre de temps detectes depuis le demarrage. Un compteur plutot qu'un
-	/// booleen : le rendu ne peut pas manquer un temps entre deux trames.
+	/// Beats detected since start-up. A counter rather than a flag, so the
+	/// render cannot miss a beat that fell between two frames.
 	uint64_t beatCount = 0;
 };
 
-/// Combine deux etats selon le mode de fusion.
+/// Combines two states according to the blend mode.
 LightState blend(const LightState &base, const LightState &overlay, BlendMode mode);
 
 } // namespace obsdmx

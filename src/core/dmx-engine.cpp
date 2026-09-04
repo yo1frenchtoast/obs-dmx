@@ -76,7 +76,7 @@ void DmxEngine::clearOutputs()
 		std::lock_guard<std::mutex> lock(mutex_);
 		stale.swap(outputs_);
 	}
-	// Fermeture hors verrou : close() peut bloquer sur un descripteur.
+	// Closed outside the lock: close() can block on a descriptor.
 	for (auto &output : stale)
 		output->close();
 }
@@ -89,9 +89,9 @@ std::vector<Universe> DmxEngine::snapshot() const
 
 void DmxEngine::run()
 {
-	// Cadence absolue : on vise des instants fixes plutot que d'ajouter un
-	// delai apres chaque trame, sinon le temps de rendu decale peu a peu la
-	// sortie et les chasers derivent.
+	// Absolute cadence: we aim at fixed instants rather than sleeping after
+	// each frame, otherwise the render time gradually shifts the output and
+	// chases drift.
 	auto next = std::chrono::steady_clock::now();
 
 	while (running_.load(std::memory_order_relaxed)) {
@@ -105,8 +105,8 @@ void DmxEngine::run()
 
 		auto now = std::chrono::steady_clock::now();
 
-		// Si le rendu a pris trop de retard (machine chargee, veille),
-		// on se recale au lieu de rattraper des dizaines de trames.
+		// If the render has fallen far behind (busy machine, suspend), we
+		// resynchronise instead of catching up dozens of frames.
 		if (now - next > kTickPeriod * 4)
 			next = now;
 
@@ -132,7 +132,7 @@ void DmxEngine::tick(std::chrono::steady_clock::time_point now)
 		outputs = outputs_;
 	}
 
-	// Emission hors verrou : un envoi reseau ne doit pas bloquer l'interface.
+	// Sent outside the lock: a network write must not block the interface.
 	for (auto &output : outputs)
 		for (const auto &universe : frame)
 			output->send(universe);

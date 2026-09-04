@@ -33,7 +33,7 @@ void Show::setPrograms(std::vector<Program> programs)
 	std::lock_guard<std::mutex> lock(mutex_);
 	programs_ = std::move(programs);
 
-	// Un identifiant genere ne doit jamais rejouer un identifiant charge.
+	// A generated identifier must never replay one that was loaded.
 	for (const auto &program : programs_)
 		if (program.id.rfind("program-", 0) == 0)
 			nextProgramId_ = std::max(nextProgramId_, std::atoi(program.id.c_str() + 8) + 1);
@@ -59,8 +59,8 @@ bool Show::removeProgram(const std::string &id)
 		return false;
 	programs_.erase(it);
 
-	// Les scenes qui pointaient dessus se retrouvent sans programme plutot
-	// que de pointer dans le vide.
+	// Scenes that pointed at it are left with no programme rather than
+	// pointing at nothing.
 	for (auto &binding : bindings_)
 		if (binding.programId == id)
 			binding.programId.clear();
@@ -132,8 +132,8 @@ void Show::activateScene(const std::string &sceneUuid, Clock::time_point now)
 	const auto it = std::find_if(bindings_.begin(), bindings_.end(),
 				     [&sceneUuid](const SceneBinding &b) { return b.sceneUuid == sceneUuid; });
 
-	// Une scene sans association eteint la lumiere, avec un fondu par defaut :
-	// c'est plus previsible que de laisser la scene precedente allumee.
+	// An unattached scene puts the lights out, with a default fade: that is
+	// more predictable than leaving the previous scene lit.
 	if (it == bindings_.end()) {
 		beginTransition({}, 500, now);
 		return;
@@ -150,19 +150,18 @@ void Show::activateProgram(const std::string &programId, int fadeMs, Clock::time
 
 void Show::beginTransition(const std::string &programId, int fadeMs, Clock::time_point now)
 {
-	// OBS emet plusieurs evenements pour un meme passage de scene. Rejouer la
-	// transition a chaque fois relancerait le fondu et ferait begayer les
-	// chasers.
+	// OBS emits several events for a single scene change. Replaying the
+	// transition each time would restart the fade and make chases stutter.
 	if (programId == activeProgramId_ && !fadeFrom_.empty())
 		return;
 
-	// Un chaser doit repartir de son premier pas quand on change de programme,
-	// pas reprendre la ou le programme precedent l'avait laisse.
+	// A chase must restart from its first step when the programme changes, not
+	// resume where the previous programme left it.
 	if (programId != activeProgramId_)
 		effects_.reset();
 
-	// Fige l'image courante, fondu en cours compris : enchainer deux
-	// transitions ne doit pas provoquer de saut.
+	// Freeze the current picture, running fade included: chaining two
+	// transitions must not cause a jump.
 	fadeFrom_ = currentStates(now);
 	fadeStart_ = now;
 	fadeMs_ = std::max(fadeMs, 0);
@@ -171,7 +170,7 @@ void Show::beginTransition(const std::string &programId, int fadeMs, Clock::time
 
 std::unordered_map<std::string, LightState> Show::currentStates(Clock::time_point now) const
 {
-	// Appele avec le verrou tenu.
+	// Called with the lock held.
 	const Program *target = nullptr;
 	if (preview_) {
 		target = &*preview_;
@@ -204,8 +203,8 @@ std::unordered_map<std::string, LightState> Show::currentStates(Clock::time_poin
 void Show::setPreview(std::optional<Program> program)
 {
 	std::lock_guard<std::mutex> lock(mutex_);
-	// L'apercu prend la main immediatement : l'utilisateur veut voir l'effet
-	// de son reglage, pas attendre un fondu.
+	// The preview takes over at once: the user wants to see what their setting
+	// does, not wait out a fade.
 	preview_ = std::move(program);
 }
 
@@ -229,14 +228,14 @@ void Show::render(std::vector<Universe> &universes, Clock::time_point now, const
 			target = &*it;
 	}
 
-	// L'apercu court-circuite le fondu.
+	// The preview short-circuits the fade.
 	float t = 1.0f;
 	if (!preview_ && fadeMs_ > 0) {
 		const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - fadeStart_);
 		t = std::min(1.0f, static_cast<float>(elapsed.count()) / static_cast<float>(fadeMs_));
 	}
 
-	// La base, fondu compris.
+	// The base, fade included.
 	std::unordered_map<std::string, LightState> states;
 	states.reserve(patch_.fixtures().size());
 	for (const auto &fixture : patch_.fixtures()) {
@@ -252,7 +251,7 @@ void Show::render(std::vector<Universe> &universes, Clock::time_point now, const
 		}
 	}
 
-	// Puis les effets, empiles par-dessus.
+	// Then the effects, stacked on top.
 	if (target)
 		effects_.apply(target->effects, patch_, audio, now, states);
 
@@ -261,8 +260,8 @@ void Show::render(std::vector<Universe> &universes, Clock::time_point now, const
 		patch_.renderFixture(fixture, it != states.end() ? it->second : LightState::black(), universes);
 	}
 
-	// Les effets embarques forcent des canaux bruts, donc apres le rendu
-	// normal : ils remplacent ce que la couleur y avait mis.
+	// Built-in effects force raw channels, so they come after the normal
+	// render: they replace whatever the colour put there.
 	if (target)
 		applyBuiltinEffects(*target, universes);
 }

@@ -1,4 +1,4 @@
-"""Genere un son de test : une basse continue a 60 Hz, dans le grave."""
+"""Generates a test tone: a steady 60 Hz bass note."""
 import math, struct, sys, wave
 
 path = sys.argv[1]

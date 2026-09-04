@@ -14,7 +14,7 @@ FixtureLibrary buildLibrary()
 {
 	FixtureLibrary library;
 	std::string error;
-	// Un appareil avec canal de strobe materiel, un autre sans.
+	// One fixture with a hardware strobe channel, one without.
 	library.loadJson(R"({
 		"id": "avec-strobe", "model": "Avec strobe", "default_mode": "m",
 		"modes": [{"id": "m", "channels": [
@@ -73,27 +73,27 @@ std::unordered_map<std::string, LightState> emptyStates()
 
 } // namespace
 
-TEST(fusion_htp_garde_l_etat_le_plus_lumineux)
+TEST(htp_blending_keeps_the_brightest_state)
 {
 	const LightState faible = colored(0.0f, 0.2f);
 	const LightState fort = colored(240.0f, 0.9f);
 
-	// On prend l'etat entier du gagnant : melanger deux teintes donnerait une
-	// troisieme couleur que personne n'a demandee.
+	// We take the winner's whole state: blending two hues would give a third
+	// colour nobody asked for.
 	CHECK_EQ(blend(faible, fort, BlendMode::Htp).hue, 240.0f);
 	CHECK_EQ(blend(fort, faible, BlendMode::Htp).hue, 240.0f);
 
-	// Le mode remplacement ignore les intensites.
+	// Replace mode ignores intensities.
 	CHECK_EQ(blend(fort, faible, BlendMode::Replace).hue, 0.0f);
 }
 
-TEST(chaser_decale_le_motif_le_long_des_projecteurs)
+TEST(a_chase_offsets_the_pattern_along_the_fixtures)
 {
 	const auto library = buildLibrary();
 	const auto patch = buildPatch(library);
 	EffectRunner runner;
 
-	// Deux pas : allume puis eteint. Un projecteur sur deux doit etre allume.
+	// Two steps: lit then dark. Every other fixture should be lit.
 	const auto effect = chaserOf({colored(0.0f, 1.0f), colored(0.0f, 0.0f)}, 1000);
 
 	const auto start = Clock::now();
@@ -106,7 +106,7 @@ TEST(chaser_decale_le_motif_le_long_des_projecteurs)
 	CHECK_EQ(states["f3"].intensity, 0.0f);
 }
 
-TEST(chaser_avance_avec_le_temps)
+TEST(a_chase_advances_over_time)
 {
 	const auto library = buildLibrary();
 	const auto patch = buildPatch(library);
@@ -119,14 +119,14 @@ TEST(chaser_avance_avec_le_temps)
 	runner.apply({effect}, patch, AudioSnapshot{}, start, states);
 	CHECK_EQ(states["f0"].intensity, 1.0f);
 
-	// Un pas plus tard, le motif s'est deplace d'un cran.
+	// One step later, the pattern has moved along by one.
 	states = emptyStates();
 	runner.apply({effect}, patch, AudioSnapshot{}, start + std::chrono::milliseconds(1000), states);
 	CHECK_EQ(states["f0"].intensity, 0.0f);
 	CHECK_EQ(states["f1"].intensity, 1.0f);
 }
 
-TEST(chaser_en_bpm_deduit_la_duree_du_pas)
+TEST(a_chase_on_tempo_derives_its_step_duration)
 {
 	const auto library = buildLibrary();
 	const auto patch = buildPatch(library);
@@ -137,20 +137,20 @@ TEST(chaser_en_bpm_deduit_la_duree_du_pas)
 	effect.chaser.bpm = 120.0f; // 120 temps par minute, soit 500 ms par pas
 
 	const auto start = Clock::now();
-	// L'effet demarre son horloge a son premier passage : il faut l'amorcer
-	// a l'instant zero avant de sauter dans le temps.
+	// The effect starts its clock on its first pass, so it must be primed at
+	// instant zero before jumping forward in time.
 	auto states = emptyStates();
 	runner.apply({effect}, patch, AudioSnapshot{}, start, states);
 
 	states = emptyStates();
 	runner.apply({effect}, patch, AudioSnapshot{}, start + std::chrono::milliseconds(500), states);
 
-	// A 500 ms le motif a avance d'exactement un pas.
+	// At 500 ms the pattern has advanced by exactly one step.
 	CHECK_EQ(states["f0"].intensity, 0.0f);
 	CHECK_EQ(states["f1"].intensity, 1.0f);
 }
 
-TEST(chaser_aller_retour_ne_repete_pas_les_extremites)
+TEST(a_ping_pong_chase_does_not_repeat_its_end_points)
 {
 	const auto library = buildLibrary();
 	const auto patch = buildPatch(library);
@@ -160,14 +160,14 @@ TEST(chaser_aller_retour_ne_repete_pas_les_extremites)
 				     ChaserDirection::PingPong);
 	const auto start = Clock::now();
 
-	// Sur trois pas, l'aller-retour a une periode de quatre : 0,1,2,1.
+	// Over three steps, the back-and-forth has a period of four: 0,1,2,1.
 	std::vector<int> offsets;
 	for (int i = 0; i < 5; ++i) {
 		auto states = emptyStates();
 		runner.apply({effect}, patch, AudioSnapshot{}, start + std::chrono::milliseconds(100 * i), states);
 		offsets.push_back(static_cast<int>(std::lround(states["f0"].intensity * 2.0f)));
 	}
-	// Intensites 1.0, 0.5, 0.0 -> 2, 1, 0 apres mise a l'echelle.
+	// Intensities 1.0, 0.5, 0.0 -> 2, 1, 0 once scaled.
 	CHECK_EQ(offsets[0], 2);
 	CHECK_EQ(offsets[1], 1);
 	CHECK_EQ(offsets[2], 0);
@@ -175,7 +175,7 @@ TEST(chaser_aller_retour_ne_repete_pas_les_extremites)
 	CHECK_EQ(offsets[4], 2); // revenu au depart, sans repeter le 0
 }
 
-TEST(chaser_fond_entre_les_pas_sur_la_part_demandee)
+TEST(a_chase_fades_between_steps_over_the_share_asked_for)
 {
 	const auto library = buildLibrary();
 	const auto patch = buildPatch(library);
@@ -188,13 +188,13 @@ TEST(chaser_fond_entre_les_pas_sur_la_part_demandee)
 	auto states = emptyStates();
 	runner.apply({effect}, patch, AudioSnapshot{}, start, states);
 
-	// A mi-pas, f1 est a mi-chemin entre le pas 0 et le pas 1.
+	// Halfway through the step, f1 sits halfway between step 0 and step 1.
 	states = emptyStates();
 	runner.apply({effect}, patch, AudioSnapshot{}, start + std::chrono::milliseconds(500), states);
 	CHECK(std::abs(states["f1"].intensity - 0.5f) < 0.05f);
 }
 
-TEST(strobe_utilise_le_canal_materiel_quand_il_existe)
+TEST(strobe_uses_the_hardware_channel_where_there_is_one)
 {
 	const auto library = buildLibrary();
 	const auto patch = buildPatch(library);
@@ -212,15 +212,15 @@ TEST(strobe_utilise_le_canal_materiel_quand_il_existe)
 	states["f0"] = colored(120.0f, 1.0f);
 	runner.apply({effect}, patch, AudioSnapshot{}, Clock::now(), states);
 
-	// A 40 Hz de rafraichissement, moduler 15 Hz par logiciel crenellerait :
-	// l'appareil doit s'en charger lui-meme.
+	// At a 40 Hz refresh rate, modulating 15 Hz in software would alias: the
+	// fixture has to handle it itself.
 	CHECK_EQ(states["f0"].strobeHz, 15.0f);
 	CHECK_EQ(states["f0"].intensity, 1.0f);
-	// Et il garde la couleur du programme.
+	// And it keeps the programme's colour.
 	CHECK_EQ(states["f0"].hue, 120.0f);
 }
 
-TEST(strobe_module_l_intensite_faute_de_canal_materiel)
+TEST(strobe_modulates_intensity_when_there_is_no_hardware_channel)
 {
 	const auto library = buildLibrary();
 	const auto patch = buildPatch(library, "sans-strobe");
@@ -235,7 +235,7 @@ TEST(strobe_module_l_intensite_faute_de_canal_materiel)
 	effect.strobe.dutyCycle = 0.5f;
 	effect.strobe.useBaseColor = true;
 
-	// Sur une periode complete, l'appareil doit s'allumer et s'eteindre.
+	// Over a full period, the fixture must both light and go dark.
 	bool seenLit = false, seenDark = false;
 	for (int i = 0; i < 40; ++i) {
 		auto states = emptyStates();
@@ -250,7 +250,7 @@ TEST(strobe_module_l_intensite_faute_de_canal_materiel)
 	CHECK(seenDark);
 }
 
-TEST(strobe_en_htp_ne_fait_pas_disparaitre_le_fond)
+TEST(an_htp_strobe_does_not_erase_the_background)
 {
 	const auto library = buildLibrary();
 	const auto patch = buildPatch(library, "sans-strobe");
@@ -265,7 +265,7 @@ TEST(strobe_en_htp_ne_fait_pas_disparaitre_le_fond)
 	effect.strobe.useBaseColor = false;
 	effect.strobe.color = colored(0.0f, 1.0f);
 
-	// Le fond est a mi-intensite : entre deux eclats il doit rester visible.
+	// The background sits at half intensity: between flashes it must stay visible.
 	for (int i = 0; i < 40; ++i) {
 		auto states = emptyStates();
 		states["f0"] = colored(240.0f, 0.5f);
@@ -275,7 +275,7 @@ TEST(strobe_en_htp_ne_fait_pas_disparaitre_le_fond)
 	}
 }
 
-TEST(sound_reactive_suit_le_niveau)
+TEST(sound_reactive_follows_the_level)
 {
 	const auto library = buildLibrary();
 	const auto patch = buildPatch(library);
@@ -306,7 +306,7 @@ TEST(sound_reactive_suit_le_niveau)
 	CHECK(std::abs(states["f0"].intensity - 0.8f) < 0.01f);
 }
 
-TEST(sound_reactive_ne_manque_pas_un_temps_entre_deux_trames)
+TEST(sound_reactive_never_misses_a_beat_between_frames)
 {
 	const auto library = buildLibrary();
 	const auto patch = buildPatch(library);
@@ -327,20 +327,20 @@ TEST(sound_reactive_ne_manque_pas_un_temps_entre_deux_trames)
 	runner.apply({effect}, patch, audio, Clock::now(), states);
 	CHECK_EQ(states["f0"].intensity, 1.0f); // premier temps vu
 
-	// Le meme compteur ne redeclenche pas.
+	// The same counter does not fire again.
 	states = emptyStates();
 	runner.apply({effect}, patch, audio, Clock::now(), states);
 	CHECK_EQ(states["f0"].intensity, 0.0f);
 
-	// Un compteur, et non un booleen : meme si plusieurs temps sont tombes
-	// entre deux trames, on en voit le changement.
+	// A counter rather than a flag: even if several beats fell between two
+	// frames, the change is still seen.
 	audio.beatCount = 5;
 	states = emptyStates();
 	runner.apply({effect}, patch, audio, Clock::now(), states);
 	CHECK_EQ(states["f0"].intensity, 1.0f);
 }
 
-TEST(effet_desactive_ou_sans_cible_ne_fait_rien)
+TEST(a_disabled_or_targetless_effect_does_nothing)
 {
 	const auto library = buildLibrary();
 	const auto patch = buildPatch(library);
@@ -358,7 +358,7 @@ TEST(effet_desactive_ou_sans_cible_ne_fait_rien)
 	CHECK(states.empty());
 }
 
-TEST(en_htp_un_effet_ne_peut_qu_eclaircir_jamais_baisser)
+TEST(under_htp_an_effect_can_only_brighten_never_dim)
 {
 	const auto library = buildLibrary();
 	const auto patch = buildPatch(library);
@@ -372,9 +372,9 @@ TEST(en_htp_un_effet_ne_peut_qu_eclaircir_jamais_baisser)
 	effect.sound.target = SoundTarget::Intensity;
 	effect.sound.threshold = 0.0f;
 
-	// C'est la limite de fond du mode « le plus lumineux gagne » : sur un
-	// programme qui allume deja a fond, l'effet ne peut rien retirer et parait
-	// donc inerte. L'interface doit le dire, le moteur ne peut pas l'inventer.
+	// This is the fundamental limit of "brightest wins": on a programme that
+	// already lights at full, the effect can take nothing away and so looks
+	// inert. The interface must say so; the engine cannot invent it.
 	AudioSnapshot faible;
 	faible.bands[0] = 0.1f;
 	auto states = emptyStates();
@@ -382,7 +382,7 @@ TEST(en_htp_un_effet_ne_peut_qu_eclaircir_jamais_baisser)
 	runner.apply({effect}, patch, faible, Clock::now(), states);
 	CHECK_EQ(states["f0"].intensity, 1.0f);
 
-	// En remplacement, le niveau passe.
+	// Under Replace, the level gets through.
 	effect.blend = BlendMode::Replace;
 	states = emptyStates();
 	states["f0"] = colored(240.0f, 1.0f);
@@ -390,7 +390,7 @@ TEST(en_htp_un_effet_ne_peut_qu_eclaircir_jamais_baisser)
 	CHECK(std::abs(states["f0"].intensity - 0.1f) < 0.01f);
 }
 
-TEST(le_son_garde_la_couleur_du_programme_par_defaut)
+TEST(sound_keeps_the_programmes_colour_by_default)
 {
 	const auto library = buildLibrary();
 	const auto patch = buildPatch(library);
@@ -416,7 +416,7 @@ TEST(le_son_garde_la_couleur_du_programme_par_defaut)
 	CHECK(std::abs(states["f0"].intensity - 0.5f) < 0.01f);
 }
 
-TEST(le_son_peut_imposer_sa_propre_couleur)
+TEST(sound_can_impose_its_own_colour)
 {
 	const auto library = buildLibrary();
 	const auto patch = buildPatch(library);
@@ -443,7 +443,7 @@ TEST(le_son_peut_imposer_sa_propre_couleur)
 	CHECK(std::abs(states["f0"].intensity - 0.5f) < 0.01f);
 }
 
-TEST(l_eclat_sur_le_temps_a_une_couleur_reglable)
+TEST(the_flash_on_beat_has_an_adjustable_colour)
 {
 	const auto library = buildLibrary();
 	const auto patch = buildPatch(library);
@@ -467,7 +467,7 @@ TEST(l_eclat_sur_le_temps_a_une_couleur_reglable)
 	CHECK_EQ(states["f0"].intensity, 1.0f);
 }
 
-TEST(un_projecteur_absent_du_programme_ne_prend_plus_une_teinte_arbitraire)
+TEST(a_fixture_absent_from_the_programme_no_longer_takes_an_arbitrary_hue)
 {
 	const auto library = buildLibrary();
 	const auto patch = buildPatch(library);
@@ -486,11 +486,11 @@ TEST(un_projecteur_absent_du_programme_ne_prend_plus_une_teinte_arbitraire)
 	AudioSnapshot audio;
 	audio.bands[0] = 0.8f;
 
-	// Aucun etat de depart : le projecteur n'est pas cite par le programme.
+	// No starting state: the fixture is not named by the programme.
 	auto states = emptyStates();
 	runner.apply({effect}, patch, audio, Clock::now(), states);
 
-	// Il prend la couleur choisie pour l'effet, et non celle qui trainait dans
-	// l'etat « eteint ».
+	// It takes the colour chosen for the effect, not whatever was lingering in
+	// the "off" state.
 	CHECK_EQ(states["f0"].hue, 300.0f);
 }

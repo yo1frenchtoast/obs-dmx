@@ -23,21 +23,21 @@ class Patch;
 class Show;
 class SliderRow;
 
-/// Editeur d'un effet. Le type est fixe a la creation : changer un chaser en
-/// strobe n'a pas de sens, mieux vaut en creer un autre.
+/// Editor for one effect. The type is fixed at creation: turning a chase into a
+/// strobe makes no sense, it is better to create another one.
 class EffectEditor : public QWidget {
 	Q_OBJECT
 
 public:
 	EffectEditor(Show &show, std::function<AudioSnapshot()> audioProvider, QWidget *parent = nullptr);
 
-	/// Charge un effet dans le formulaire. Passer nullptr le vide et le
-	/// desactive.
+	/// Loads an effect into the form. Passing nullptr empties and disables
+	/// it.
 	void setEffect(const Effect *effect);
 	void reloadFixtures();
 
 signals:
-	/// L'effet a ete modifie : au programme de le reprendre.
+	/// The effect changed: it is up to the programme to take it back.
 	void effectChanged(const Effect &effect);
 
 private slots:
@@ -60,7 +60,7 @@ private:
 	void commitManualTable();
 	void addManualChannel();
 	void removeManualChannel();
-	/// Plus petit nombre de canaux parmi les projecteurs vises, 0 si aucun.
+	/// Smallest channel count among the targeted fixtures, 0 if there are none.
 	size_t smallestFootprint() const;
 
 	Show &show_;
@@ -107,12 +107,12 @@ private:
 	SliderRow *soundCct_ = nullptr;
 	QLabel *soundBlendWarning_ = nullptr;
 
-	// Effets embarques
+	// Built-in effects
 	QComboBox *builtinEffect_ = nullptr;
 	QComboBox *builtinFrequency_ = nullptr;
 	QLabel *builtinWarning_ = nullptr;
-	/// Conserve pour masquer les lignes entieres : cacher le champ d'un
-	/// QFormLayout y laisse son etiquette orpheline.
+	/// Kept in order to hide whole rows: hiding a QFormLayout's field leaves its
+	/// label orphaned.
 	QFormLayout *builtinForm_ = nullptr;
 	QCheckBox *builtinManual_ = nullptr;
 	QWidget *builtinManualBox_ = nullptr;

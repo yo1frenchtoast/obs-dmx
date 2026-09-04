@@ -11,17 +11,17 @@ namespace obsdmx {
 
 class Show;
 
-/// Une scene OBS telle qu'on la presente a l'utilisateur.
+/// An OBS scene as we present it to the user.
 struct SceneEntry {
 	std::string uuid;
 	std::string name;
 };
 
-/// Fait le lien entre les evenements d'OBS et le spectacle : changement de
-/// scene, sauvegarde et chargement de la collection.
+/// Bridges OBS's events and the show: scene changes, saving and loading the
+/// collection.
 ///
-/// Les rappels d'OBS arrivent sur le thread graphique. Le spectacle prend son
-/// propre verrou, il n'y a donc rien de particulier a faire ici.
+/// OBS's callbacks arrive on the GUI thread. The show takes its own lock, so
+/// nothing special is needed here.
 class SceneBinder {
 public:
 	explicit SceneBinder(Show &show);
@@ -33,14 +33,14 @@ public:
 	void start();
 	void stop();
 
-	/// Appele apres un chargement de collection, pour que l'interface se
-	/// reconstruise.
+	/// Called after a collection is loaded, so the interface can rebuild
+	/// itself.
 	void setOnReloaded(std::function<void()> callback);
 
-	/// Scenes de la collection courante, dans l'ordre d'OBS.
+	/// Scenes of the current collection, in OBS's own order.
 	static std::vector<SceneEntry> currentScenes();
 
-	/// Identifiant de la scene actuellement diffusee, vide s'il n'y en a pas.
+	/// Identifier of the scene currently on air, empty if there is none.
 	static std::string currentSceneUuid();
 
 private:

@@ -14,7 +14,7 @@ namespace obsdmx {
 
 namespace {
 
-// Decalages des trois couches empilees d'un paquet E1.31.
+// Offsets of the three stacked layers of an E1.31 packet.
 constexpr size_t kRootOffset = 0;
 constexpr size_t kFramingOffset = 38;
 constexpr size_t kDmpOffset = 115;
@@ -24,7 +24,7 @@ constexpr uint32_t kVectorRootData = 0x00000004;
 constexpr uint32_t kVectorFramingData = 0x00000002;
 constexpr uint8_t kVectorDmpSetProperty = 0x02;
 
-/// Les trois PDU portent leur longueur sur 12 bits, precedee du marqueur 0x7.
+/// All three PDUs carry their length on 12 bits, preceded by the 0x7 marker.
 constexpr uint16_t pduFlagsAndLength(size_t length)
 {
 	return static_cast<uint16_t>(0x7000 | (length & 0x0FFF));
@@ -70,7 +70,7 @@ std::array<uint8_t, 16> SacnOutput::generateCid()
 	for (auto &value : cid)
 		value = static_cast<uint8_t>(byte(device));
 
-	// Marquage UUID version 4, variante RFC 4122.
+	// UUID version 4 marking, RFC 4122 variant.
 	cid[6] = static_cast<uint8_t>((cid[6] & 0x0F) | 0x40);
 	cid[8] = static_cast<uint8_t>((cid[8] & 0x3F) | 0x80);
 	return cid;
@@ -93,7 +93,7 @@ std::vector<uint8_t> SacnOutput::buildPacket(uint16_t universeId, uint8_t sequen
 	const size_t total = kDataOffset + slotCount;
 	std::vector<uint8_t> packet(total, 0);
 
-	// --- Couche racine ---
+	// --- Root layer ---
 	put16(packet, kRootOffset, 0x0010);     // taille du preambule
 	put16(packet, kRootOffset + 2, 0x0000); // taille du post-ambule
 	std::memcpy(packet.data() + 4, "ASC-E1.17\0\0", 12);
@@ -101,11 +101,11 @@ std::vector<uint8_t> SacnOutput::buildPacket(uint16_t universeId, uint8_t sequen
 	put32(packet, 18, kVectorRootData);
 	std::memcpy(packet.data() + 22, cid.data(), cid.size());
 
-	// --- Couche de tramage ---
+	// --- Framing layer ---
 	put16(packet, kFramingOffset, pduFlagsAndLength(total - kFramingOffset));
 	put32(packet, kFramingOffset + 2, kVectorFramingData);
 
-	// Nom de source : 64 octets, tronque et termine par un zero.
+	// Source name: 64 bytes, truncated and null-terminated.
 	const size_t nameLength = std::min<size_t>(sourceName.size(), 63);
 	std::memcpy(packet.data() + kFramingOffset + 6, sourceName.data(), nameLength);
 
@@ -115,7 +115,7 @@ std::vector<uint8_t> SacnOutput::buildPacket(uint16_t universeId, uint8_t sequen
 	packet[kFramingOffset + 74] = 0; // options
 	put16(packet, kFramingOffset + 75, universeId);
 
-	// --- Couche DMP ---
+	// --- DMP layer ---
 	put16(packet, kDmpOffset, pduFlagsAndLength(total - kDmpOffset));
 	packet[kDmpOffset + 2] = kVectorDmpSetProperty;
 	packet[kDmpOffset + 3] = 0xA1;             // type d'adresse et de donnee
@@ -140,8 +140,7 @@ bool SacnOutput::open(std::string &error)
 		return false;
 	}
 
-	// 16 sauts : large de quoi traverser un reseau de salle, sans inonder
-	// au-dela.
+	// 16 hops: ample for a venue network, without flooding beyond it.
 	const int ttl = 16;
 	if (::setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl)) < 0) {
 		error = std::string("setsockopt(IP_MULTICAST_TTL): ") + std::strerror(errno);
@@ -149,8 +148,8 @@ bool SacnOutput::open(std::string &error)
 		return false;
 	}
 
-	// Reboucler sur la machine locale : indispensable pour qu'un logiciel de
-	// visualisation tournant sur le meme poste voie quelque chose.
+	// Loop back to the local machine: required for a visualiser running on the
+	// same host to see anything.
 	const int loop = 1;
 	::setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_LOOP, &loop, sizeof(loop));
 
@@ -171,7 +170,7 @@ void SacnOutput::send(const Universe &universe)
 	if (socket_ < 0)
 		return;
 
-	// Ici la sequence utilise toute la plage : E1.31 ne reserve pas 0.
+	// Here the sequence uses the full range: E1.31 does not reserve 0.
 	++sequence_;
 
 	const auto packet = buildPacket(universe.id(), sequence_, priority_, cid_, sourceName_, universe.data(),

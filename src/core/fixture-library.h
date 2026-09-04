@@ -7,24 +7,33 @@
 
 namespace obsdmx {
 
-/// Les modeles de projecteurs connus, charges depuis data/fixtures.
+/// The known fixture models, loaded from data/fixtures.
 ///
-/// Un profil illisible est ignore avec un avertissement plutot que de faire
-/// echouer le chargement : une bibliotheque partiellement valide reste utile.
+/// An unreadable profile is skipped with a warning rather than failing the whole
+/// load: a partly valid library is still useful.
 class FixtureLibrary {
 public:
-	/// Charge tous les fichiers .json du dossier. Renvoie le nombre de
-	/// profils lus ; les erreurs sont deposees dans warnings.
+	/// Label language, in OBS's format ("fr-FR", "en-US").
+	///
+	/// Profiles carry their own labels, so they cannot go through the module's
+	/// translation file, which only knows fixed keys. A profile may therefore
+	/// give its label in several languages, and this picks which one. Set it
+	/// before loading.
+	void setLanguage(std::string language) { language_ = std::move(language); }
+	const std::string &language() const { return language_; }
+
+	/// Loads every .json file in the directory. Returns how many profiles were
+	/// read; problems are appended to warnings.
 	size_t loadDirectory(const std::string &directory, std::vector<std::string> &warnings);
 
-	/// Charge un profil depuis du texte JSON. Renvoie false et remplit error
-	/// si le document est inutilisable.
+	/// Loads one profile from JSON text. Returns false and fills error if the
+	/// document is unusable.
 	bool loadJson(const std::string &json, std::string &error);
 
 	const std::vector<FixtureProfile> &profiles() const { return profiles_; }
 	const FixtureProfile *find(const std::string &id) const;
 
-	/// Profils dont le nom contient le texte donne, insensible a la casse.
+	/// Profiles whose name contains the given text, case-insensitively.
 	std::vector<const FixtureProfile *> search(const std::string &text) const;
 
 	void clear() { profiles_.clear(); }
@@ -32,10 +41,11 @@ public:
 
 private:
 	std::vector<FixtureProfile> profiles_;
+	std::string language_ = "en-US";
 };
 
-/// Fabrique un profil pour un appareil absent de la bibliotheque : l'utilisateur
-/// donne un nom et decrit ses canaux un par un.
+/// Builds a profile for a fixture the library does not know: the user gives a
+/// name and describes the channels one by one.
 FixtureProfile makeManualProfile(const std::string &name, const std::vector<ChannelRole> &roles);
 
 } // namespace obsdmx

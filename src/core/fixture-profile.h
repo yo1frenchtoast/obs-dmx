@@ -9,70 +9,72 @@
 
 namespace obsdmx {
 
-/// Un canal dans un mode donne.
+/// One channel within a given mode.
 ///
-/// Les bornes ne sont pas toujours 0-255 : le canal strobe du T4c est eteint
-/// de 0 a 19 puis couvre 1 a 25 Hz de 20 a 255, et son canal vert/magenta a
-/// une bande neutre au milieu. Decrire ces plages dans le profil evite de
-/// coder en dur les particularites d'un constructeur dans le moteur.
+/// Ranges are not always 0-255: the T4c strobe channel is off from 0 to 19 and
+/// then covers 1 to 25 Hz from 20 to 255, and its green/magenta channel has a
+/// neutral band in the middle. Describing those ranges in the profile keeps one
+/// manufacturer's quirks out of the engine.
 struct ChannelSpec {
 	ChannelRole role = ChannelRole::Unused;
-	/// Libelle affiche a l'utilisateur, tire du document constructeur.
+	/// Shown to the user, taken from the manufacturer's chart.
 	std::string label;
-	/// Valeur emise quand le moteur ne pilote pas ce canal.
+	/// Sent when the engine does not drive this channel.
 	uint8_t defaultValue = 0;
 
-	/// Bornes utiles du canal.
+	/// Useful range of the channel.
 	uint8_t rangeMin = 0;
 	uint8_t rangeMax = 255;
-	/// Valeur signifiant "aucun effet", pour les canaux comme le strobe.
+	/// Value meaning "no effect", for channels such as strobe.
 	uint8_t offValue = 0;
-	/// Milieu, pour les canaux bipolaires comme le vert/magenta.
+	/// Midpoint, for bipolar channels such as green/magenta.
 	uint8_t neutralValue = 128;
 
-	/// Grandeur physique correspondant a rangeMin et rangeMax : des kelvins
-	/// pour la temperature de couleur, des hertz pour le strobe.
+	/// Physical quantity matching rangeMin and rangeMax: kelvins for colour
+	/// temperature, hertz for strobe.
 	float physicalMin = 0.0f;
 	float physicalMax = 0.0f;
 };
 
-/// Un effet embarque dans l'appareil, tel que le mode FX du T4c.
+/// An effect built into the fixture, such as the T4c's FX mode.
 struct BuiltinEffect {
 	std::string id;
 	std::string label;
-	/// Valeur a ecrire dans le canal FxSelect.
+	/// Value to write to the FxSelect channel.
 	uint8_t selectValue = 0;
-	/// L'effet accepte une frequence reglable de 1 a 10.
+	/// The effect takes a rate from 1 to 10.
 	bool hasFrequency = false;
-	/// La frequence accepte en plus une valeur aleatoire.
+	/// The rate also accepts a random setting.
 	bool hasRandomFrequency = false;
-	/// Indice, dans le mode, du canal portant la frequence.
+	/// Index, within the mode, of the channel carrying the rate.
 	int frequencyChannel = -1;
 };
 
-/// Un mode DMX : c'est le reglage choisi sur l'ecran de l'appareil, pas
-/// quelque chose que l'on peut imposer par le DMX.
+/// A DMX mode. This is chosen on the fixture's own screen; it is not something
+/// that can be imposed over DMX.
 struct FixtureMode {
 	std::string id;
 	std::string label;
 	std::vector<ChannelSpec> channels;
 
-	/// Effets embarques disponibles dans ce mode, s'il s'agit d'un mode FX.
+	/// Built-in effects available in this mode, if it is an FX mode.
 	std::vector<BuiltinEffect> effects;
 
 	size_t channelCount() const { return channels.size(); }
 
-	/// Indice du premier canal portant ce role, ou -1.
+	/// Index of the first channel with this role, or -1.
 	int findRole(ChannelRole role) const;
 	bool hasRole(ChannelRole role) const { return findRole(role) >= 0; }
 };
 
-/// Un modele de projecteur, avec tous ses modes.
+/// A fixture model, with all of its modes.
 struct FixtureProfile {
 	std::string id;
 	std::string manufacturer;
 	std::string model;
-	/// Mode propose par defaut a l'ajout.
+	/// Fixture-specific warning, shown when adding one.
+	std::string note;
+	/// Mode offered by default when adding one.
 	std::string defaultMode;
 	std::vector<FixtureMode> modes;
 

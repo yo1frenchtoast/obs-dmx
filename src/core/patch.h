@@ -10,27 +10,27 @@
 
 namespace obsdmx {
 
-/// Un projecteur declare par l'utilisateur.
+/// A fixture declared by the user.
 struct Fixture {
-	/// Identifiant stable, independant du nom : les programmes s'y referent.
+	/// Stable identifier, independent of the name: programmes refer to it.
 	std::string id;
 	std::string name;
 
 	std::string profileId;
-	/// Mode DMX choisi. Il doit correspondre au reglage fait sur l'appareil,
-	/// ce que rien ne permet de verifier depuis le plugin.
+	/// Chosen DMX mode. It must match the setting made on the fixture itself,
+	/// which nothing here can verify.
 	std::string modeId;
 
 	uint16_t universe = 0;
-	/// Adresse de depart, 1 a 512.
+	/// Start address, 1 to 512.
 	int address = 1;
 
-	/// Rang dans la grille de selection, pour retrouver ses projecteurs dans
-	/// l'ordre ou ils sont poses dans la salle.
+	/// Rank in the selection list, so fixtures appear in the order they are
+	/// rigged in the room.
 	int order = 0;
 };
 
-/// Un chevauchement d'adresses entre deux projecteurs.
+/// An address overlap between two fixtures.
 struct AddressConflict {
 	std::string firstFixtureId;
 	std::string secondFixtureId;
@@ -39,14 +39,14 @@ struct AddressConflict {
 	int secondAddress = 0;
 };
 
-/// L'ensemble des projecteurs declares, et ce qu'on peut en deduire.
+/// Every declared fixture, and what can be worked out from them.
 class Patch {
 public:
 	explicit Patch(const FixtureLibrary &library) : library_(&library) {}
 
 	const std::vector<Fixture> &fixtures() const { return fixtures_; }
 
-	/// Ajoute un projecteur. L'identifiant est genere s'il est vide.
+	/// Adds a fixture. The identifier is generated if left empty.
 	const Fixture &add(Fixture fixture);
 	bool remove(const std::string &fixtureId);
 	void clear() { fixtures_.clear(); }
@@ -54,26 +54,26 @@ public:
 	Fixture *find(const std::string &fixtureId);
 	const Fixture *find(const std::string &fixtureId) const;
 
-	/// Mode DMX effectif d'un projecteur, ou nullptr si le profil a disparu.
+	/// Effective DMX mode of a fixture, or nullptr if its profile is gone.
 	const FixtureMode *modeOf(const Fixture &fixture) const;
 
-	/// Nombre de canaux occupes, 0 si le profil est introuvable.
+	/// Channels occupied, 0 if the profile cannot be found.
 	size_t footprintOf(const Fixture &fixture) const;
 
-	/// Premiere adresse libre pouvant accueillir un appareil de cette taille.
-	/// Renvoie 0 si l'univers est plein.
+	/// First free address able to hold a fixture of this size.
+	/// Returns 0 if the universe is full.
 	int suggestAddress(uint16_t universe, size_t channelCount) const;
 
-	/// Chevauchements d'adresses. Vide quand tout va bien.
+	/// Address overlaps. Empty when all is well.
 	std::vector<AddressConflict> conflicts() const;
 
-	/// Ecrit l'etat lumineux d'un projecteur dans l'univers correspondant.
-	/// Les projecteurs dont le profil est introuvable sont ignores.
+	/// Writes a fixture's lighting state into the matching universe.
+	/// Fixtures whose profile cannot be found are skipped.
 	void renderFixture(const Fixture &fixture, const LightState &state, std::vector<Universe> &universes) const;
 
-	/// Ecrit une valeur brute sur un canal du projecteur, indice 0 relatif a
-	/// son adresse. Sert aux effets embarques, qui ne passent pas par une
-	/// intention lumineuse.
+	/// Writes a raw value to one of the fixture's channels, index 0 relative to
+	/// its address. Used by built-in effects, which do not go through a
+	/// lighting intent.
 	void writeChannel(const Fixture &fixture, int channelIndex, uint8_t value,
 			  std::vector<Universe> &universes) const;
 

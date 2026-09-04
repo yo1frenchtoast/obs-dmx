@@ -16,7 +16,7 @@ constexpr uint8_t kStartOfMessage = 0x7E;
 constexpr uint8_t kEndOfMessage = 0xE7;
 constexpr uint8_t kLabelOutputDmx = 6;
 
-/// Le message porte le code de depart DMX en plus des 512 emplacements.
+/// The message carries the DMX start code on top of the 512 slots.
 constexpr size_t kStartCodeSize = 1;
 
 } // namespace
@@ -38,8 +38,8 @@ std::vector<uint8_t> EnttecOutput::buildMessage(const uint8_t *slots, size_t slo
 	if (slotCount > kSlotsPerUniverse)
 		slotCount = kSlotsPerUniverse;
 
-	// Le micrologiciel Enttec refuse les trames trop courtes : 25 emplacements
-	// est le minimum documente.
+	// Enttec firmware rejects frames that are too short: 25 slots is the
+	// documented minimum.
 	slotCount = std::max<size_t>(slotCount, 24);
 
 	const size_t payload = kStartCodeSize + slotCount;
@@ -69,8 +69,8 @@ std::vector<std::string> EnttecOutput::listCandidatePorts()
 
 	while (const dirent *entry = ::readdir(dir)) {
 		const std::string name = entry->d_name;
-		// Les interfaces DMX USB apparaissent en ttyUSB (puce FTDI) ou en
-		// ttyACM (peripherique CDC).
+		// USB DMX interfaces show up as ttyUSB (FTDI chip) or ttyACM (CDC
+		// device).
 		if (name.rfind("ttyUSB", 0) == 0 || name.rfind("ttyACM", 0) == 0)
 			ports.push_back("/dev/" + name);
 	}
@@ -88,7 +88,7 @@ bool EnttecOutput::open(std::string &error)
 	if (fd_ < 0) {
 		error = devicePath_ + ": " + std::strerror(errno);
 		if (errno == EACCES)
-			error += " (l'utilisateur doit appartenir au groupe dialout)";
+			error += " (the user must belong to the dialout group)";
 		return false;
 	}
 
@@ -99,13 +99,12 @@ bool EnttecOutput::open(std::string &error)
 		return false;
 	}
 
-	// Mode brut : aucune interpretation des octets, l'interface attend un
-	// flux binaire exact.
+	// Raw mode: no interpretation of the bytes, the interface expects an exact
+	// binary stream.
 	::cfmakeraw(&options);
 
-	// La vitesse est sans effet reel : l'interface genere elle-meme le
-	// chronometrage DMX. On fixe une valeur usuelle pour que le pilote FTDI
-	// soit content.
+	// The baud rate has no real effect: the interface generates the DMX timing
+	// itself. We set a usual value to keep the FTDI driver happy.
 	::cfsetispeed(&options, B115200);
 	::cfsetospeed(&options, B115200);
 
@@ -136,8 +135,8 @@ void EnttecOutput::send(const Universe &universe)
 
 	const auto message = buildMessage(universe.data(), Universe::size());
 
-	// Descripteur non bloquant : si le tampon du noyau est plein, on laisse
-	// tomber la trame plutot que de retarder le moteur.
+	// Non-blocking descriptor: if the kernel buffer is full we drop the frame
+	// rather than delay the engine.
 	size_t written = 0;
 	while (written < message.size()) {
 		const ssize_t n = ::write(fd_, message.data() + written, message.size() - written);

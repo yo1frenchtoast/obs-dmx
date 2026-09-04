@@ -6,7 +6,10 @@
   "modes": [
     {
       "id": "11ch",
-      "label": "11 canaux",
+      "label": {
+        "en": "11 channels",
+        "fr": "11 canaux"
+      },
       "channels": [
         {
           "role": "pan",
@@ -14,7 +17,10 @@
         },
         {
           "role": "pan_fine",
-          "label": "Pan fin"
+          "label": {
+            "en": "Pan fine",
+            "fr": "Pan fin"
+          }
         },
         {
           "role": "tilt",
@@ -22,15 +28,24 @@
         },
         {
           "role": "tilt_fine",
-          "label": "Tilt fin"
+          "label": {
+            "en": "Tilt fine",
+            "fr": "Tilt fin"
+          }
         },
         {
           "role": "unused",
-          "label": "Vitesse de deplacement"
+          "label": {
+            "en": "Movement speed",
+            "fr": "Vitesse de deplacement"
+          }
         },
         {
           "role": "color_wheel",
-          "label": "Roue de couleurs"
+          "label": {
+            "en": "Colour wheel",
+            "fr": "Roue de couleurs"
+          }
         },
         {
           "role": "gobo",
@@ -47,11 +62,17 @@
         },
         {
           "role": "dimmer",
-          "label": "Intensite"
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensite"
+          }
         },
         {
           "role": "unused",
-          "label": "Programmes internes"
+          "label": {
+            "en": "Built-in programmes",
+            "fr": "Programmes internes"
+          }
         },
         {
           "role": "unused",

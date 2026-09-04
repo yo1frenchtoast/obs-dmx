@@ -3,15 +3,24 @@
   "manufacturer": "Stairville",
   "model": "Wild Wash 132 LED White",
   "default_mode": "2ch",
-  "note": "Article Thomann 399663. Blanc froid 6000 K non reglable : cet appareil n'a ni couleur ni temperature pilotable, seulement une intensite et un strobe.",
+  "note": {
+    "en": "Thomann item 399663. Fixed 6000 K cold white: this fixture has no colour and no adjustable temperature, only intensity and strobe.",
+    "fr": "Article Thomann 399663. Blanc froid 6000 K non reglable : cet appareil n'a ni couleur ni temperature pilotable, seulement une intensite et un strobe."
+  },
   "modes": [
     {
       "id": "2ch",
-      "label": "Mode 2Ch — Intensité, strobe (2 canaux)",
+      "label": {
+        "en": "Mode 2Ch — Intensity, strobe (2 channels)",
+        "fr": "Mode 2Ch — Intensité, strobe (2 canaux)"
+      },
       "channels": [
         {
           "role": "dimmer",
-          "label": "Intensité"
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensité"
+          }
         },
         {
           "role": "strobe",
@@ -26,15 +35,24 @@
     },
     {
       "id": "3ch2",
-      "label": "Mode 3Ch2 — Intensité, strobe et effets, son (3 canaux)",
+      "label": {
+        "en": "Mode 3Ch2 — Intensity, strobe and effects, sound (3 channels)",
+        "fr": "Mode 3Ch2 — Intensité, strobe et effets, son (3 canaux)"
+      },
       "channels": [
         {
           "role": "dimmer",
-          "label": "Intensité"
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensité"
+          }
         },
         {
           "role": "strobe",
-          "label": "Strobe et effets aléatoires",
+          "label": {
+            "en": "Strobe and random effects",
+            "fr": "Strobe et effets aléatoires"
+          },
           "range_min": 128,
           "range_max": 250,
           "off": 0,
@@ -43,18 +61,27 @@
         },
         {
           "role": "unused",
-          "label": "Commande sonore intégrée de l'appareil (0 = désactivée)",
+          "label": {
+            "en": "Fixture's own sound control (0 = off)",
+            "fr": "Commande sonore intégrée de l'appareil (0 = désactivée)"
+          },
           "default": 0
         }
       ]
     },
     {
       "id": "1ch",
-      "label": "Mode 1Ch — Strobe seul (1 canal)",
+      "label": {
+        "en": "Mode 1Ch — Strobe only (1 channel)",
+        "fr": "Mode 1Ch — Strobe seul (1 canal)"
+      },
       "channels": [
         {
           "role": "strobe",
-          "label": "Strobe (0-10 éteint, 11-255 de 0 à 30 Hz)",
+          "label": {
+            "en": "Strobe (0-10 off, 11-255 from 0 to 30 Hz)",
+            "fr": "Strobe (0-10 éteint, 11-255 de 0 à 30 Hz)"
+          },
           "range_min": 11,
           "range_max": 255,
           "off": 0,

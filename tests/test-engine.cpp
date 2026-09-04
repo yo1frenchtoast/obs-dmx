@@ -7,7 +7,7 @@
 using obsdmx::DmxEngine;
 using obsdmx::Universe;
 
-TEST(univers_adresse_de_1_a_512)
+TEST(a_universe_is_addressed_from_1_to_512)
 {
 	Universe universe;
 
@@ -18,14 +18,14 @@ TEST(univers_adresse_de_1_a_512)
 	universe.set(512, 20);
 	CHECK_EQ(universe.data()[511], 20);
 
-	// Hors bornes : ignore silencieusement plutot que de deborder.
+	// Out of range: silently ignored rather than overflowing.
 	universe.set(0, 99);
 	universe.set(513, 99);
 	CHECK_EQ(universe.get(0), 0);
 	CHECK_EQ(universe.get(513), 0);
 }
 
-TEST(fusion_htp_garde_la_plus_forte_valeur)
+TEST(htp_merging_keeps_the_higher_value)
 {
 	Universe universe;
 
@@ -39,7 +39,7 @@ TEST(fusion_htp_garde_la_plus_forte_valeur)
 	CHECK_EQ(universe.get(1), 200);
 }
 
-TEST(moteur_appelle_le_rendu_a_environ_40_hz)
+TEST(the_engine_calls_the_render_at_about_40_hz)
 {
 	DmxEngine engine;
 
@@ -53,8 +53,8 @@ TEST(moteur_appelle_le_rendu_a_environ_40_hz)
 	std::this_thread::sleep_for(std::chrono::milliseconds(500));
 	engine.stop();
 
-	// 500 ms a 40 Hz font 20 trames. On tolere largement : la machine de
-	// test peut etre chargee, on verifie l'ordre de grandeur, pas la mesure.
+	// 500 ms at 40 Hz is 20 frames. The tolerance is wide: the test machine may
+	// be busy, and we check the order of magnitude, not the measurement.
 	const uint64_t frames = engine.framesSent();
 	CHECK(frames >= 12);
 	CHECK(frames <= 28);
@@ -62,7 +62,7 @@ TEST(moteur_appelle_le_rendu_a_environ_40_hz)
 	CHECK_EQ(engine.snapshot()[0].get(1), 255);
 }
 
-TEST(blackout_ignore_le_rendu)
+TEST(blackout_skips_the_render)
 {
 	DmxEngine engine;
 	engine.setRenderFn([](std::vector<Universe> &universes, std::chrono::steady_clock::time_point) {
@@ -78,7 +78,7 @@ TEST(blackout_ignore_le_rendu)
 	CHECK(engine.framesSent() > 0);
 }
 
-TEST(arret_sans_demarrage_est_sans_effet)
+TEST(stopping_without_starting_does_nothing)
 {
 	DmxEngine engine;
 	engine.stop();

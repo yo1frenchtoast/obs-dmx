@@ -27,7 +27,7 @@ FixtureLibrary buildLibrary()
 	})", error);
 
 	if (!ok)
-		std::fprintf(stderr, "  (chargement du profil de test : %s)\n", error.c_str());
+		std::fprintf(stderr, "  (loading the test profile: %s)\n", error.c_str());
 	return library;
 }
 
@@ -44,7 +44,7 @@ Fixture makeFixture(const std::string &id, int address, const std::string &mode 
 
 } // namespace
 
-TEST(bibliotheque_lit_un_profil_et_ses_modes)
+TEST(the_library_reads_a_profile_and_its_modes)
 {
 	const auto library = buildLibrary();
 	CHECK_EQ(library.profiles().size(), size_t(1));
@@ -54,12 +54,12 @@ TEST(bibliotheque_lit_un_profil_et_ses_modes)
 	CHECK_EQ(profile->modes.size(), size_t(2));
 	CHECK(profile->displayName() == "Test PAR");
 
-	// Le mode par defaut est celui declare, pas le premier venu.
+	// The default mode is the declared one, not just the first.
 	CHECK(profile->preferredMode()->id == "4ch");
 	CHECK_EQ(profile->findMode("8ch")->channelCount(), size_t(8));
 }
 
-TEST(bibliotheque_refuse_un_profil_sans_identifiant)
+TEST(the_library_rejects_a_profile_without_an_id)
 {
 	FixtureLibrary library;
 	std::string error;
@@ -68,7 +68,7 @@ TEST(bibliotheque_refuse_un_profil_sans_identifiant)
 	CHECK(library.empty());
 }
 
-TEST(bibliotheque_refuse_un_json_casse)
+TEST(the_library_rejects_broken_json)
 {
 	FixtureLibrary library;
 	std::string error;
@@ -76,18 +76,18 @@ TEST(bibliotheque_refuse_un_json_casse)
 	CHECK(library.empty());
 }
 
-TEST(bibliotheque_remplace_un_profil_recharge)
+TEST(the_library_replaces_a_reloaded_profile)
 {
 	FixtureLibrary library;
 	std::string error;
 	const char *doc = R"({"id":"x","model":"A","modes":[{"id":"m","channels":[{"role":"dimmer"}]}]})";
 	CHECK(library.loadJson(doc, error));
 	CHECK(library.loadJson(doc, error));
-	// Un rechargement ne doit pas doubler l'entree.
+	// Reloading must not duplicate the entry.
 	CHECK_EQ(library.profiles().size(), size_t(1));
 }
 
-TEST(patch_propose_la_premiere_adresse_libre)
+TEST(the_patch_suggests_the_first_free_address)
 {
 	const auto library = buildLibrary();
 	Patch patch(library);
@@ -100,17 +100,17 @@ TEST(patch_propose_la_premiere_adresse_libre)
 	patch.add(makeFixture("b", 5));
 	CHECK_EQ(patch.suggestAddress(0, 4), 9);
 
-	// Un trou laisse par une suppression doit etre reutilise.
+	// A gap left by a deletion must be reused.
 	patch.remove("a");
 	CHECK_EQ(patch.suggestAddress(0, 4), 1);
 }
 
-TEST(patch_ne_propose_rien_quand_l_univers_est_plein)
+TEST(the_patch_suggests_nothing_when_the_universe_is_full)
 {
 	const auto library = buildLibrary();
 	Patch patch(library);
 
-	// 128 appareils de 4 canaux remplissent exactement les 512 emplacements.
+	// 128 four-channel fixtures fill the 512 slots exactly.
 	for (int i = 0; i < 128; ++i)
 		patch.add(makeFixture("f" + std::to_string(i), 1 + i * 4));
 
@@ -118,7 +118,7 @@ TEST(patch_ne_propose_rien_quand_l_univers_est_plein)
 	CHECK(patch.conflicts().empty());
 }
 
-TEST(patch_detecte_les_chevauchements_d_adresses)
+TEST(the_patch_detects_address_overlaps)
 {
 	const auto library = buildLibrary();
 	Patch patch(library);
@@ -132,7 +132,7 @@ TEST(patch_detecte_les_chevauchements_d_adresses)
 	CHECK(conflicts[0].secondFixtureId == "b");
 }
 
-TEST(patch_ignore_les_chevauchements_entre_univers_differents)
+TEST(the_patch_ignores_overlaps_across_different_universes)
 {
 	const auto library = buildLibrary();
 	Patch patch(library);
@@ -146,7 +146,7 @@ TEST(patch_ignore_les_chevauchements_entre_univers_differents)
 	CHECK(patch.conflicts().empty());
 }
 
-TEST(patch_ecrit_a_la_bonne_adresse)
+TEST(the_patch_writes_at_the_right_address)
 {
 	const auto library = buildLibrary();
 	Patch patch(library);
@@ -165,12 +165,12 @@ TEST(patch_ecrit_a_la_bonne_adresse)
 	CHECK_EQ(universes[0].get(11), 255); // rouge
 	CHECK_EQ(universes[0].get(12), 0);
 	CHECK_EQ(universes[0].get(13), 0);
-	// Rien ne doit deborder avant ni apres.
+	// Nothing must spill before or after.
 	CHECK_EQ(universes[0].get(9), 0);
 	CHECK_EQ(universes[0].get(14), 0);
 }
 
-TEST(patch_ignore_un_projecteur_dont_le_profil_a_disparu)
+TEST(the_patch_skips_a_fixture_whose_profile_is_gone)
 {
 	const auto library = buildLibrary();
 	Patch patch(library);
@@ -182,13 +182,13 @@ TEST(patch_ignore_un_projecteur_dont_le_profil_a_disparu)
 	CHECK_EQ(patch.footprintOf(*patch.find("orphelin")), size_t(0));
 	CHECK(patch.conflicts().empty());
 
-	// Le rendu ne doit ni planter ni ecrire n'importe quoi.
+	// The render must neither crash nor write nonsense.
 	std::vector<Universe> universes{Universe(0)};
 	patch.renderFixture(*patch.find("orphelin"), LightState(), universes);
 	CHECK_EQ(universes[0].get(1), 0);
 }
 
-TEST(patch_retombe_sur_le_mode_par_defaut_si_le_mode_a_disparu)
+TEST(the_patch_falls_back_to_the_default_mode_if_the_mode_is_gone)
 {
 	const auto library = buildLibrary();
 	Patch patch(library);
@@ -196,7 +196,7 @@ TEST(patch_retombe_sur_le_mode_par_defaut_si_le_mode_a_disparu)
 	auto fixture = makeFixture("a", 1, "mode-supprime");
 	patch.add(fixture);
 
-	// Plutot que de faire disparaitre le projecteur, on reprend le mode
-	// prefere du profil.
+	// Rather than making the fixture vanish, we fall back on the profile's
+	// preferred mode.
 	CHECK_EQ(patch.footprintOf(*patch.find("a")), size_t(4));
 }

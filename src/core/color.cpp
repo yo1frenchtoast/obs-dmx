@@ -17,7 +17,7 @@ uint8_t toByte(float value01)
 	return static_cast<uint8_t>(std::lround(clamp01(value01) * 255.0f));
 }
 
-/// Place une grandeur physique dans les bornes utiles du canal.
+/// Maps a physical quantity into the channel's useful range.
 uint8_t mapPhysical(const ChannelSpec &spec, float value)
 {
 	if (spec.physicalMax <= spec.physicalMin)
@@ -28,9 +28,9 @@ uint8_t mapPhysical(const ChannelSpec &spec, float value)
 	return static_cast<uint8_t>(std::lround(spec.rangeMin + t * span));
 }
 
-/// Canal bipolaire : -1 vers rangeMin, 0 vers la valeur neutre, +1 vers rangeMax.
-/// Deux segments lineaires, pour que la bande neutre du constructeur soit
-/// respectee au lieu d'etre traversee.
+/// Bipolar channel: -1 to rangeMin, 0 to the neutral value, +1 to rangeMax.
+/// Two linear segments, so the manufacturer's neutral band is honoured instead
+/// of being driven straight through.
 uint8_t mapBipolar(const ChannelSpec &spec, float value)
 {
 	const float amount = std::clamp(value, -1.0f, 1.0f);
@@ -47,8 +47,8 @@ Rgb hsToRgb(float hueDegrees, float saturation)
 {
 	const float s = clamp01(saturation);
 
-	// Ramene la teinte dans [0, 360) sans supposer qu'elle y etait deja :
-	// un effet qui fait tourner la teinte deborde naturellement.
+	// Wraps the hue into [0, 360) without assuming it already was: an effect
+	// that rotates the hue naturally runs past the end.
 	float h = std::fmod(hueDegrees, 360.0f);
 	if (h < 0.0f)
 		h += 360.0f;
@@ -73,8 +73,8 @@ Rgb hsToRgb(float hueDegrees, float saturation)
 
 Rgb cctToRgb(float kelvin)
 {
-	// Approximation usuelle du corps noir, suffisante pour de l'eclairage :
-	// on cherche une teinte credible, pas une mesure colorimetrique.
+	// The usual black-body approximation, good enough for lighting: we want a
+	// believable tint, not a colorimetric measurement.
 	const float t = std::clamp(kelvin, 1000.0f, 40000.0f) / 100.0f;
 
 	float r, g, b;
@@ -100,23 +100,23 @@ std::vector<uint8_t> renderState(const FixtureMode &mode, const LightState &stat
 
 	const float mix = clamp01(state.colorMix);
 
-	// Un appareil sans gradateur doit voir l'intensite se reporter sur ses
-	// canaux de couleur, sinon il reste allume a pleine puissance.
+	// A fixture without a dimmer must have the intensity folded into its
+	// colour channels, otherwise it stays at full output.
 	const bool hasDimmer = mode.hasRole(ChannelRole::Dimmer);
 	const float colorScale = hasDimmer ? 1.0f : clamp01(state.intensity);
 
-	// Ce que l'appareil doit afficher, en RVB, si l'on doit passer par la.
-	// Les appareils sans canal de fondu voient le melange fait ici.
+	// What the fixture should show, in RGB, if we have to go through it.
+	// Fixtures without a crossfade channel get the blend done here.
 	const Rgb tint = hsToRgb(state.hue, state.saturation);
 	const Rgb whiteRgb = cctToRgb(state.cct);
 	const Rgb rgb = {whiteRgb.r + (tint.r - whiteRgb.r) * mix, whiteRgb.g + (tint.g - whiteRgb.g) * mix,
 			 whiteRgb.b + (tint.b - whiteRgb.b) * mix};
 
-	// La saturation effective tombe a zero quand on revient vers le blanc.
+	// Effective saturation falls to zero as we return towards white.
 	const float saturation = clamp01(state.saturation) * mix;
 
-	// Pour un appareil RGBW, on sort le blanc du melange plutot que de le
-	// fabriquer avec les trois couleurs : c'est plus lumineux et plus propre.
+	// On an RGBW fixture, pull the white out of the mix rather than making it
+	// from the three colours: it is brighter and cleaner.
 	const bool hasWhite = mode.hasRole(ChannelRole::White);
 	const float white = hasWhite ? (1.0f - saturation) : 0.0f;
 	const float whiteRemoval = hasWhite ? white : 0.0f;
@@ -158,8 +158,8 @@ std::vector<uint8_t> renderState(const FixtureMode &mode, const LightState &stat
 			break;
 
 		case ChannelRole::ColorMix: {
-			// Sans ce canal ouvert, un appareil dote de deux moteurs
-			// reste sur son blanc et ignore la teinte demandee.
+			// Without this channel opened, a fixture with two engines
+			// stays on its white and ignores the requested hue.
 			const float span = static_cast<float>(spec.rangeMax) - static_cast<float>(spec.rangeMin);
 			out = static_cast<uint8_t>(std::lround(spec.rangeMin + mix * span));
 			break;
@@ -169,8 +169,8 @@ std::vector<uint8_t> renderState(const FixtureMode &mode, const LightState &stat
 			out = state.strobeHz > 0.0f ? mapPhysical(spec, state.strobeHz) : spec.offValue;
 			break;
 
-		// Ces canaux ne sont pas pilotes par une intention lumineuse : ils
-		// gardent la valeur prevue par le profil.
+		// These channels are not driven by a lighting intent: they keep
+		// whatever the profile decided.
 		case ChannelRole::Amber:
 		case ChannelRole::UltraViolet:
 		case ChannelRole::Pan:
@@ -202,13 +202,13 @@ LightState lerp(const LightState &from, const LightState &to, float t)
 	state.cct = from.cct + (to.cct - from.cct) * k;
 	state.greenMagenta = from.greenMagenta + (to.greenMagenta - from.greenMagenta) * k;
 
-	// Le strobe ne se fond pas : une frequence intermediaire n'a pas de sens
-	// et donnerait un clignotement erratique pendant la transition. On bascule
-	// a mi-parcours.
+	// Strobe does not fade: an in-between rate is meaningless and would give an
+	// erratic flicker during the transition. It switches at the halfway
+	// point.
 	state.strobeHz = k < 0.5f ? from.strobeHz : to.strobeHz;
 
-	// Plus court chemin sur le cercle chromatique : un fondu du rouge vers
-	// l'orange ne doit pas traverser tout le spectre.
+	// Shortest way round the colour circle: a fade from red to orange must not
+	// sweep the whole spectrum.
 	float delta = std::fmod(to.hue - from.hue, 360.0f);
 	if (delta > 180.0f)
 		delta -= 360.0f;

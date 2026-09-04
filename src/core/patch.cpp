@@ -43,8 +43,8 @@ const FixtureMode *Patch::modeOf(const Fixture &fixture) const
 	if (!profile)
 		return nullptr;
 
-	// Un profil peut avoir perdu un mode entre deux versions : on retombe sur
-	// son mode prefere plutot que de faire disparaitre le projecteur.
+	// A profile may have lost a mode between versions: fall back on its
+	// preferred mode rather than making the fixture vanish.
 	if (const FixtureMode *mode = profile->findMode(fixture.modeId))
 		return mode;
 	return profile->preferredMode();
@@ -61,7 +61,7 @@ int Patch::suggestAddress(uint16_t universe, size_t channelCount) const
 	if (channelCount == 0 || channelCount > kSlotsPerUniverse)
 		return 0;
 
-	// Emplacements deja pris dans cet univers.
+	// Slots already taken in this universe.
 	std::vector<bool> taken(kSlotsPerUniverse + 1, false);
 	for (const auto &fixture : fixtures_) {
 		if (fixture.universe != universe)
@@ -103,8 +103,8 @@ std::vector<AddressConflict> Patch::conflicts() const
 			if (bSpan == 0)
 				continue;
 
-			// Deux intervalles se chevauchent si chacun commence avant
-			// la fin de l'autre.
+			// Two ranges overlap when each starts before the other
+			// ends.
 			if (a.address < b.address + bSpan && b.address < a.address + aSpan)
 				found.push_back({a.id, b.id, a.universe, a.address, b.address});
 		}

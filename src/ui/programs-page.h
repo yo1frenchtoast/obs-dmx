@@ -19,10 +19,10 @@ namespace obsdmx {
 class EffectEditor;
 class SliderRow;
 
-/// Onglet Programmes : construire des ambiances et les associer aux scenes OBS.
+/// Programmes tab: building looks and attaching them to OBS scenes.
 ///
-/// L'apercu en direct est actif tant que cet onglet est visible : l'utilisateur
-/// voit ce qu'il regle au lieu de deviner.
+/// The live preview is on while this tab is visible, so the user sees what they
+/// are setting instead of guessing.
 class ProgramsPage : public QWidget {
 	Q_OBJECT
 
@@ -30,11 +30,11 @@ public:
 	ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvider, QWidget *parent = nullptr);
 	~ProgramsPage() override;
 
-	/// Reconstruit tout depuis le spectacle.
+	/// Rebuilds everything from the show.
 	void reload();
-	/// Recharge la seule liste des projecteurs, apres modification du patch.
+	/// Reloads only the fixture list, after the patch changed.
 	void reloadFixtures();
-	/// Recharge la seule table des scenes, apres un changement dans OBS.
+	/// Reloads only the scene table, after a change in OBS.
 	void reloadScenes();
 
 protected:

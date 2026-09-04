@@ -9,16 +9,16 @@
 
 namespace obsdmx {
 
-/// Un curseur avec sa valeur lisible a cote.
+/// A slider with its value readable beside it.
 ///
-/// Les curseurs Qt sont entiers ; les grandeurs manipulees ici sont continues.
-/// Cette classe fait la conversion une fois pour toutes, plutot que de la
-/// repeter dans chaque page.
+/// Qt sliders are integer; the quantities handled here are continuous. This
+/// class does the conversion once and for all, rather than repeating it on
+/// every page.
 class SliderRow : public QWidget {
 	Q_OBJECT
 
 public:
-	/// steps : finesse du curseur. suffix et decimals servent a l'affichage.
+	/// steps: resolution of the slider. suffix and decimals are for display.
 	SliderRow(float minimum, float maximum, int steps, QString suffix, int decimals, QWidget *parent = nullptr)
 		: QWidget(parent), minimum_(minimum), maximum_(maximum), suffix_(std::move(suffix)),
 		  decimals_(decimals)
@@ -49,8 +49,8 @@ public:
 		return minimum_ + t * (maximum_ - minimum_);
 	}
 
-	/// Positionne le curseur sans emettre de signal : utile pour recharger un
-	/// formulaire sans declencher une sauvegarde en boucle.
+	/// Positions the slider without emitting a signal: useful for reloading a
+	/// form without triggering a save loop.
 	void setValueSilently(float value)
 	{
 		const float t = (value - minimum_) / (maximum_ - minimum_);
@@ -60,7 +60,7 @@ public:
 		updateReadout();
 	}
 
-	/// Peint un degrade sous le curseur, pour que la teinte se choisisse a l'oeil.
+	/// Paints a gradient under the slider, so a hue can be picked by eye.
 	void setGradient(const QString &css) { slider_->setStyleSheet(css); }
 
 signals:

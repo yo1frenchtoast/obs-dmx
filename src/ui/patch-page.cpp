@@ -1,4 +1,5 @@
 #include "ui/patch-page.h"
+#include "ui/localized.h"
 
 #include "core/fixture-library.h"
 #include "core/show.h"
@@ -17,11 +18,6 @@
 namespace obsdmx {
 
 namespace {
-
-QString tr_(const char *key)
-{
-	return QString::fromUtf8(obs_module_text(key));
-}
 
 enum Column { ColName = 0, ColModel, ColMode, ColUniverse, ColAddress, ColChannels, ColumnCount };
 
@@ -72,9 +68,9 @@ PatchPage::PatchPage(Show &show, const FixtureLibrary &library, QWidget *parent)
 
 void PatchPage::reload()
 {
-	// Remplir le tableau emet cellChanged a chaque case. Bloquer les signaux
-	// vaut mieux qu'un drapeau : un chemin oublie ferait boucler l'interface
-	// sur elle-meme.
+	// Filling the table emits cellChanged for every cell. Blocking the signals
+	// beats a flag: one forgotten path would make the interface loop on
+	// itself.
 	const QSignalBlocker blocker(table_);
 	table_->setRowCount(0);
 
@@ -90,8 +86,8 @@ void PatchPage::reload()
 			name->setData(kFixtureIdRole, QString::fromStdString(fixture.id));
 			table_->setItem(row, ColName, name);
 
-			// Le modele et le mode ne se modifient pas ici : les changer
-			// deplacerait l'appareil dans l'univers sans prevenir.
+			// Model and mode are not editable here: changing them would
+			// move the fixture within the universe without warning.
 			auto *model = new QTableWidgetItem(
 				profile ? QString::fromStdString(profile->displayName()) : tr_("Patch.UnknownProfile"));
 			model->setFlags(model->flags() & ~Qt::ItemIsEditable);
@@ -127,8 +123,8 @@ void PatchPage::refreshConflicts()
 		return;
 	}
 
-	// On nomme les appareils en cause : "il y a un conflit" sans dire lequel
-	// n'aide personne.
+	// Name the fixtures involved: "there is a conflict" without saying which
+	// helps nobody.
 	QStringList details;
 	show_.withPatch([&](const Patch &patch) {
 		for (const auto &conflict : conflicts) {
@@ -164,8 +160,8 @@ void PatchPage::addFixture()
 	show_.withPatch([&](Patch &patch) {
 		for (int i = 0; i < count; ++i) {
 			Fixture fixture;
-			// Numerote seulement quand il y en a plusieurs : "PAR" est
-			// plus clair que "PAR 1" quand il est seul.
+			// Numbered only when there are several: "PAR" reads better
+			// than "PAR 1" when it stands alone.
 			fixture.name = count > 1 ? dialog.fixtureName() + " " + std::to_string(i + 1)
 						 : dialog.fixtureName();
 			fixture.profileId = dialog.profileId();
@@ -226,7 +222,7 @@ void PatchPage::onCellChanged(int row, int column)
 		}
 	});
 
-	// Une adresse modifiee change la plage occupee et peut creer un conflit.
+	// A changed address moves the occupied range and may create a conflict.
 	reload();
 	emit patchChanged();
 }

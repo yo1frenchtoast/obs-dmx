@@ -30,9 +30,8 @@ LightState parseState(obs_data_t *item)
 	state.greenMagenta = static_cast<float>(obs_data_get_double(item, "green_magenta"));
 	state.strobeHz = static_cast<float>(obs_data_get_double(item, "strobe_hz"));
 
-	// Valeurs par defaut explicites : un document ecrit par une version
-	// anterieure n'a pas forcement ces champs, et zero serait un mauvais
-	// choix pour une temperature de couleur.
+	// Explicit defaults: a document written by an earlier version may not have
+	// these fields, and zero would be a poor choice for a colour temperature.
 	state.colorMix = obs_data_has_user_value(item, "color_mix")
 				 ? static_cast<float>(obs_data_get_double(item, "color_mix"))
 				 : 1.0f;
@@ -173,8 +172,8 @@ Effect parseEffect(obs_data_t *item)
 		effect.sound.sensitivity = static_cast<float>(obs_data_get_double(sound, "sensitivity"));
 		effect.sound.threshold = static_cast<float>(obs_data_get_double(sound, "threshold"));
 		effect.sound.smoothingMs = static_cast<float>(obs_data_get_double(sound, "smoothing_ms"));
-		// Les effets enregistres avant ce reglage suivaient la couleur du
-		// programme : c'est donc la valeur de repli.
+		// Effects saved before this setting followed the programme's colour,
+		// so that is the fallback.
 		effect.sound.useBaseColor = !obs_data_has_user_value(sound, "use_base_color") ||
 					    obs_data_get_bool(sound, "use_base_color");
 		effect.sound.color = parseState(sound);
@@ -228,7 +227,7 @@ void saveShow(const Show &show, obs_data_t *collectionData)
 {
 	obs_data_t *root = obs_data_create();
 
-	// --- projecteurs ---
+	// --- fixtures ---
 	obs_data_array_t *fixtures = obs_data_array_create();
 	show.withPatch([&](const Patch &patch) {
 		for (const auto &fixture : patch.fixtures()) {
@@ -278,7 +277,7 @@ void saveShow(const Show &show, obs_data_t *collectionData)
 	obs_data_set_array(root, "programs", programs);
 	obs_data_array_release(programs);
 
-	// --- associations aux scenes ---
+	// --- scene attachments ---
 	obs_data_array_t *bindings = obs_data_array_create();
 	for (const auto &binding : show.bindings()) {
 		obs_data_t *item = obs_data_create();
@@ -304,7 +303,7 @@ void loadShow(Show &show, obs_data_t *collectionData)
 	if (!root)
 		return;
 
-	// --- projecteurs ---
+	// --- fixtures ---
 	if (obs_data_array_t *fixtures = obs_data_get_array(root, "fixtures")) {
 		show.withPatch([&](Patch &patch) {
 			const size_t count = obs_data_array_count(fixtures);
@@ -363,7 +362,7 @@ void loadShow(Show &show, obs_data_t *collectionData)
 	}
 	show.setPrograms(std::move(programs));
 
-	// --- associations aux scenes ---
+	// --- scene attachments ---
 	std::vector<SceneBinding> bindings;
 	if (obs_data_array_t *array = obs_data_get_array(root, "bindings")) {
 		const size_t count = obs_data_array_count(array);
@@ -382,7 +381,7 @@ void loadShow(Show &show, obs_data_t *collectionData)
 	show.setBindings(std::move(bindings));
 
 	const size_t fixtureCount = show.withPatch([](const Patch &patch) { return patch.fixtures().size(); });
-	blog(LOG_INFO, "[obs-dmx] montage charge : %zu projecteur(s), %zu programme(s), %zu association(s)",
+	blog(LOG_INFO, "[obs-dmx] rig loaded: %zu fixture(s), %zu programme(s), %zu attachment(s)",
 	     fixtureCount, show.programs().size(), show.bindings().size());
 
 	obs_data_release(root);

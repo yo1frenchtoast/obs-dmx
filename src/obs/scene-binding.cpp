@@ -76,18 +76,18 @@ void SceneBinder::applyCurrentScene()
 
 	show_.activateScene(uuid, Show::Clock::now());
 
-	// OBS emet plusieurs evenements pour un meme passage de scene : ne
-	// journaliser que les changements reels, sinon la trace devient illisible
-	// au moment ou l'on en a besoin.
+	// OBS emits several events for a single scene change: log only the real
+	// ones, otherwise the trace becomes unreadable exactly when it is
+	// needed.
 	if (uuid == lastLoggedScene_)
 		return;
 	lastLoggedScene_ = uuid;
 
-	// Une scene sans programme est un cas courant et volontaire ; c'est le
-	// silence total qui serait deroutant si la lumiere ne suit pas.
+	// A scene with no programme is common and deliberate; it is total silence
+	// that would be baffling when the lights fail to follow.
 	const auto binding = show_.bindingFor(uuid);
 	blog(LOG_INFO, "[obs-dmx] scene %s -> programme '%s'", uuid.c_str(),
-	     binding && !binding->programId.empty() ? binding->programId.c_str() : "(aucun)");
+	     binding && !binding->programId.empty() ? binding->programId.c_str() : "(none)");
 }
 
 void SceneBinder::onFrontendEvent(obs_frontend_event event, void *data)
@@ -101,8 +101,8 @@ void SceneBinder::onFrontendEvent(obs_frontend_event event, void *data)
 
 	case OBS_FRONTEND_EVENT_FINISHED_LOADING:
 	case OBS_FRONTEND_EVENT_SCENE_COLLECTION_CHANGED:
-		// La collection vient d'etre chargee : l'interface doit se
-		// reconstruire, puis la scene courante prendre effet.
+		// The collection has just been loaded: the interface must rebuild,
+		// then the current scene must take effect.
 		if (self->onReloaded_)
 			self->onReloaded_();
 		self->applyCurrentScene();
@@ -110,8 +110,8 @@ void SceneBinder::onFrontendEvent(obs_frontend_event event, void *data)
 
 	case OBS_FRONTEND_EVENT_SCENE_COLLECTION_CLEANUP:
 	case OBS_FRONTEND_EVENT_EXIT:
-		// On eteint plutot que de laisser la derniere ambiance figee sur
-		// scene apres la fermeture.
+		// Put the lights out rather than leave the last look frozen on stage
+		// after shutdown.
 		self->show_.activateProgram({}, 0, Show::Clock::now());
 		break;
 

@@ -1,4 +1,5 @@
 #include "ui/output-settings.h"
+#include "ui/localized.h"
 
 #include "core/dmx-engine.h"
 #include "output/artnet-output.h"
@@ -30,18 +31,13 @@ namespace {
 constexpr int kStatusIntervalMs = 500;
 constexpr const char *kConfigFile = "output.json";
 
-QString tr_(const char *key)
-{
-	return QString::fromUtf8(obs_module_text(key));
-}
-
 } // namespace
 
 OutputSettingsPage::OutputSettingsPage(DmxEngine &engine, QWidget *parent) : QWidget(parent), engine_(engine)
 {
 	auto *layout = new QVBoxLayout(this);
 
-	// --- Connexion ---------------------------------------------------
+	// --- Connection ---------------------------------------------------
 	auto *connectionBox = new QGroupBox(tr_("Output.Connection"), this);
 	auto *form = new QFormLayout(connectionBox);
 
@@ -83,7 +79,7 @@ OutputSettingsPage::OutputSettingsPage(DmxEngine &engine, QWidget *parent) : QWi
 
 	layout->addWidget(connectionBox);
 
-	// --- Banc d'essai -------------------------------------------------
+	// --- Test bench ----------------------------------------------------
 	auto *testBox = new QGroupBox(tr_("Output.Test"), this);
 	auto *testForm = new QFormLayout(testBox);
 
@@ -155,9 +151,8 @@ void OutputSettingsPage::load()
 		if (!port.isEmpty())
 			serialPort_->setCurrentText(port);
 
-		// Le CID sACN doit survivre aux redemarrages : un identifiant qui
-		// change a chaque lancement fait apparaitre une nouvelle source aux
-		// yeux des recepteurs.
+		// The sACN CID must survive restarts: an identifier that changes on
+		// every launch looks like a brand new source to receivers.
 		const char *cidHex = obs_data_get_string(data, "sacn_cid");
 		const QByteArray decoded = QByteArray::fromHex(QByteArray(cidHex));
 		if (decoded.size() == 16)
@@ -187,8 +182,8 @@ void OutputSettingsPage::save() const
 	const QByteArray cid(reinterpret_cast<const char *>(sacnCid_.data()), int(sacnCid_.size()));
 	obs_data_set_string(data, "sacn_cid", cid.toHex().constData());
 
-	// obs_module_config_path pointe vers un dossier qui n'existe pas encore
-	// au premier lancement.
+	// obs_module_config_path points at a directory that does not exist yet on
+	// first launch.
 	char *dir = obs_module_config_path("");
 	if (dir) {
 		os_mkdirs(dir);
@@ -198,7 +193,7 @@ void OutputSettingsPage::save() const
 	char *path = obs_module_config_path(kConfigFile);
 	if (path) {
 		if (!obs_data_save_json_safe(data, path, "tmp", "bak"))
-			blog(LOG_WARNING, "[obs-dmx] impossible d'enregistrer %s", path);
+			blog(LOG_WARNING, "[obs-dmx] could not save %s", path);
 		bfree(path);
 	}
 	obs_data_release(data);
@@ -229,7 +224,7 @@ void OutputSettingsPage::applyToEngine()
 		output = std::make_shared<ArtnetOutput>(host.toStdString());
 		destination = host;
 	} else if (protocol == "sacn") {
-		// L'adresse multicast se deduit de l'univers : rien a saisir.
+		// The multicast address follows from the universe: nothing to enter.
 		output = std::make_shared<SacnOutput>(sacnCid_, "OBS DMX",
 						     static_cast<uint8_t>(priority_->value()));
 		destination = QString::fromStdString(
@@ -279,8 +274,8 @@ void OutputSettingsPage::onProtocolChanged()
 	serialPort_->setVisible(isEnttec);
 	serialLabel_->setVisible(isEnttec);
 
-	// Une interface Enttec ne sort qu'un univers : le numero n'a pas de sens
-	// pour elle.
+	// An Enttec interface outputs a single universe, so the number means
+	// nothing to it.
 	universe_->setVisible(!isEnttec);
 	universeLabel_->setVisible(!isEnttec);
 
@@ -320,8 +315,8 @@ void OutputSettingsPage::refreshStatus()
 	lastFrames_ = frames;
 
 	if (enabled_->isChecked() && !sendingTo_.isEmpty() && rate > 0.0) {
-		// On complete le message existant plutot que de l'ecraser : garder
-		// la destination sous les yeux aide au diagnostic.
+		// Extend the existing message rather than replace it: keeping the
+		// destination in sight helps when diagnosing.
 		const QString base = tr_("Output.Status.Sending").arg(sendingTo_).arg(universe_->value());
 		status_->setText(base + " — " + tr_("Output.Status.Rate").arg(rate, 0, 'f', 1));
 	}
@@ -329,9 +324,9 @@ void OutputSettingsPage::refreshStatus()
 
 void OutputSettingsPage::updateStatus(const QString &message, bool isError)
 {
-	// Pas de couleur codee en dur : OBS a plusieurs themes, clairs comme
-	// sombres, et un rouge choisi ici serait illisible dans la moitie d'entre
-	// eux. Un prefixe reste visible partout.
+	// No hard-coded colour: OBS has several themes, light and dark, and a red
+	// picked here would be unreadable in half of them. A prefix stays visible
+	// everywhere.
 	status_->setText(isError ? QStringLiteral("\u26a0 ") + message : message);
 }
 

@@ -57,7 +57,7 @@ std::vector<Universe> renderAt(Show &show, Clock::time_point now)
 
 } // namespace
 
-TEST(programme_allume_les_projecteurs_qu_il_cite)
+TEST(a_programme_lights_the_fixtures_it_names)
 {
 	const auto library = buildLibrary();
 	Show show(library);
@@ -72,11 +72,11 @@ TEST(programme_allume_les_projecteurs_qu_il_cite)
 	const auto universes = renderAt(show, now);
 	CHECK_EQ(universes[0].get(1), 255); // "a" allume
 	CHECK_EQ(universes[0].get(2), 255); // rouge
-	// "b" n'est pas cite : il reste eteint plutot que de garder son etat.
+	// "b" is not named: it stays dark rather than keeping its state.
 	CHECK_EQ(universes[0].get(5), 0);
 }
 
-TEST(fondu_progresse_dans_le_temps)
+TEST(a_fade_progresses_over_time)
 {
 	const auto library = buildLibrary();
 	Show show(library);
@@ -90,11 +90,11 @@ TEST(fondu_progresse_dans_le_temps)
 	CHECK(std::abs(renderAt(show, start + std::chrono::milliseconds(500))[0].get(1) - 128) <= 2);
 	CHECK_EQ(renderAt(show, start + std::chrono::milliseconds(1000))[0].get(1), 255);
 
-	// Au-dela du fondu, la valeur reste stable.
+	// Past the fade, the value stays put.
 	CHECK_EQ(renderAt(show, start + std::chrono::seconds(5))[0].get(1), 255);
 }
 
-TEST(un_fondu_interrompu_repart_de_l_image_courante)
+TEST(an_interrupted_fade_restarts_from_the_current_picture)
 {
 	const auto library = buildLibrary();
 	Show show(library);
@@ -105,20 +105,20 @@ TEST(un_fondu_interrompu_repart_de_l_image_courante)
 	const auto start = Clock::now();
 	show.activateProgram("p1", 1000, start);
 
-	// A mi-parcours on bascule : le depart du nouveau fondu doit etre la
-	// valeur affichee a cet instant, pas zero.
+	// Switching halfway: the new fade must start from the value showing at that
+	// instant, not from zero.
 	const auto middle = start + std::chrono::milliseconds(500);
 	show.activateProgram("p2", 1000, middle);
 
 	const int atSwitch = renderAt(show, middle)[0].get(1);
 	CHECK(std::abs(atSwitch - 128) <= 3);
 
-	// Puis la descente continue sans saut.
+	// Then the descent continues without a jump.
 	CHECK(renderAt(show, middle + std::chrono::milliseconds(500))[0].get(1) < atSwitch);
 	CHECK_EQ(renderAt(show, middle + std::chrono::milliseconds(1000))[0].get(1), 0);
 }
 
-TEST(scene_sans_programme_eteint_la_lumiere)
+TEST(a_scene_with_no_programme_puts_the_lights_out)
 {
 	const auto library = buildLibrary();
 	Show show(library);
@@ -130,12 +130,12 @@ TEST(scene_sans_programme_eteint_la_lumiere)
 	show.activateScene("uuid-1", start);
 	CHECK_EQ(renderAt(show, start)[0].get(1), 255);
 
-	// Une scene inconnue eteint, plutot que de laisser la precedente allumee.
+	// An unknown scene puts the lights out rather than leaving the previous one lit.
 	show.activateScene("uuid-inconnu", start);
 	CHECK_EQ(renderAt(show, start + std::chrono::seconds(2))[0].get(1), 0);
 }
 
-TEST(association_par_identifiant_survit_au_renommage)
+TEST(attachment_by_identifier_survives_a_rename)
 {
 	const auto library = buildLibrary();
 	Show show(library);
@@ -144,13 +144,13 @@ TEST(association_par_identifiant_survit_au_renommage)
 	show.bindScene("uuid-1", "Ancien nom", "p1", 300);
 	show.bindScene("uuid-1", "Nouveau nom", "p1", 300);
 
-	// Le renommage met a jour l'entree existante, il n'en cree pas une seconde.
+	// A rename updates the existing entry; it does not create a second one.
 	CHECK_EQ(show.bindings().size(), size_t(1));
 	CHECK(show.bindingFor("uuid-1")->sceneName == "Nouveau nom");
 	CHECK(show.bindingFor("uuid-1")->programId == "p1");
 }
 
-TEST(supprimer_un_programme_delie_les_scenes)
+TEST(deleting_a_programme_detaches_its_scenes)
 {
 	const auto library = buildLibrary();
 	Show show(library);
@@ -159,13 +159,13 @@ TEST(supprimer_un_programme_delie_les_scenes)
 
 	CHECK(show.removeProgram("p1"));
 
-	// L'association subsiste mais ne pointe plus dans le vide.
+	// The attachment survives but no longer points at nothing.
 	CHECK_EQ(show.bindings().size(), size_t(1));
 	CHECK(show.bindingFor("uuid-1")->programId.empty());
 	CHECK(show.activeProgramId().empty());
 }
 
-TEST(apercu_prend_la_main_sans_attendre_de_fondu)
+TEST(the_preview_takes_over_without_waiting_for_a_fade)
 {
 	const auto library = buildLibrary();
 	Show show(library);
@@ -176,19 +176,19 @@ TEST(apercu_prend_la_main_sans_attendre_de_fondu)
 	show.activateProgram("p1", 0, now);
 	CHECK_EQ(renderAt(show, now)[0].get(1), 0);
 
-	// L'utilisateur regle une couleur dans l'editeur : il doit la voir tout
-	// de suite, pas au bout d'un fondu.
+	// The user sets a colour in the editor: they must see it at once, not at the
+	// end of a fade.
 	show.setPreview(makeProgram("edition", "a", 1.0f, 120.0f));
 	CHECK(show.hasPreview());
 	CHECK_EQ(renderAt(show, now)[0].get(1), 255);
 	CHECK_EQ(renderAt(show, now)[0].get(3), 255); // vert
 
-	// A la fermeture de l'editeur, le programme actif reprend la main.
+	// When the editor closes, the active programme takes over again.
 	show.setPreview(std::nullopt);
 	CHECK_EQ(renderAt(show, now)[0].get(1), 0);
 }
 
-TEST(identifiants_generes_ne_rejouent_pas_ceux_charges)
+TEST(generated_identifiers_never_replay_loaded_ones)
 {
 	const auto library = buildLibrary();
 	Show show(library);
@@ -201,14 +201,14 @@ TEST(identifiants_generes_ne_rejouent_pas_ceux_charges)
 	fresh.name = "nouveau";
 	const std::string id = show.addProgram(fresh);
 
-	// Sans cette precaution, le nouveau programme ecraserait le program-1
-	// puis entrerait en collision avec le program-7 charge.
+	// Without this precaution the new programme would overwrite program-1 and
+	// then collide with the loaded program-7.
 	CHECK(id != "program-7");
 	CHECK(show.program(id).has_value());
 	CHECK(show.program("program-7").has_value());
 }
 
-TEST(associer_une_scene_ne_l_active_pas_a_soi_seul)
+TEST(attaching_a_scene_does_not_activate_it_by_itself)
 {
 	const auto library = buildLibrary();
 	Show show(library);
@@ -217,14 +217,14 @@ TEST(associer_une_scene_ne_l_active_pas_a_soi_seul)
 
 	const auto now = Clock::now();
 
-	// Associer la scene courante n'allume rien : l'activation est declenchee
-	// par un evenement d'OBS, qui ne survient pas quand on associe la scene
-	// deja affichee. C'est a l'appelant de rejouer la scene.
+	// Attaching the current scene lights nothing: activation is driven by an OBS
+	// event, which does not happen when attaching the scene already on air. It
+	// is up to the caller to replay the scene.
 	show.bindScene("uuid-1", "Camera", "p1", 0);
 	CHECK(show.activeProgramId().empty());
 	CHECK_EQ(renderAt(show, now)[0].get(1), 0);
 
-	// Rejouer la scene suffit alors.
+	// Replaying the scene is then enough.
 	show.activateScene("uuid-1", now);
 	CHECK(show.activeProgramId() == "p1");
 	CHECK_EQ(renderAt(show, now)[0].get(1), 255);

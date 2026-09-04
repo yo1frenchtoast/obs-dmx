@@ -1,4 +1,5 @@
 #include "ui/programs-page.h"
+#include "ui/localized.h"
 
 #include "obs/scene-binding.h"
 #include "ui/effect-editor.h"
@@ -27,26 +28,21 @@ namespace obsdmx {
 
 namespace {
 
-QString tr_(const char *key)
-{
-	return QString::fromUtf8(obs_module_text(key));
-}
-
 constexpr int kFixtureIdRole = Qt::UserRole;
 constexpr int kSceneUuidRole = Qt::UserRole;
 constexpr int kEffectIdRole = Qt::UserRole;
 
 enum SceneColumn { SceneName = 0, SceneProgram, SceneFade, SceneColumnCount };
 
-/// Couleur approximative d'un etat, pour la pastille de la liste.
+/// Approximate colour of a state, for the swatch in the list.
 QColor swatchFor(const LightState &state)
 {
 	const Rgb tint = hsToRgb(state.hue, state.saturation);
 	const Rgb white = cctToRgb(state.cct);
 	const float mix = std::clamp(state.colorMix, 0.0f, 1.0f);
 
-	// L'intensite est prise en compte pour que l'utilisateur distingue un
-	// projecteur eteint d'un projecteur allume dans la meme teinte.
+	// Intensity is taken into account so a dark fixture can be told apart from
+	// a lit one of the same hue.
 	const float scale = std::clamp(state.intensity, 0.0f, 1.0f);
 	const auto channel = [&](float w, float t) {
 		return static_cast<int>(std::lround((w + (t - w) * mix) * scale * 255.0f));
@@ -69,9 +65,9 @@ ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvi
 {
 	auto *layout = new QVBoxLayout(this);
 
-	// --- choix du programme ---
-	// Un dock est etroit : la liste deroulante prend toute la largeur, les
-	// boutons vont dessous. Cote a cote, le dernier finissait coupe.
+	// --- programme selection ---
+	// A dock is narrow: the combo takes the full width and the buttons go
+	// below. Side by side, the last one ended up clipped.
 	programSelector_ = new QComboBox(this);
 	programSelector_->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
 	layout->addWidget(programSelector_);
@@ -85,9 +81,9 @@ ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvi
 	programRow->addWidget(removeButton_);
 	layout->addLayout(programRow);
 
-	// Sans cette ligne, un programme qu'aucune scene ne declenche s'allume
-	// pendant l'edition puis s'eteint des qu'on quitte l'onglet, sans que rien
-	// n'explique pourquoi.
+	// Without this line, a programme no scene triggers lights up while being
+	// edited and then goes out the moment the tab is left, with nothing to
+	// explain why.
 	bindingStatus_ = new QLabel(this);
 	bindingStatus_->setWordWrap(true);
 	layout->addWidget(bindingStatus_);
@@ -95,7 +91,7 @@ ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvi
 	bindButton_ = new QPushButton(tr_("Programs.Binding.BindToCurrent"), this);
 	layout->addWidget(bindButton_);
 
-	// --- projecteurs et reglages ---
+	// --- fixtures and light settings ---
 	auto *fixtureBox = new QGroupBox(tr_("Programs.Fixtures"), this);
 	auto *fixtureLayout = new QVBoxLayout(fixtureBox);
 	auto *fixtureHint = new QLabel(tr_("Programs.Fixtures.Hint"), fixtureBox);
@@ -114,8 +110,8 @@ ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvi
 
 	controls_ = new QGroupBox(tr_("Programs.Light"), this);
 	auto *form = new QFormLayout(controls_);
-	// Dans une colonne etroite, « Température du blanc » ecraserait son
-	// curseur : le libelle passe alors au-dessus.
+	// In a narrow column, a long label would crush its slider, so it moves
+	// above it instead.
 	form->setRowWrapPolicy(QFormLayout::WrapLongRows);
 
 	intensity_ = new SliderRow(0.0f, 100.0f, 100, " %", 0, controls_);
@@ -125,8 +121,8 @@ ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvi
 	form->addRow(tr_("Programs.ColorMix"), colorMix_);
 
 	hue_ = new SliderRow(0.0f, 360.0f, 360, "°", 0, controls_);
-	// Un degrade sous le curseur : on choisit sa teinte a l'oeil plutot qu'au
-	// nombre.
+	// A gradient under the slider: a hue is picked by eye rather than by
+	// number.
 	hue_->setGradient(
 		"QSlider::groove:horizontal { height: 10px; border-radius: 5px; background: "
 		"qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #ff0000, stop:0.167 #ffff00, stop:0.333 #00ff00, "
@@ -148,7 +144,7 @@ ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvi
 
 	layout->addWidget(controls_);
 
-	// --- effets ---
+	// --- effects ---
 	auto *effectBox = new QGroupBox(tr_("Programs.Effects"), this);
 	auto *effectLayout = new QVBoxLayout(effectBox);
 
@@ -174,7 +170,7 @@ ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvi
 	effectLayout->addWidget(effectEditor_);
 	layout->addWidget(effectBox);
 
-	// --- association aux scenes OBS ---
+	// --- attachment to OBS scenes ---
 	auto *sceneBox = new QGroupBox(tr_("Programs.Scenes"), this);
 	auto *sceneLayout = new QVBoxLayout(sceneBox);
 	auto *sceneHint = new QLabel(tr_("Programs.Scenes.Hint"), sceneBox);
@@ -215,7 +211,7 @@ ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvi
 
 ProgramsPage::~ProgramsPage()
 {
-	// L'apercu ne doit pas survivre a la page.
+	// The preview must not outlive the page.
 	show_.setPreview(std::nullopt);
 }
 
@@ -228,7 +224,7 @@ void ProgramsPage::showEvent(QShowEvent *event)
 void ProgramsPage::hideEvent(QHideEvent *event)
 {
 	QWidget::hideEvent(event);
-	// Onglet quitte : le programme reellement actif reprend la main.
+	// Tab left: the genuinely active programme takes over again.
 	show_.setPreview(std::nullopt);
 }
 
@@ -339,10 +335,10 @@ Program *ProgramsPage::currentProgram()
 
 void ProgramsPage::reapplyIfCurrentScene(const std::string &sceneUuid)
 {
-	// Associer une scene ne fait qu'enregistrer l'association. Le programme
-	// actif, lui, ne change que sur un evenement d'OBS -- lequel ne survient
-	// pas quand on associe la scene deja affichee. Sans ce rappel, il faudrait
-	// changer de scene puis revenir pour que le reglage prenne effet.
+	// Attaching a scene only records the attachment. The active programme
+	// changes only on an OBS event -- which is exactly what does not happen
+	// when attaching the scene already on air. Without this replay, the user
+	// would have to switch scene and come back for the setting to take.
 	if (sceneUuid == SceneBinder::currentSceneUuid())
 		show_.activateScene(sceneUuid, Show::Clock::now());
 }
@@ -356,7 +352,7 @@ void ProgramsPage::updateBindingStatus()
 		return;
 	}
 
-	// Toutes les scenes que ce programme sert.
+	// Every scene this programme serves.
 	QStringList scenes;
 	for (const auto &binding : show_.bindings())
 		if (binding.programId == program->id)
@@ -370,7 +366,7 @@ void ProgramsPage::updateBindingStatus()
 
 	bindingStatus_->setText(QStringLiteral("⚠ ") + tr_("Programs.Binding.None"));
 
-	// Le bouton n'a de sens que s'il y a une scene courante a associer.
+	// The button only makes sense when there is a current scene to attach.
 	const std::string uuid = SceneBinder::currentSceneUuid();
 	bindButton_->setVisible(!uuid.empty());
 }
@@ -385,14 +381,14 @@ void ProgramsPage::bindToCurrentScene()
 	if (uuid.empty())
 		return;
 
-	// Retrouver le nom pour l'affichage : l'association, elle, retient l'UUID.
+	// Look the name up for display: the attachment itself keeps the UUID.
 	std::string name;
 	for (const auto &scene : SceneBinder::currentScenes())
 		if (scene.uuid == uuid)
 			name = scene.name;
 
-	// 500 ms est le fondu par defaut de l'interface : rester coherent avec ce
-	// que le tableau des scenes propose.
+	// 500 ms is the interface's default fade: stay consistent with what the
+	// scene table offers.
 	show_.bindScene(uuid, name, program->id, 500);
 	reapplyIfCurrentScene(uuid);
 
@@ -411,8 +407,8 @@ void ProgramsPage::onProgramSelected()
 	controls_->setEnabled(hasProgram);
 	fixtures_->setEnabled(hasProgram);
 	removeButton_->setEnabled(hasProgram);
-	// Un effet appartient a un programme : sans programme choisi, il n'y a
-	// nulle part ou le mettre.
+	// An effect belongs to a programme: with none selected there is nowhere to
+	// put it.
 	addEffectButton_->setEnabled(hasProgram);
 	effects_->setEnabled(hasProgram);
 
@@ -491,8 +487,8 @@ void ProgramsPage::onFixtureChecked(QListWidgetItem *item)
 				     [&id](const FixtureLook &look) { return look.fixtureId == id; });
 
 	if (included && it == program->looks.end()) {
-		// Un projecteur qu'on vient d'inclure part d'un blanc a mi-course,
-		// visible immediatement : un noir laisserait croire a une panne.
+		// A fixture just included starts on a half-up white, visible at once:
+		// starting black would look like a fault.
 		LightState state;
 		state.intensity = 0.8f;
 		state.colorMix = 0.0f;
@@ -519,8 +515,8 @@ void ProgramsPage::loadStateIntoControls()
 	if (!program)
 		return;
 
-	// On affiche l'etat du premier projecteur selectionne qui appartient au
-	// programme : montrer une moyenne de plusieurs etats serait trompeur.
+	// Show the state of the first selected fixture that belongs to the
+	// programme: an average of several states would be misleading.
 	const LightState *reference = nullptr;
 	for (QListWidgetItem *item : fixtures_->selectedItems()) {
 		const std::string id = item->data(kFixtureIdRole).toString().toStdString();
@@ -565,8 +561,8 @@ void ProgramsPage::applyControlsToSelection()
 	state.greenMagenta = greenMagenta_->value() / 100.0f;
 	state.strobeHz = strobe_->value();
 
-	// Le reglage s'applique a tous les projecteurs selectionnes : c'est ce
-	// qui permet de colorer six PAR d'un geste.
+	// The setting applies to every selected fixture: that is what lets six PARs
+	// be coloured in one gesture.
 	for (QListWidgetItem *item : fixtures_->selectedItems()) {
 		const std::string id = item->data(kFixtureIdRole).toString().toStdString();
 
@@ -577,8 +573,8 @@ void ProgramsPage::applyControlsToSelection()
 			continue;
 		}
 
-		// Regler un projecteur non coche l'ajoute au programme : c'est ce
-		// que l'utilisateur vient de demander implicitement.
+		// Adjusting an unticked fixture adds it to the programme: that is
+		// what the user has just implicitly asked for.
 		program->looks.push_back({id, state});
 		const QSignalBlocker blocker(fixtures_);
 		item->setCheckState(Qt::Checked);
@@ -609,8 +605,8 @@ void ProgramsPage::refreshEffectList()
 			auto *item = new QListWidgetItem(QString::fromStdString(effect.name), effects_);
 			item->setData(kEffectIdRole, QString::fromStdString(effect.id));
 			item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
-			// La case a cocher allume ou eteint l'effet sans le supprimer :
-			// c'est le geste courant pendant un spectacle.
+			// The tick box switches the effect on or off without deleting
+			// it: that is the common gesture during a show.
 			item->setCheckState(effect.enabled ? Qt::Checked : Qt::Unchecked);
 		}
 
@@ -660,13 +656,13 @@ void ProgramsPage::addEffect()
 	effect.name = chosen->text().toStdString();
 	effect.id = "effect-" + std::to_string(++effectIdCounter_);
 
-	// Un effet sonore module la lumiere du programme : il doit pouvoir la
-	// baisser, ce que « le plus lumineux gagne » interdit par construction.
+	// A sound effect modulates the programme's light, so it must be able to
+	// bring it down, which "brightest wins" forbids by construction.
 	if (effect.type == EffectType::Sound)
 		effect.blend = BlendMode::Replace;
 
-	// Un chaser sans pas ne fait rien : on en donne deux, de quoi voir
-	// immediatement quelque chose bouger.
+	// A chase with no steps does nothing: give it two, enough to see something
+	// move straight away.
 	if (effect.type == EffectType::Chaser) {
 		LightState on;
 		on.intensity = 1.0f;
@@ -711,7 +707,7 @@ void ProgramsPage::onEffectToggled(QListWidgetItem *item)
 	program->effects[static_cast<size_t>(row)].enabled = item->checkState() == Qt::Checked;
 	show_.updateProgram(*program);
 
-	// L'editeur affiche peut-etre cet effet : le tenir a jour.
+	// The editor may be showing this effect: keep it up to date.
 	if (row == effects_->currentRow())
 		effectEditor_->setEffect(&program->effects[static_cast<size_t>(row)]);
 	pushPreview();
@@ -738,8 +734,8 @@ void ProgramsPage::updateSwatches()
 {
 	Program *program = currentProgram();
 
-	// setIcon() emet itemChanged, qui ramene ici : sans ce blocage, la pile
-	// deborde et OBS s'arrete net.
+	// setIcon() emits itemChanged, which leads straight back here: without this
+	// block the stack overflows and OBS dies on the spot.
 	const QSignalBlocker blocker(fixtures_);
 
 	for (int i = 0; i < fixtures_->count(); ++i) {
@@ -753,7 +749,7 @@ void ProgramsPage::updateSwatches()
 
 void ProgramsPage::pushPreview()
 {
-	// L'apercu n'a de sens que quand l'onglet est sous les yeux.
+	// The preview only means anything while the tab is in front of the user.
 	if (!isVisible()) {
 		show_.setPreview(std::nullopt);
 		return;

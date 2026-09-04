@@ -1,51 +1,54 @@
-# Tests de bout en bout
+# End-to-end tests
 
-Ces scripts verifient ce que les tests unitaires ne peuvent pas atteindre : que
-changer de scene dans un vrai OBS fait vraiment sortir les bonnes valeurs DMX
-sur le reseau.
+These scripts check what the unit tests cannot reach: that switching scene in a
+real OBS actually puts the right DMX values on the wire.
 
-Le principe : on installe une collection de scenes jetable, on lance OBS, on lui
-fait changer de scene par obs-websocket, et on decode les trames Art-Net recues
-sur la loopback.
+The idea: install a throwaway scene collection, launch OBS, drive its scene
+changes over obs-websocket, and decode the Art-Net frames arriving on the
+loopback.
 
-Sept scenes couvrent les cinq etapes du projet :
+Seven scenes cover the plugin's five build stages:
 
-| Scene         | Ce qu'elle verifie                                        |
+| Scene         | What it proves                                            |
 |---------------|-----------------------------------------------------------|
-| Plateau       | une ambiance blanche, temperature de couleur et intensite  |
-| Interview     | une ambiance coloree, teinte et saturation                 |
-| Chaser        | le motif se decale bien le long des projecteurs            |
-| Strobe        | le canal de strobe materiel, sur un fond colore preserve   |
-| EffetIntegre  | le mode FX du T4c : selection de l'effet et vitesse        |
-| Musique       | une source sonore allume la lumiere                        |
-| Silence       | le meme programme sans son la laisse eteinte               |
+| Plateau       | a white look: colour temperature and intensity             |
+| Interview     | a coloured look: hue and saturation                        |
+| Chaser        | the pattern really moves along the fixtures                |
+| Strobe        | the hardware strobe channel, over a preserved background   |
+| EffetIntegre  | the T4c's FX mode: effect selection and rate               |
+| FxManuel      | hand-entered channels, and the footprint guard             |
+| Musique       | a sound source brings the lights up                        |
+| Silence       | the same programme without sound leaves them out           |
 
-Les deux dernieres forment un temoin : sans la scene Silence, rien ne
-prouverait que c'est bien le son qui allume la lumiere.
+The last two form a control pair: without the Silence scene, nothing would prove
+it is the sound doing the lighting.
 
-## Lancer
+## Running
 
     ./run_e2e.sh
 
-## Attention
+## Warning
 
-Le script modifie la configuration d'OBS : il active obs-websocket, ecrit une
-collection de scenes nommee `obs-dmx-test`, depose un son de test dans le
-dossier de configuration, et pointe la sortie DMX vers 127.0.0.1. Sauvegardez
-`user.ini`, `global.ini` et `plugin_config/obs-websocket/config.json` avant de
-l'utiliser sur une machine dont la configuration compte.
+The script modifies your OBS configuration: it enables obs-websocket, writes a
+scene collection named `obs-dmx-test`, drops a test tone into the configuration
+directory, and points the DMX output at 127.0.0.1. Back up `user.ini`,
+`global.ini` and `plugin_config/obs-websocket/config.json` before running it on a
+machine whose configuration matters.
 
-Deux pieges rencontres en chemin, qui expliquent des lignes du script :
+It also refuses to start if OBS is already running, and force-kills the instance
+it launched. Do not run it while you are working in OBS.
 
-- il efface `.sentinel/run_*` avant chaque lancement, sinon l'arret force
-  d'OBS a la fin du test precedent fait apparaitre le dialogue de mode securise,
-  qui bloque le demarrage ;
-- le son de test est ecrit sous `$HOME` et non dans `/tmp` : le bac a sable
-  d'OBS a son propre `/tmp` et n'y trouverait rien.
+Two traps met along the way, which explain some of its lines:
 
-## Les autres scripts
+- it clears `.sentinel/run_*` before each launch, otherwise force-killing OBS at
+  the end of the previous test brings up the safe-mode dialog, which blocks
+  start-up;
+- the test tone is written under `$HOME` rather than `/tmp`: OBS's sandbox has
+  its own `/tmp` and would find nothing there.
 
-- `artnet_listener.py <secondes>` : decode les trames ArtDMX sur 127.0.0.1:6454
-  et verifie la cadence et le sequencement.
-- `sacn_listener.py <univers> <secondes>` : idem pour sACN, en multicast.
-- `make_tone.py <fichier.wav>` : genere la basse de test.
+## The other scripts
+
+- `artnet_listener.py <seconds>` decodes ArtDMX frames on 127.0.0.1:6454 and
+  checks the frame rate and sequencing.
+- `sacn_listener.py <universe> <seconds>` does the same for sACN, over multicast.
+- `make_tone.py <file.wav>` generates the test bass note.

@@ -15,7 +15,7 @@ class PatchPage;
 class ProgramsPage;
 class Show;
 
-/// Le dock principal, ancre dans OBS.
+/// The main dock, docked inside OBS.
 class DmxDock : public QWidget {
 	Q_OBJECT
 
@@ -24,7 +24,7 @@ public:
 		QWidget *parent = nullptr);
 	~DmxDock() override;
 
-	/// Reconstruit l'interface apres un chargement de collection de scenes.
+	/// Rebuilds the interface after a scene collection is loaded.
 	void reloadFromShow();
 
 	void setBlackout(bool on);

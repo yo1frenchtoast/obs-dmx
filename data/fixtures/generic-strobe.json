@@ -6,15 +6,24 @@
   "modes": [
     {
       "id": "2ch",
-      "label": "2 canaux — Intensite + frequence",
+      "label": {
+        "en": "2 channels — Intensity + frequence",
+        "fr": "2 canaux — Intensite + frequence"
+      },
       "channels": [
         {
           "role": "dimmer",
-          "label": "Intensite"
+          "label": {
+            "en": "Intensity",
+            "fr": "Intensite"
+          }
         },
         {
           "role": "strobe",
-          "label": "Frequence",
+          "label": {
+            "en": "Rate",
+            "fr": "Frequence"
+          },
           "range_min": 10,
           "range_max": 255,
           "off": 0,

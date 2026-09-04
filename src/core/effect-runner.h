@@ -10,28 +10,28 @@ namespace obsdmx {
 
 class Patch;
 
-/// Applique les effets d'un programme par-dessus sa base.
+/// Applies a programme's effects on top of its base.
 ///
-/// L'etat qui doit persister d'une trame a l'autre (position d'un chaser,
-/// dernier temps vu) vit ici plutot que dans l'effet, pour que la description
-/// d'un programme reste une donnee inerte, serialisable et comparable.
+/// State that must persist between frames (a chase's position, the last beat
+/// seen) lives here rather than in the effect, so that a programme's description
+/// stays inert data: serialisable and comparable.
 class EffectRunner {
 public:
 	using Clock = std::chrono::steady_clock;
 
-	/// Modifie states en place. mode sert a savoir si un projecteur dispose
-	/// d'un canal de strobe materiel.
+	/// Modifies states in place. The patch tells whether a fixture has a
+	/// hardware strobe channel.
 	void apply(const std::vector<Effect> &effects, const Patch &patch, const AudioSnapshot &audio,
 		   Clock::time_point now, std::unordered_map<std::string, LightState> &states);
 
-	/// Oublie les positions en cours. A appeler quand le programme change,
-	/// pour qu'un chaser reparte de son premier pas.
+	/// Forgets the running positions. Call it when the programme changes, so a
+	/// chase restarts from its first step.
 	void reset();
 
 private:
 	struct Runtime {
 		Clock::time_point started{};
-		/// Pas courant, avance par le temps ou par les temps musicaux.
+		/// Current step, advanced by time or by musical beats.
 		int step = 0;
 		int lastStepIndex = 0;
 		bool ascending = true;
@@ -51,8 +51,8 @@ private:
 	std::unordered_map<std::string, Runtime> runtimes_;
 };
 
-/// Valeurs DMX brutes a forcer pour un effet embarque dans l'appareil.
-/// Renvoie un vecteur vide si l'effet n'existe pas dans ce mode.
+/// Raw DMX values to force for an effect built into the fixture.
+/// Returns an empty vector if the effect does not exist in this mode.
 std::vector<std::pair<int, uint8_t>> builtinFxChannels(const FixtureMode &mode, const BuiltinFxSettings &settings);
 
 } // namespace obsdmx
