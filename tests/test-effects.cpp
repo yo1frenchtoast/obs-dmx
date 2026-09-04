@@ -357,3 +357,140 @@ TEST(effet_desactive_ou_sans_cible_ne_fait_rien)
 	runner.apply({disabled, targetless}, patch, AudioSnapshot{}, Clock::now(), states);
 	CHECK(states.empty());
 }
+
+TEST(en_htp_un_effet_ne_peut_qu_eclaircir_jamais_baisser)
+{
+	const auto library = buildLibrary();
+	const auto patch = buildPatch(library);
+	EffectRunner runner;
+
+	Effect effect;
+	effect.id = "son";
+	effect.type = EffectType::Sound;
+	effect.blend = BlendMode::Htp;
+	effect.fixtureIds = {"f0"};
+	effect.sound.target = SoundTarget::Intensity;
+	effect.sound.threshold = 0.0f;
+
+	// C'est la limite de fond du mode « le plus lumineux gagne » : sur un
+	// programme qui allume deja a fond, l'effet ne peut rien retirer et parait
+	// donc inerte. L'interface doit le dire, le moteur ne peut pas l'inventer.
+	AudioSnapshot faible;
+	faible.bands[0] = 0.1f;
+	auto states = emptyStates();
+	states["f0"] = colored(240.0f, 1.0f);
+	runner.apply({effect}, patch, faible, Clock::now(), states);
+	CHECK_EQ(states["f0"].intensity, 1.0f);
+
+	// En remplacement, le niveau passe.
+	effect.blend = BlendMode::Replace;
+	states = emptyStates();
+	states["f0"] = colored(240.0f, 1.0f);
+	runner.apply({effect}, patch, faible, Clock::now(), states);
+	CHECK(std::abs(states["f0"].intensity - 0.1f) < 0.01f);
+}
+
+TEST(le_son_garde_la_couleur_du_programme_par_defaut)
+{
+	const auto library = buildLibrary();
+	const auto patch = buildPatch(library);
+	EffectRunner runner;
+
+	Effect effect;
+	effect.id = "son";
+	effect.type = EffectType::Sound;
+	effect.blend = BlendMode::Replace;
+	effect.fixtureIds = {"f0"};
+	effect.sound.target = SoundTarget::Intensity;
+	effect.sound.threshold = 0.0f;
+	effect.sound.useBaseColor = true;
+
+	AudioSnapshot audio;
+	audio.bands[0] = 0.5f;
+
+	auto states = emptyStates();
+	states["f0"] = colored(240.0f, 1.0f); // bleu
+	runner.apply({effect}, patch, audio, Clock::now(), states);
+
+	CHECK_EQ(states["f0"].hue, 240.0f);
+	CHECK(std::abs(states["f0"].intensity - 0.5f) < 0.01f);
+}
+
+TEST(le_son_peut_imposer_sa_propre_couleur)
+{
+	const auto library = buildLibrary();
+	const auto patch = buildPatch(library);
+	EffectRunner runner;
+
+	Effect effect;
+	effect.id = "son";
+	effect.type = EffectType::Sound;
+	effect.blend = BlendMode::Replace;
+	effect.fixtureIds = {"f0"};
+	effect.sound.target = SoundTarget::Intensity;
+	effect.sound.threshold = 0.0f;
+	effect.sound.useBaseColor = false;
+	effect.sound.color = colored(120.0f, 1.0f); // vert
+
+	AudioSnapshot audio;
+	audio.bands[0] = 0.5f;
+
+	auto states = emptyStates();
+	states["f0"] = colored(240.0f, 1.0f); // base bleue, ignoree
+	runner.apply({effect}, patch, audio, Clock::now(), states);
+
+	CHECK_EQ(states["f0"].hue, 120.0f);
+	CHECK(std::abs(states["f0"].intensity - 0.5f) < 0.01f);
+}
+
+TEST(l_eclat_sur_le_temps_a_une_couleur_reglable)
+{
+	const auto library = buildLibrary();
+	const auto patch = buildPatch(library);
+	EffectRunner runner;
+
+	Effect effect;
+	effect.id = "son";
+	effect.type = EffectType::Sound;
+	effect.blend = BlendMode::Replace;
+	effect.fixtureIds = {"f0"};
+	effect.sound.target = SoundTarget::FlashOnBeat;
+	effect.sound.useBaseColor = false;
+	effect.sound.color = colored(60.0f, 1.0f); // jaune
+
+	AudioSnapshot audio;
+	audio.beatCount = 1;
+
+	auto states = emptyStates();
+	runner.apply({effect}, patch, audio, Clock::now(), states);
+	CHECK_EQ(states["f0"].hue, 60.0f);
+	CHECK_EQ(states["f0"].intensity, 1.0f);
+}
+
+TEST(un_projecteur_absent_du_programme_ne_prend_plus_une_teinte_arbitraire)
+{
+	const auto library = buildLibrary();
+	const auto patch = buildPatch(library);
+	EffectRunner runner;
+
+	Effect effect;
+	effect.id = "son";
+	effect.type = EffectType::Sound;
+	effect.blend = BlendMode::Replace;
+	effect.fixtureIds = {"f0"};
+	effect.sound.target = SoundTarget::Intensity;
+	effect.sound.threshold = 0.0f;
+	effect.sound.useBaseColor = false;
+	effect.sound.color = colored(300.0f, 1.0f);
+
+	AudioSnapshot audio;
+	audio.bands[0] = 0.8f;
+
+	// Aucun etat de depart : le projecteur n'est pas cite par le programme.
+	auto states = emptyStates();
+	runner.apply({effect}, patch, audio, Clock::now(), states);
+
+	// Il prend la couleur choisie pour l'effet, et non celle qui trainait dans
+	// l'etat « eteint ».
+	CHECK_EQ(states["f0"].hue, 300.0f);
+}

@@ -8,9 +8,9 @@ debug: Attempted path: /app/bin/../share/obs/obs-studio/themes/
 info: Command Line Arguments: --collection obs-dmx-test --minimize-to-tray
 info: Platform: Wayland
 info: CPU Name: Intel(R) Core(TM) i5-14600KF
-info: CPU Speed: 5300.000MHz
+info: CPU Speed: 5133.604MHz
 info: Physical Cores: 14, Logical Cores: 20
-info: Physical Memory: 31904MB Total, 3453MB Free
+info: Physical Memory: 31904MB Total, 4249MB Free
 info: Kernel Version: Linux 7.2.0-ogc6.1.fc44.x86_64
 info: Flatpak Branch: stable
 info: Flatpak Arch: x86_64
@@ -40,7 +40,7 @@ info:  - org.freedesktop.Platform.GL.default
 info: Flatpak Framework Version: 1.18.1
 info: Desktop Environment: KDE (KDE)
 info: Session Type: wayland
-info: Current Date/Time: 2026-09-04, 19:11:02
+info: Current Date/Time: 2026-09-04, 20:04:56
 info: Browser Hardware Acceleration: true
 info: Qt Version: 6.11.1 (runtime), 6.11.1 (compiled)
 info: Portable mode: false
@@ -92,7 +92,7 @@ info: [obs-websocket] [obs_module_load] Qt version (compile-time): 6.11.1 | Qt v
 info: [obs-websocket] [obs_module_load] Linked ASIO Version: 103200
 info: [obs-websocket] [obs_module_load] Module loaded.
 info: [linux-vkcapture] plugin loaded successfully (version 1.5.6)
-info: [obs-dmx] 12 profil(s) de projecteur charge(s)
+info: [obs-dmx] 14 profil(s) de projecteur charge(s)
 info: [obs-dmx] ecoute du mix audio a 48000 Hz
 info: [obs-dmx] charge (version 0.1.0)
 info: [obs-gstreamer] build: b60942f, gst-runtime: 1.26.11
@@ -173,7 +173,7 @@ info: [Media Source 'Basse de test']: settings:
 	ffmpeg_options:          
 info: Switched to scene 'Plateau'
 info: [obs-dmx] montage charge : 5 projecteur(s), 7 programme(s), 8 association(s)
-info: [obs-dmx] scene e17013a0-bcc4-496b-a068-83ab650923d5 -> programme 'program-1'
+info: [obs-dmx] scene 6d0bc894-d4e7-4f50-8a3a-d0e862284d48 -> programme 'program-1'
 info: ------------------------------------------------
 info: Loaded scenes:
 info: - scene 'Plateau':
@@ -188,24 +188,24 @@ info: - scene 'FxManuel':
 info: ------------------------------------------------
 info: Device for 'Audio Output Capture' source Audio du bureau is also used for audio monitoring.
 Deduplication logic is being applied to all monitored sources.
-info: adding 21 milliseconds of audio buffering, total audio buffering is now 21 milliseconds (source: Mic/Aux)
+info: adding 42 milliseconds of audio buffering, total audio buffering is now 42 milliseconds (source: Mic/Aux)
 
-info: [obs-websocket] [WebSocketServer::onOpen] New WebSocket client has connected from [::ffff:127.0.0.1]:52324
+info: [obs-websocket] [WebSocketServer::onOpen] New WebSocket client has connected from [::ffff:127.0.0.1]:46336
 info: User switched to scene 'Plateau'
 info: User switched to scene 'Interview'
-info: [obs-dmx] scene c9f8e05c-0b97-4528-a29e-abe2e769c384 -> programme 'program-2'
+info: [obs-dmx] scene 0a6a15fb-b90c-4d58-b640-bb2e76d0ff3b -> programme 'program-2'
 info: User switched to scene 'Plateau'
-info: [obs-dmx] scene e17013a0-bcc4-496b-a068-83ab650923d5 -> programme 'program-1'
+info: [obs-dmx] scene 6d0bc894-d4e7-4f50-8a3a-d0e862284d48 -> programme 'program-1'
 info: User switched to scene 'Chaser'
-info: [obs-dmx] scene dde7300d-dc4b-4261-a5f2-6306833bcbf8 -> programme 'program-3'
+info: [obs-dmx] scene f51adc7a-f00f-4ef0-9826-df2af18975d2 -> programme 'program-3'
 info: User switched to scene 'Strobe'
-info: [obs-dmx] scene f4092b42-3511-4b7b-9bb9-6912d7c8387b -> programme 'program-4'
+info: [obs-dmx] scene 70331d87-df0b-4e6d-b9af-7b2f95e23c2d -> programme 'program-4'
 info: User switched to scene 'EffetIntegre'
-info: [obs-dmx] scene e3398bd6-5d10-4454-8efd-81c51c407dd8 -> programme 'program-5'
+info: [obs-dmx] scene 8e8ac937-fce9-450f-b26f-83499b53985a -> programme 'program-5'
 info: User switched to scene 'FxManuel'
-info: [obs-dmx] scene 1a6321fa-117a-4a6e-8f00-89abcb710c64 -> programme 'program-7'
+info: [obs-dmx] scene 54ffea4b-3a5f-44c4-9765-971849f7ed5f -> programme 'program-7'
 info: User switched to scene 'Silence'
-info: [obs-dmx] scene 42b0f184-6404-45c7-b141-a2aea8782726 -> programme 'program-6'
+info: [obs-dmx] scene 3d36738a-cad4-4a41-9817-96e7d231bd93 -> programme 'program-6'
 info: User switched to scene 'Musique'
-info: [obs-dmx] scene 63be784f-c90c-45a2-9b12-960fabba9f8d -> programme 'program-6'
-info: [obs-websocket] [WebSocketServer::onClose] WebSocket client `[::ffff:127.0.0.1]:52324` has disconnected with code `1006` and reason: Connexion ré-initialisée par le correspondant
+info: [obs-dmx] scene ec1a5bd4-2319-40d2-9bd0-d905331e9860 -> programme 'program-6'
+info: [obs-websocket] [WebSocketServer::onClose] WebSocket client `[::ffff:127.0.0.1]:46336` has disconnected with code `1006` and reason: Connexion ré-initialisée par le correspondant

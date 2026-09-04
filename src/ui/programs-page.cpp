@@ -648,6 +648,11 @@ void ProgramsPage::addEffect()
 	effect.name = chosen->text().toStdString();
 	effect.id = "effect-" + std::to_string(++effectIdCounter_);
 
+	// Un effet sonore module la lumiere du programme : il doit pouvoir la
+	// baisser, ce que « le plus lumineux gagne » interdit par construction.
+	if (effect.type == EffectType::Sound)
+		effect.blend = BlendMode::Replace;
+
 	// Un chaser sans pas ne fait rien : on en donne deux, de quoi voir
 	// immediatement quelque chose bouger.
 	if (effect.type == EffectType::Chaser) {

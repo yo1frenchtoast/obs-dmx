@@ -76,6 +76,9 @@ struct SoundSettings {
 	float threshold = 0.05f;
 	/// Constante de lissage, en millisecondes, pour la descente.
 	float smoothingMs = 120.0f;
+
+	/// Reprendre la couleur du programme au lieu d'imposer la sienne.
+	bool useBaseColor = true;
 	LightState color;
 };
 

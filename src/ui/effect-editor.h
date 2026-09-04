@@ -55,6 +55,7 @@ private:
 	void removeStep();
 	void refreshStepList();
 	void refreshBuiltinEffects();
+	void refreshSoundPage();
 	void refreshManualTable();
 	void commitManualTable();
 	void addManualChannel();
@@ -98,6 +99,13 @@ private:
 	QComboBox *soundBand_ = nullptr;
 	SliderRow *soundSensitivity_ = nullptr;
 	SliderRow *soundThreshold_ = nullptr;
+	QCheckBox *soundUseBase_ = nullptr;
+	QWidget *soundColorBox_ = nullptr;
+	SliderRow *soundColorMix_ = nullptr;
+	SliderRow *soundHue_ = nullptr;
+	SliderRow *soundSaturation_ = nullptr;
+	SliderRow *soundCct_ = nullptr;
+	QLabel *soundBlendWarning_ = nullptr;
 
 	// Effets embarques
 	QComboBox *builtinEffect_ = nullptr;

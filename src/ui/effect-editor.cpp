@@ -259,7 +259,35 @@ QWidget *EffectEditor::buildSoundPage()
 	soundThreshold_ = new SliderRow(0.0f, 50.0f, 50, " %", 0, page);
 	soundThreshold_->setToolTip(tr_("Effect.Sound.Threshold.Hint"));
 	form->addRow(tr_("Effect.Sound.Threshold"), soundThreshold_);
+	soundUseBase_ = new QCheckBox(tr_("Effect.Sound.UseBaseColor"), page);
+	form->addRow(QString(), soundUseBase_);
 	layout->addLayout(form);
+
+	// Couleur propre a l'effet, quand on ne veut pas celle du programme.
+	soundColorBox_ = new QWidget(page);
+	auto *colorForm = new QFormLayout(soundColorBox_);
+	colorForm->setContentsMargins(0, 0, 0, 0);
+	colorForm->setRowWrapPolicy(QFormLayout::WrapLongRows);
+
+	soundColorMix_ = new SliderRow(0.0f, 100.0f, 100, " %", 0, soundColorBox_);
+	colorForm->addRow(tr_("Programs.ColorMix"), soundColorMix_);
+	soundHue_ = new SliderRow(0.0f, 360.0f, 360, "°", 0, soundColorBox_);
+	soundHue_->setGradient(
+		"QSlider::groove:horizontal { height: 10px; border-radius: 5px; background: "
+		"qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #ff0000, stop:0.167 #ffff00, stop:0.333 #00ff00, "
+		"stop:0.5 #00ffff, stop:0.667 #0000ff, stop:0.833 #ff00ff, stop:1 #ff0000); }");
+	colorForm->addRow(tr_("Programs.Hue"), soundHue_);
+	soundSaturation_ = new SliderRow(0.0f, 100.0f, 100, " %", 0, soundColorBox_);
+	colorForm->addRow(tr_("Programs.Saturation"), soundSaturation_);
+	soundCct_ = new SliderRow(2000.0f, 10000.0f, 160, " K", 0, soundColorBox_);
+	colorForm->addRow(tr_("Programs.Cct"), soundCct_);
+	layout->addWidget(soundColorBox_);
+
+	// « Le plus lumineux gagne » ne peut qu'eclaircir : sur un programme deja
+	// allume, l'effet parait inerte. Le dire vaut mieux que laisser chercher.
+	soundBlendWarning_ = new QLabel(page);
+	soundBlendWarning_->setWordWrap(true);
+	layout->addWidget(soundBlendWarning_);
 
 	auto *meterHint = new QLabel(tr_("Effect.Sound.Meter.Hint"), page);
 	meterHint->setWordWrap(true);
@@ -270,6 +298,9 @@ QWidget *EffectEditor::buildSoundPage()
 	connect(soundBand_, &QComboBox::currentIndexChanged, this, &EffectEditor::commit);
 	connect(soundSensitivity_, &SliderRow::valueChanged, this, [this](float) { commit(); });
 	connect(soundThreshold_, &SliderRow::valueChanged, this, [this](float) { commit(); });
+	connect(soundUseBase_, &QCheckBox::toggled, this, &EffectEditor::commit);
+	for (SliderRow *slider : {soundColorMix_, soundHue_, soundSaturation_, soundCct_})
+		connect(slider, &SliderRow::valueChanged, this, [this](float) { commit(); });
 
 	return page;
 }
@@ -382,6 +413,12 @@ void EffectEditor::setEffect(const Effect *effect)
 	soundBand_->setCurrentIndex(soundBand_->findData(effect_.sound.band));
 	soundSensitivity_->setValueSilently(effect_.sound.sensitivity);
 	soundThreshold_->setValueSilently(effect_.sound.threshold * 100.0f);
+	soundUseBase_->setChecked(effect_.sound.useBaseColor);
+	soundColorMix_->setValueSilently(effect_.sound.color.colorMix * 100.0f);
+	soundHue_->setValueSilently(effect_.sound.color.hue);
+	soundSaturation_->setValueSilently(effect_.sound.color.saturation * 100.0f);
+	soundCct_->setValueSilently(effect_.sound.color.cct);
+	refreshSoundPage();
 
 	{
 		const QSignalBlocker blocker(builtinManual_);
@@ -507,6 +544,20 @@ void EffectEditor::removeStep()
 	effect_.chaser.steps.erase(effect_.chaser.steps.begin() + row);
 	refreshStepList();
 	emit effectChanged(effect_);
+}
+
+void EffectEditor::refreshSoundPage()
+{
+	// La teinte est calculee a partir du son dans ce mode : imposer une
+	// couleur n'aurait pas de sens.
+	const bool computedHue = effect_.sound.target == SoundTarget::Hue;
+	soundUseBase_->setVisible(!computedHue);
+	soundColorBox_->setVisible(!computedHue && !effect_.sound.useBaseColor);
+
+	const bool inerte = effect_.blend == BlendMode::Htp &&
+			    effect_.sound.target == SoundTarget::Intensity;
+	soundBlendWarning_->setText(inerte ? QStringLiteral("⚠ ") + tr_("Effect.Sound.HtpWarning") : QString());
+	soundBlendWarning_->setVisible(inerte);
 }
 
 void EffectEditor::refreshBuiltinEffects()
@@ -703,6 +754,13 @@ void EffectEditor::commit()
 	effect_.sound.band = soundBand_->currentData().toInt();
 	effect_.sound.sensitivity = soundSensitivity_->value();
 	effect_.sound.threshold = soundThreshold_->value() / 100.0f;
+	effect_.sound.useBaseColor = soundUseBase_->isChecked();
+	effect_.sound.color.colorMix = soundColorMix_->value() / 100.0f;
+	effect_.sound.color.hue = soundHue_->value();
+	effect_.sound.color.saturation = soundSaturation_->value() / 100.0f;
+	effect_.sound.color.cct = soundCct_->value();
+	if (effect_.type == EffectType::Sound)
+		refreshSoundPage();
 
 	effect_.builtin.effectId = builtinEffect_->currentData().toString().toStdString();
 	effect_.builtin.frequency = builtinFrequency_->currentData().toInt();

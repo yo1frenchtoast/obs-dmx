@@ -110,8 +110,11 @@ show = {
                                                 {"channel": 99, "value": 255}]})]},
         {"id": "program-6", "name": "Suit la musique",
          "looks": [],
-         "effects": [effect("son", 2, fixtures,
-                            sound={"target": 0, "band": 0, "sensitivity": 2.0, "threshold": 0.02})]},
+         "effects": [effect("son", 2, fixtures, blend=0,
+                            sound={"target": 0, "band": 0, "sensitivity": 1.0, "threshold": 0.02,
+                                   "use_base_color": False, "hue": 300.0, "saturation": 1.0,
+                                   "color_mix": 1.0, "intensity": 1.0, "cct": 5600.0,
+                                   "green_magenta": 0.0, "strobe_hz": 0.0})]},
     ],
     "bindings": [
         {"scene_uuid": plateau["uuid"], "scene_name": "Plateau", "program": "program-1", "fade_ms": 0},

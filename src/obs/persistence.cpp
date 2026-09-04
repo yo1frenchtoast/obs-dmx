@@ -93,6 +93,7 @@ obs_data_t *serializeEffect(const Effect &effect)
 	obs_data_set_double(sound, "sensitivity", effect.sound.sensitivity);
 	obs_data_set_double(sound, "threshold", effect.sound.threshold);
 	obs_data_set_double(sound, "smoothing_ms", effect.sound.smoothingMs);
+	obs_data_set_bool(sound, "use_base_color", effect.sound.useBaseColor);
 	serializeState(sound, effect.sound.color);
 	obs_data_set_obj(item, "sound", sound);
 	obs_data_release(sound);
@@ -172,6 +173,10 @@ Effect parseEffect(obs_data_t *item)
 		effect.sound.sensitivity = static_cast<float>(obs_data_get_double(sound, "sensitivity"));
 		effect.sound.threshold = static_cast<float>(obs_data_get_double(sound, "threshold"));
 		effect.sound.smoothingMs = static_cast<float>(obs_data_get_double(sound, "smoothing_ms"));
+		// Les effets enregistres avant ce reglage suivaient la couleur du
+		// programme : c'est donc la valeur de repli.
+		effect.sound.useBaseColor = !obs_data_has_user_value(sound, "use_base_color") ||
+					    obs_data_get_bool(sound, "use_base_color");
 		effect.sound.color = parseState(sound);
 		obs_data_release(sound);
 	}

@@ -205,27 +205,28 @@ void EffectRunner::applySound(const Effect &effect, Runtime &runtime, const Audi
 		auto it = states.find(fixtureId);
 		const LightState base = it != states.end() ? it->second : LightState::black();
 
-		LightState value = sound.color;
+		// La couleur vient du programme ou de l'effet, au choix de
+		// l'utilisateur. Sans ce choix, un projecteur absent de la base
+		// heritait d'une teinte arbitraire que rien ne permettait de changer.
+		LightState value = sound.useBaseColor ? base : sound.color;
 
 		switch (sound.target) {
 		case SoundTarget::Intensity:
-			value = base;
 			value.intensity = level;
 			break;
 
 		case SoundTarget::Hue:
 			// Les trois bandes deviennent une position sur le cercle
 			// chromatique : les graves au rouge, les aigus au bleu.
-			value = base;
 			value.colorMix = 1.0f;
 			value.hue = std::fmod(audio.bands[0] * 60.0f + audio.bands[1] * 180.0f +
 						      audio.bands[2] * 300.0f,
 					      360.0f);
 			value.saturation = 1.0f;
+			value.intensity = base.intensity;
 			break;
 
 		case SoundTarget::FlashOnBeat:
-			value = sound.color;
 			// L'eclat dure une trame ; c'est court, mais a 40 Hz l'oeil le
 			// voit, et cela evite de tenir un minuteur ici.
 			value.intensity = beat ? 1.0f : 0.0f;

@@ -191,6 +191,10 @@ check("un canal hors de l'appareil n'ecrase pas son voisin", manuel[9] == 0 and 
 
 check("le meme programme sans son laisse la lumiere eteinte", silence[0] == 0)
 check("avec le son, la lumiere s'allume", max(niveaux) > 60)
+# La couleur propre a l'effet doit sortir, et non celle du programme.
+teintes = [t[4] for t in musique if t[0] > 60]
+check("l'effet impose bien sa propre couleur (magenta)",
+      bool(teintes) and all(abs(h - 212) <= 3 for h in teintes))
 
 print("\nRESULTAT :", "tout est conforme" if ok else "AU MOINS UNE VERIFICATION A ECHOUE")
 sys.exit(0 if ok else 1)

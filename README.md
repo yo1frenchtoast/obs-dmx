@@ -105,6 +105,9 @@ Décocher un effet l'éteint sans le perdre.
   Attention : le mix comprend vos périphériques audio globaux, micro compris, et
   ce quelle que soit la scène affichée. Si la lumière frémit dans le silence,
   c'est le bruit de la salle qui passe par le micro : montez le **seuil**.
+
+  Par défaut l'effet reprend la couleur du programme ; décochez *Garder la
+  couleur du programme* pour lui en donner une à lui.
 - **Effet intégré au projecteur** — pour les appareils qui en proposent, comme
   le mode FX des amaran T4c : orage, feu, téléviseur, gyrophare, feu
   d'artifice… Ils sont joués par la lampe elle-même, donc bien plus fins que ce
@@ -127,6 +130,12 @@ Par défaut, quand plusieurs choses pilotent le même projecteur, la plus
 lumineuse l'emporte. C'est ce qui permet à un strobe d'éclater sur un fond
 coloré sans l'effacer entre deux éclats. Le repli **Avancé** permet de choisir
 le remplacement à la place.
+
+Conséquence à connaître : dans ce mode, **un effet ne peut qu'éclaircir, jamais
+baisser**. Un effet dont l'intensité suit le son ne descendra donc jamais sous
+celle du programme. C'est pourquoi les effets sonores sont créés en
+*Remplacement*, et pourquoi l'éditeur avertit quand la combinaison rendrait
+l'effet inerte.
 
 ## Raccourci clavier
 
