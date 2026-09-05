@@ -36,6 +36,12 @@ private:
 		int lastStepIndex = 0;
 		bool ascending = true;
 		uint64_t lastBeat = 0;
+		/// Steps taken on beats, when the chase is driven by the audio.
+		int beatStep = 0;
+		Clock::time_point lastBeatAt{};
+		/// Interval between the last two beats, which becomes the step
+		/// duration a fade can be measured against.
+		double beatIntervalMs = 0.0;
 		uint32_t randomState = 0x9e3779b9u;
 	};
 

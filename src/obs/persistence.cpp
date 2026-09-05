@@ -61,7 +61,7 @@ obs_data_t *serializeEffect(const Effect &effect)
 
 	obs_data_t *chaser = obs_data_create();
 	obs_data_set_int(chaser, "step_ms", effect.chaser.stepMs);
-	obs_data_set_bool(chaser, "use_bpm", effect.chaser.useBpm);
+	obs_data_set_int(chaser, "timing", static_cast<int>(effect.chaser.timing));
 	obs_data_set_double(chaser, "bpm", effect.chaser.bpm);
 	obs_data_set_double(chaser, "fade_ratio", effect.chaser.fadeRatio);
 	obs_data_set_int(chaser, "direction", static_cast<int>(effect.chaser.direction));
@@ -141,7 +141,14 @@ Effect parseEffect(obs_data_t *item)
 
 	if (obs_data_t *chaser = obs_data_get_obj(item, "chaser")) {
 		effect.chaser.stepMs = static_cast<int>(obs_data_get_int(chaser, "step_ms"));
-		effect.chaser.useBpm = obs_data_get_bool(chaser, "use_bpm");
+
+		// Documents written before the third timing mode carry a use_bpm flag
+		// instead.
+		if (obs_data_has_user_value(chaser, "timing"))
+			effect.chaser.timing = static_cast<ChaserTiming>(obs_data_get_int(chaser, "timing"));
+		else
+			effect.chaser.timing = obs_data_get_bool(chaser, "use_bpm") ? ChaserTiming::Bpm
+										   : ChaserTiming::Duration;
 		effect.chaser.bpm = static_cast<float>(obs_data_get_double(chaser, "bpm"));
 		effect.chaser.fadeRatio = static_cast<float>(obs_data_get_double(chaser, "fade_ratio"));
 		effect.chaser.direction = static_cast<ChaserDirection>(obs_data_get_int(chaser, "direction"));
@@ -167,7 +174,20 @@ Effect parseEffect(obs_data_t *item)
 	}
 
 	if (obs_data_t *sound = obs_data_get_obj(item, "sound")) {
-		effect.sound.target = static_cast<SoundTarget>(obs_data_get_int(sound, "target"));
+		// Value 2 was a sound target that claimed to step a chase and never
+		// did. Anything saved with it falls back to following the level, and
+		// says so, since the setting has moved onto the chase itself.
+		const int savedTarget = static_cast<int>(obs_data_get_int(sound, "target"));
+		if (savedTarget == 2) {
+			blog(LOG_WARNING,
+			     "[obs-dmx] effect '%s' used the old 'step the chase on the beat' setting, "
+			     "which never worked; it now follows the level. The setting lives on the "
+			     "chase itself.",
+			     effect.name.c_str());
+			effect.sound.target = SoundTarget::Intensity;
+		} else {
+			effect.sound.target = static_cast<SoundTarget>(savedTarget);
+		}
 		effect.sound.band = static_cast<int>(obs_data_get_int(sound, "band"));
 		effect.sound.sensitivity = static_cast<float>(obs_data_get_double(sound, "sensitivity"));
 		effect.sound.threshold = static_cast<float>(obs_data_get_double(sound, "threshold"));

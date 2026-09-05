@@ -25,6 +25,16 @@ enum class BlendMode : uint8_t {
 	Htp,
 };
 
+/// What advances a chase from one step to the next.
+enum class ChaserTiming : uint8_t {
+	/// A fixed duration per step.
+	Duration = 0,
+	/// A tempo in beats per minute.
+	Bpm = 1,
+	/// One step per beat heard in the OBS audio mix.
+	Beat = 2,
+};
+
 enum class ChaserDirection : uint8_t {
 	Forward,
 	Backward,
@@ -37,9 +47,10 @@ enum class ChaserDirection : uint8_t {
 /// two numbers instead of a table.
 struct ChaserSettings {
 	std::vector<LightState> steps;
-	/// Duration of one step. Ignored when tempo sync is on.
+
+	ChaserTiming timing = ChaserTiming::Duration;
+	/// Duration of one step, when the timing is a fixed duration.
 	int stepMs = 500;
-	bool useBpm = false;
 	float bpm = 120.0f;
 	/// Share of each step spent fading: 0 for a hard cut, 1 for a continuous
 	/// fade.
@@ -61,10 +72,14 @@ struct StrobeSettings {
 
 /// What the sound-reactive effect drives.
 enum class SoundTarget : uint8_t {
-	Intensity,  ///< l'intensite suit le volume
-	Hue,        ///< la teinte suit le contenu frequentiel
-	StepOnBeat,  ///< the paired chase advances one step per beat
-	FlashOnBeat,///< un eclat a chaque temps
+	Intensity = 0,   ///< brightness follows the level
+	Hue = 1,         ///< colour follows the frequency content
+	// 2 was StepOnBeat, which never worked: a sound effect and a chase are
+	// separate entries with nothing tying them together, so one could not drive
+	// the other. A chase's timing belongs to the chase, and that is where it
+	// lives now. The value stays reserved so saved documents keep their
+	// meaning.
+	FlashOnBeat = 3, ///< a flash on every beat
 };
 
 struct SoundSettings {

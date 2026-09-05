@@ -133,7 +133,7 @@ TEST(a_chase_on_tempo_derives_its_step_duration)
 	EffectRunner runner;
 
 	auto effect = chaserOf({colored(0.0f, 1.0f), colored(0.0f, 0.0f)}, 1000);
-	effect.chaser.useBpm = true;
+	effect.chaser.timing = ChaserTiming::Bpm;
 	effect.chaser.bpm = 120.0f; // 120 temps par minute, soit 500 ms par pas
 
 	const auto start = Clock::now();
@@ -493,4 +493,96 @@ TEST(a_fixture_absent_from_the_programme_no_longer_takes_an_arbitrary_hue)
 	// It takes the colour chosen for the effect, not whatever was lingering in
 	// the "off" state.
 	CHECK_EQ(states["f0"].hue, 300.0f);
+}
+
+TEST(a_chase_on_beat_waits_for_the_music_instead_of_its_own_clock)
+{
+	const auto library = buildLibrary();
+	const auto patch = buildPatch(library);
+	EffectRunner runner;
+
+	auto effect = chaserOf({colored(0.0f, 1.0f), colored(0.0f, 0.0f)}, 100);
+	effect.chaser.timing = ChaserTiming::Beat;
+
+	const auto start = Clock::now();
+	AudioSnapshot silent;
+
+	auto states = emptyStates();
+	runner.apply({effect}, patch, silent, start, states);
+	const float atStart = states["f0"].intensity;
+
+	// Ten step durations go by with no beat. On its own clock the pattern would
+	// have moved five times over; driven by the music it must not move at all.
+	states = emptyStates();
+	runner.apply({effect}, patch, silent, start + std::chrono::milliseconds(1000), states);
+	CHECK_EQ(states["f0"].intensity, atStart);
+
+	// One beat, one step.
+	AudioSnapshot beat;
+	beat.beatCount = 1;
+	states = emptyStates();
+	runner.apply({effect}, patch, beat, start + std::chrono::milliseconds(1100), states);
+	CHECK(states["f0"].intensity != atStart);
+}
+
+TEST(a_chase_on_beat_advances_once_per_beat)
+{
+	const auto library = buildLibrary();
+	const auto patch = buildPatch(library);
+	EffectRunner runner;
+
+	// Four steps over four fixtures: the lit one walks along, one place a beat.
+	auto effect = chaserOf({colored(0.0f, 1.0f), colored(0.0f, 0.0f), colored(0.0f, 0.0f),
+				colored(0.0f, 0.0f)},
+			       100);
+	effect.chaser.timing = ChaserTiming::Beat;
+
+	const auto start = Clock::now();
+	std::vector<int> litFixture;
+
+	for (int beat = 0; beat <= 4; ++beat) {
+		AudioSnapshot audio;
+		audio.beatCount = static_cast<uint64_t>(beat);
+
+		auto states = emptyStates();
+		runner.apply({effect}, patch, audio, start + std::chrono::milliseconds(500 * beat), states);
+
+		for (int i = 0; i < 4; ++i)
+			if (states["f" + std::to_string(i)].intensity > 0.5f)
+				litFixture.push_back(i);
+	}
+
+	CHECK_EQ(litFixture.size(), size_t(5));
+	// The same fixture must not stay lit, and after four beats the pattern has
+	// come full circle.
+	CHECK(litFixture[0] != litFixture[1]);
+	CHECK_EQ(litFixture[0], litFixture[4]);
+}
+
+TEST(a_chase_on_beat_fades_over_the_measured_beat_interval)
+{
+	const auto library = buildLibrary();
+	const auto patch = buildPatch(library);
+	EffectRunner runner;
+
+	auto effect = chaserOf({colored(0.0f, 0.0f), colored(0.0f, 1.0f)}, 100);
+	effect.chaser.timing = ChaserTiming::Beat;
+	effect.chaser.fadeRatio = 1.0f;
+
+	const auto start = Clock::now();
+
+	// Two beats 500 ms apart give the runner an interval to fade against.
+	for (int beat = 1; beat <= 2; ++beat) {
+		AudioSnapshot audio;
+		audio.beatCount = static_cast<uint64_t>(beat);
+		auto states = emptyStates();
+		runner.apply({effect}, patch, audio, start + std::chrono::milliseconds(500 * beat), states);
+	}
+
+	// Halfway to the next beat, the fixture should sit halfway between steps.
+	AudioSnapshot audio;
+	audio.beatCount = 2;
+	auto states = emptyStates();
+	runner.apply({effect}, patch, audio, start + std::chrono::milliseconds(1250), states);
+	CHECK(std::abs(states["f1"].intensity - 0.5f) < 0.1f);
 }

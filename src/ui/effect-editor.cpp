@@ -149,18 +149,28 @@ QWidget *EffectEditor::buildChaserPage()
 	layout->addLayout(stepForm);
 
 	auto *timing = new QFormLayout();
-	useBpm_ = new QCheckBox(tr_("Effect.Chaser.UseBpm"), page);
-	timing->addRow(QString(), useBpm_);
+	timing->setRowWrapPolicy(QFormLayout::WrapLongRows);
+
+	// One list rather than a checkbox: there are three ways to advance a chase,
+	// and only one applies at a time.
+	chaserTiming_ = new QComboBox(page);
+	shrinkable(chaserTiming_);
+	chaserTiming_->addItem(tr_("Effect.Chaser.Timing.Duration"), static_cast<int>(ChaserTiming::Duration));
+	chaserTiming_->addItem(tr_("Effect.Chaser.Timing.Bpm"), static_cast<int>(ChaserTiming::Bpm));
+	chaserTiming_->addItem(tr_("Effect.Chaser.Timing.Beat"), static_cast<int>(ChaserTiming::Beat));
+	timing->addRow(tr_("Effect.Chaser.Timing"), chaserTiming_);
 
 	stepMs_ = new QSpinBox(page);
 	stepMs_->setRange(20, 60000);
 	stepMs_->setSingleStep(50);
 	stepMs_->setSuffix(" ms");
-	timing->addRow(tr_("Effect.Chaser.StepDuration"), stepMs_);
+	stepMsLabel_ = new QLabel(tr_("Effect.Chaser.StepDuration"), page);
+	timing->addRow(stepMsLabel_, stepMs_);
 
 	bpm_ = new QSpinBox(page);
 	bpm_->setRange(20, 300);
-	timing->addRow(tr_("Effect.Chaser.Bpm"), bpm_);
+	bpmLabel_ = new QLabel(tr_("Effect.Chaser.Bpm"), page);
+	timing->addRow(bpmLabel_, bpm_);
 
 	fadeRatio_ = new SliderRow(0.0f, 100.0f, 100, " %", 0, page);
 	fadeRatio_->setToolTip(tr_("Effect.Chaser.Fade.Hint"));
@@ -181,12 +191,7 @@ QWidget *EffectEditor::buildChaserPage()
 	for (SliderRow *slider : {stepIntensity_, stepColorMix_, stepHue_, stepSaturation_, stepCct_})
 		connect(slider, &SliderRow::valueChanged, this, [this](float) { commitStep(); });
 
-	connect(useBpm_, &QCheckBox::toggled, this, [this](bool bpm) {
-		// The two settings are exclusive: only enable the one that acts.
-		stepMs_->setEnabled(!bpm);
-		bpm_->setEnabled(bpm);
-		commit();
-	});
+	connect(chaserTiming_, &QComboBox::currentIndexChanged, this, &EffectEditor::commit);
 	connect(stepMs_, &QSpinBox::valueChanged, this, &EffectEditor::commit);
 	connect(bpm_, &QSpinBox::valueChanged, this, &EffectEditor::commit);
 	connect(fadeRatio_, &SliderRow::valueChanged, this, [this](float) { commit(); });
@@ -239,7 +244,6 @@ QWidget *EffectEditor::buildSoundPage()
 	soundTarget_->addItem(tr_("Effect.Sound.Intensity"), static_cast<int>(SoundTarget::Intensity));
 	soundTarget_->addItem(tr_("Effect.Sound.Hue"), static_cast<int>(SoundTarget::Hue));
 	soundTarget_->addItem(tr_("Effect.Sound.FlashOnBeat"), static_cast<int>(SoundTarget::FlashOnBeat));
-	soundTarget_->addItem(tr_("Effect.Sound.StepOnBeat"), static_cast<int>(SoundTarget::StepOnBeat));
 	form->addRow(tr_("Effect.Sound.Target"), soundTarget_);
 
 	soundBand_ = new QComboBox(page);
@@ -393,11 +397,10 @@ void EffectEditor::setEffect(const Effect *effect)
 	reloadFixtures();
 	refreshStepList();
 
-	useBpm_->setChecked(effect_.chaser.useBpm);
+	chaserTiming_->setCurrentIndex(chaserTiming_->findData(static_cast<int>(effect_.chaser.timing)));
 	stepMs_->setValue(effect_.chaser.stepMs);
 	bpm_->setValue(static_cast<int>(effect_.chaser.bpm));
-	stepMs_->setEnabled(!effect_.chaser.useBpm);
-	bpm_->setEnabled(effect_.chaser.useBpm);
+	refreshChaserTiming();
 	fadeRatio_->setValueSilently(effect_.chaser.fadeRatio * 100.0f);
 	direction_->setCurrentIndex(direction_->findData(static_cast<int>(effect_.chaser.direction)));
 
@@ -541,6 +544,18 @@ void EffectEditor::removeStep()
 	effect_.chaser.steps.erase(effect_.chaser.steps.begin() + row);
 	refreshStepList();
 	emit effectChanged(effect_);
+}
+
+void EffectEditor::refreshChaserTiming()
+{
+	// Only the setting that actually drives the chase is shown; the other two
+	// would be dead controls.
+	const auto timing = static_cast<ChaserTiming>(chaserTiming_->currentData().toInt());
+	auto *form = qobject_cast<QFormLayout *>(stepMs_->parentWidget()->layout());
+	if (form) {
+		form->setRowVisible(stepMs_, timing == ChaserTiming::Duration);
+		form->setRowVisible(bpm_, timing == ChaserTiming::Bpm);
+	}
 }
 
 void EffectEditor::refreshSoundPage()
@@ -736,7 +751,7 @@ void EffectEditor::commit()
 			effect_.fixtureIds.push_back(item->data(kFixtureIdRole).toString().toStdString());
 	}
 
-	effect_.chaser.useBpm = useBpm_->isChecked();
+	effect_.chaser.timing = static_cast<ChaserTiming>(chaserTiming_->currentData().toInt());
 	effect_.chaser.stepMs = stepMs_->value();
 	effect_.chaser.bpm = static_cast<float>(bpm_->value());
 	effect_.chaser.fadeRatio = fadeRatio_->value() / 100.0f;
@@ -758,6 +773,8 @@ void EffectEditor::commit()
 	effect_.sound.color.cct = soundCct_->value();
 	if (effect_.type == EffectType::Sound)
 		refreshSoundPage();
+	if (effect_.type == EffectType::Chaser)
+		refreshChaserTiming();
 
 	effect_.builtin.effectId = builtinEffect_->currentData().toString().toStdString();
 	effect_.builtin.frequency = builtinFrequency_->currentData().toInt();

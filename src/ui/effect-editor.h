@@ -56,6 +56,7 @@ private:
 	void refreshStepList();
 	void refreshBuiltinEffects();
 	void refreshSoundPage();
+	void refreshChaserTiming();
 	void refreshManualTable();
 	void commitManualTable();
 	void addManualChannel();
@@ -82,7 +83,9 @@ private:
 	SliderRow *stepHue_ = nullptr;
 	SliderRow *stepSaturation_ = nullptr;
 	SliderRow *stepCct_ = nullptr;
-	QCheckBox *useBpm_ = nullptr;
+	QComboBox *chaserTiming_ = nullptr;
+	QWidget *stepMsLabel_ = nullptr;
+	QWidget *bpmLabel_ = nullptr;
 	QSpinBox *stepMs_ = nullptr;
 	QSpinBox *bpm_ = nullptr;
 	SliderRow *fadeRatio_ = nullptr;

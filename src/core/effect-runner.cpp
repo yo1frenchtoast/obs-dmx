@@ -26,10 +26,10 @@ uint32_t nextRandom(uint32_t &state)
 
 double stepDurationMs(const ChaserSettings &chaser)
 {
-	if (!chaser.useBpm)
-		return std::max(1, chaser.stepMs);
-	// One step per beat: 60000 ms divided by the tempo.
-	return 60000.0 / std::max(1.0f, chaser.bpm);
+	if (chaser.timing == ChaserTiming::Bpm)
+		// One step per beat: 60000 ms divided by the tempo.
+		return 60000.0 / std::max(1.0f, chaser.bpm);
+	return std::max(1, chaser.stepMs);
 }
 
 } // namespace
@@ -96,12 +96,42 @@ void EffectRunner::applyChaser(const Effect &effect, Runtime &runtime, const Aud
 		return;
 
 	const int stepCount = static_cast<int>(chaser.steps.size());
-	const double durationMs = stepDurationMs(chaser);
 
-	const double elapsedMs =
-		std::chrono::duration<double, std::milli>(now - runtime.started).count();
-	const int elapsedSteps = static_cast<int>(elapsedMs / durationMs);
-	const double phase = std::fmod(elapsedMs, durationMs) / durationMs;
+	int elapsedSteps = 0;
+	double phase = 0.0;
+
+	if (chaser.timing == ChaserTiming::Beat) {
+		// Driven by the beats heard in the OBS mix. The counter is read rather
+		// than a flag, so a beat falling between two frames is never missed.
+		if (audio.beatCount != runtime.lastBeat) {
+			// The interval between the last two beats becomes the step
+			// duration, which is what the fade needs to have any length.
+			if (runtime.lastBeatAt.time_since_epoch().count() != 0)
+				runtime.beatIntervalMs =
+					std::chrono::duration<double, std::milli>(now - runtime.lastBeatAt).count();
+			runtime.lastBeatAt = now;
+			runtime.lastBeat = audio.beatCount;
+			++runtime.beatStep;
+		}
+
+		elapsedSteps = runtime.beatStep;
+
+		// Without a beat yet, or without an interval to measure against, the
+		// step is held rather than faded from nowhere.
+		if (runtime.beatIntervalMs > 0.0 && runtime.lastBeatAt.time_since_epoch().count() != 0) {
+			const double sinceBeat =
+				std::chrono::duration<double, std::milli>(now - runtime.lastBeatAt).count();
+			phase = std::min(1.0, sinceBeat / runtime.beatIntervalMs);
+		} else {
+			phase = 1.0;
+		}
+	} else {
+		const double durationMs = stepDurationMs(chaser);
+		const double elapsedMs =
+			std::chrono::duration<double, std::milli>(now - runtime.started).count();
+		elapsedSteps = static_cast<int>(elapsedMs / durationMs);
+		phase = std::fmod(elapsedMs, durationMs) / durationMs;
+	}
 
 	// Position of the pattern. For the random direction we only recompute when
 	// the step changes, otherwise the pattern would jump every frame.
@@ -132,8 +162,6 @@ void EffectRunner::applyChaser(const Effect &effect, Runtime &runtime, const Aud
 	// The fade covers only part of the step: beyond it the colour is steady.
 	const float fade = clamp01(chaser.fadeRatio);
 	const float mix = fade <= 0.0f ? 1.0f : clamp01(static_cast<float>(phase) / fade);
-
-	(void)audio;
 
 	for (size_t i = 0; i < effect.fixtureIds.size(); ++i) {
 		const std::string &fixtureId = effect.fixtureIds[i];
@@ -232,10 +260,6 @@ void EffectRunner::applySound(const Effect &effect, Runtime &runtime, const Audi
 			value.intensity = beat ? 1.0f : 0.0f;
 			break;
 
-		case SoundTarget::StepOnBeat:
-			// Handled by the paired chase: nothing to do to the state.
-			value = base;
-			break;
 		}
 
 		states[fixtureId] = blend(base, value, effect.blend);
