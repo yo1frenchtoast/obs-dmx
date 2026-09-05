@@ -1,0 +1,93 @@
+name: macos
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  plugin:
+    # Same shape as the Windows build: OBS ships no macOS SDK either, so libobs
+    # is built from its sources against the prebuilt dependencies the project
+    # publishes.
+    name: Plugin (macOS, OBS ${{ matrix.obs }})
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - obs: "31.1.2"
+            major: "31"
+          - obs: "32.2.2"
+            major: "32"
+
+    env:
+      DEPS_VERSION: "2026-08-26"
+      # The universal dependencies let one bundle serve both Apple silicon and
+      # Intel, which is what an OBS plugin is expected to do.
+      MACOSX_DEPLOYMENT_TARGET: "13.0"
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Fetch the prebuilt OBS dependencies
+        run: |
+          base="https://github.com/obsproject/obs-deps/releases/download/${DEPS_VERSION}"
+          mkdir -p deps
+          for name in "macos-deps-${DEPS_VERSION}-universal" \
+                      "macos-deps-qt6-${DEPS_VERSION}-universal"; do
+            curl -fsSL "$base/$name.tar.xz" -o "$name.tar.xz"
+            tar -xf "$name.tar.xz" -C deps
+          done
+
+      - name: Fetch the OBS sources
+        run: |
+          curl -fsSL "https://github.com/obsproject/obs-studio/archive/refs/tags/${{ matrix.obs }}.tar.gz" \
+            -o obs.tar.gz
+          tar -xf obs.tar.gz
+
+      - name: Build libobs and obs-frontend-api
+        run: |
+          deps="$PWD/deps"
+          cmake -S "obs-studio-${{ matrix.obs }}" -B obs-build \
+            -DCMAKE_PREFIX_PATH="$deps" \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET}" \
+            -DOBS_CMAKE_VERSION=3.0.0 \
+            -DOBS_VERSION_OVERRIDE=${{ matrix.obs }} \
+            -DENABLE_PLUGINS=OFF -DENABLE_FRONTEND=OFF -DENABLE_SCRIPTING=OFF
+          cmake --build obs-build --target obs-frontend-api --parallel
+          cmake --install obs-build --component Development --prefix "$deps"
+
+      - name: Build the plugin
+        run: |
+          deps="$PWD/deps"
+          cmake -B build \
+            -DCMAKE_PREFIX_PATH="$deps" \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET}" \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          cmake --build build --parallel
+
+      - name: Package
+        run: |
+          cmake --install build --prefix package
+          # ditto rather than zip: it preserves the bundle's symlinks and
+          # resource forks, which a plain zip quietly flattens.
+          ditto -c -k --sequesterRsrc --keepParent \
+            "package/obs-dmx.plugin" "obs-dmx-macos-universal-obs${{ matrix.major }}.zip"
+
+      - name: Check the bundle
+        run: |
+          binary="package/obs-dmx.plugin/Contents/MacOS/obs-dmx"
+          test -f "$binary"
+          file "$binary"
+          lipo -archs "$binary"
+          otool -L "$binary" | head -12
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: obs-dmx-macos-obs${{ matrix.major }}
+          path: obs-dmx-macos-universal-obs${{ matrix.major }}.zip
