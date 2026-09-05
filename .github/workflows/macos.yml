@@ -61,17 +61,18 @@ jobs:
             -DOBS_VERSION_OVERRIDE=${{ matrix.obs }} \
             -DENABLE_PLUGINS=OFF -DENABLE_FRONTEND=OFF -DENABLE_SCRIPTING=OFF
           cmake --build obs-build --target obs-frontend-api --config RelWithDebInfo --parallel
-          echo "--- installing the Development component ---"
-          cmake --install obs-build --component Development --config RelWithDebInfo \
-            --prefix "$deps" -v 2>&1 | tail -30
-          echo "--- CMake package configs anywhere in the workspace ---"
-          find "$PWD" -name "libobsConfig.cmake" -o -name "obs-frontend-apiConfig.cmake" | head
+          cmake --install obs-build --component Development --config RelWithDebInfo --prefix "$deps"
 
       - name: Build the plugin
         run: |
           deps="$PWD/deps"
+          # macOS installs libobs as a framework, so its CMake package sits
+          # inside the bundle rather than under lib/cmake, and a bare prefix
+          # does not reach it. obs-frontend-api lands in the usual place.
           cmake -B build \
             -DCMAKE_PREFIX_PATH="$deps" \
+            -Dlibobs_DIR="$deps/Frameworks/libobs.framework/Resources/cmake" \
+            -Dobs-frontend-api_DIR="$deps/lib/cmake/obs-frontend-api" \
             -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
             -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET}" \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo
