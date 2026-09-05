@@ -185,6 +185,20 @@ Effect parseEffect(obs_data_t *item)
 			     "chase itself.",
 			     effect.name.c_str());
 			effect.sound.target = SoundTarget::Intensity;
+
+			// The blend of such an effect was never meaningful: the old
+			// target left the base untouched whatever it said. Converting
+			// the target alone would hand back an effect that is silent by
+			// construction, since brightest-wins cannot lower a lit base.
+			// It gets what a new intensity effect gets.
+			if (effect.blend == BlendMode::Htp) {
+				blog(LOG_WARNING,
+				     "[obs-dmx] effect '%s' also moves to replacement: following the "
+				     "level under 'brightest wins' can never dim, so it would have "
+				     "looked inert.",
+				     effect.name.c_str());
+				effect.blend = BlendMode::Replace;
+			}
 		} else {
 			effect.sound.target = static_cast<SoundTarget>(savedTarget);
 		}
