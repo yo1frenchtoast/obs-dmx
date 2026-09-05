@@ -1,0 +1,84 @@
+name: windows
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  plugin:
+    # OBS publishes no Windows SDK, so libobs has to be built from its sources
+    # against the prebuilt dependencies the project ships. This is the same
+    # route the official plugin template takes, written out here rather than
+    # pulled in as a framework.
+    name: Plugin (Windows, OBS ${{ matrix.obs }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # A native plugin is bound to the major version it was compiled against,
+        # so both current majors get a build.
+        include:
+          - obs: "31.1.2"
+            major: "31"
+          - obs: "32.2.2"
+            major: "32"
+
+    env:
+      DEPS_VERSION: "2026-08-26"
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Fetch the prebuilt OBS dependencies
+        shell: pwsh
+        run: |
+          $base = "https://github.com/obsproject/obs-deps/releases/download/${env:DEPS_VERSION}"
+          New-Item -ItemType Directory -Force -Path deps | Out-Null
+          foreach ($name in @("windows-deps-${env:DEPS_VERSION}-x64",
+                              "windows-deps-qt6-${env:DEPS_VERSION}-x64")) {
+            Invoke-WebRequest "$base/$name.zip" -OutFile "$name.zip"
+            Expand-Archive "$name.zip" -DestinationPath deps -Force
+          }
+
+      - name: Fetch the OBS sources
+        shell: pwsh
+        run: |
+          Invoke-WebRequest "https://github.com/obsproject/obs-studio/archive/refs/tags/${{ matrix.obs }}.zip" `
+            -OutFile obs.zip
+          Expand-Archive obs.zip -DestinationPath . -Force
+
+      - name: Build libobs and obs-frontend-api
+        shell: pwsh
+        run: |
+          $deps = (Resolve-Path deps).Path
+          # Only the two libraries a plugin links against are needed; building
+          # the application and its plugins would cost minutes for nothing.
+          cmake -S "obs-studio-${{ matrix.obs }}" -B obs-build -A x64 `
+            -DCMAKE_PREFIX_PATH="$deps" `
+            -DOBS_CMAKE_VERSION=3.0.0 `
+            -DOBS_VERSION_OVERRIDE=${{ matrix.obs }} `
+            -DENABLE_PLUGINS=OFF -DENABLE_FRONTEND=OFF -DENABLE_SCRIPTING=OFF
+          cmake --build obs-build --target obs-frontend-api --config RelWithDebInfo --parallel
+          cmake --install obs-build --component Development --config RelWithDebInfo --prefix "$deps"
+
+      - name: Build the plugin
+        shell: pwsh
+        run: |
+          $deps = (Resolve-Path deps).Path
+          cmake -B build -A x64 -DCMAKE_PREFIX_PATH="$deps"
+          cmake --build build --config RelWithDebInfo --parallel
+
+      - name: Package
+        shell: pwsh
+        run: |
+          cmake --install build --config RelWithDebInfo --prefix package
+          Compress-Archive -Path package/* `
+            -DestinationPath "obs-dmx-windows-x64-obs${{ matrix.major }}.zip" -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: obs-dmx-windows-obs${{ matrix.major }}
+          path: obs-dmx-windows-x64-obs${{ matrix.major }}.zip
