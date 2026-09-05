@@ -80,6 +80,7 @@ bool obs_module_load(void)
 	g_show = std::make_unique<obsdmx::Show>(*g_library);
 
 	g_audio = std::make_unique<obsdmx::ObsAudioTap>();
+	g_audio->loadSettings();
 	g_audio->start();
 
 	g_dock = new obsdmx::DmxDock(*g_engine, *g_show, *g_library, *g_audio);

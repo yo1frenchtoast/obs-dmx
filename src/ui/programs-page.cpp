@@ -60,7 +60,7 @@ QIcon swatchIcon(const QColor &color)
 
 } // namespace
 
-ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvider, QWidget *parent)
+ProgramsPage::ProgramsPage(Show &show, AudioAccess audio, QWidget *parent)
 	: QWidget(parent), show_(show)
 {
 	auto *layout = new QVBoxLayout(this);
@@ -166,7 +166,7 @@ ProgramsPage::ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvi
 	effectListColumn->addLayout(effectButtons);
 	effectLayout->addLayout(effectListColumn);
 
-	effectEditor_ = new EffectEditor(show_, std::move(audioProvider), effectBox);
+	effectEditor_ = new EffectEditor(show_, std::move(audio), effectBox);
 	effectLayout->addWidget(effectEditor_);
 	layout->addWidget(effectBox);
 

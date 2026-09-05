@@ -27,6 +27,12 @@ public:
 	AudioSnapshot snapshot() const { return analyzer_.snapshot(); }
 	AudioAnalyzer &analyzer() { return analyzer_; }
 
+	/// Beat sensitivity is a matter of the room and the music played there,
+	/// not of the show being built, so it lives beside the machine's output
+	/// settings rather than in the scene collection.
+	void loadSettings();
+	void saveSettings() const;
+
 private:
 	static void onAudio(void *param, size_t mixIndex, audio_data *data);
 

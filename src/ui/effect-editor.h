@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/effect.h"
+#include "ui/audio-access.h"
 
 #include <QWidget>
 
@@ -19,6 +20,7 @@ class QTableWidget;
 
 namespace obsdmx {
 
+class BeatTuning;
 class Patch;
 class Show;
 class SliderRow;
@@ -29,7 +31,7 @@ class EffectEditor : public QWidget {
 	Q_OBJECT
 
 public:
-	EffectEditor(Show &show, std::function<AudioSnapshot()> audioProvider, QWidget *parent = nullptr);
+	EffectEditor(Show &show, AudioAccess audio, QWidget *parent = nullptr);
 
 	/// Loads an effect into the form. Passing nullptr empties and disables
 	/// it.
@@ -65,7 +67,7 @@ private:
 	size_t smallestFootprint() const;
 
 	Show &show_;
-	std::function<AudioSnapshot()> audioProvider_;
+	AudioAccess audio_;
 	Effect effect_;
 	bool valid_ = false;
 	bool loading_ = false;
@@ -84,6 +86,7 @@ private:
 	SliderRow *stepSaturation_ = nullptr;
 	SliderRow *stepCct_ = nullptr;
 	QComboBox *chaserTiming_ = nullptr;
+	BeatTuning *chaserBeatTuning_ = nullptr;
 	QWidget *stepMsLabel_ = nullptr;
 	QWidget *bpmLabel_ = nullptr;
 	QSpinBox *stepMs_ = nullptr;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/show.h"
+#include "ui/audio-access.h"
 
 #include <QWidget>
 
@@ -27,7 +28,7 @@ class ProgramsPage : public QWidget {
 	Q_OBJECT
 
 public:
-	ProgramsPage(Show &show, std::function<AudioSnapshot()> audioProvider, QWidget *parent = nullptr);
+	ProgramsPage(Show &show, AudioAccess audio, QWidget *parent = nullptr);
 	~ProgramsPage() override;
 
 	/// Rebuilds everything from the show.

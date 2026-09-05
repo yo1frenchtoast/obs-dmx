@@ -174,7 +174,7 @@ void AudioAnalyzer::updateBeat(float lowLevel)
 	// leaving a kick, whose rise is a large fraction of its own level, well
 	// clear.
 	const float floor = std::max(0.0015f, level * 0.05f);
-	const float threshold = mean + beatFactor_ * deviation + floor;
+	const float threshold = mean + beatFactor_.load(std::memory_order_relaxed) * deviation + floor;
 
 	// Only a peak counts. Without this the same attack fires on each block of
 	// its rising edge, which reads as a double beat.

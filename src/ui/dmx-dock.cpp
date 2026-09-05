@@ -46,7 +46,16 @@ DmxDock::DmxDock(DmxEngine &engine, Show &show, const FixtureLibrary &library, O
 	auto *layout = new QVBoxLayout(this);
 
 	patchPage_ = new PatchPage(show_, library, this);
-	programsPage_ = new ProgramsPage(show_, [this] { return audio_.snapshot(); }, this);
+	// The analyser is reached through callbacks rather than handed over: the
+	// pages need to read levels and turn one knob, not to own the tap.
+	AudioAccess access;
+	access.snapshot = [this] { return audio_.snapshot(); };
+	access.beatSensitivity = [this] { return audio_.analyzer().beatSensitivity(); };
+	access.setBeatSensitivity = [this](float factor) {
+		audio_.analyzer().setBeatSensitivity(factor);
+		audio_.saveSettings();
+	};
+	programsPage_ = new ProgramsPage(show_, std::move(access), this);
 	outputPage_ = new OutputSettingsPage(engine_, this);
 
 	tabs_ = new QTabWidget(this);

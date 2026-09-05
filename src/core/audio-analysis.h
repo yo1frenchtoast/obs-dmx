@@ -66,9 +66,17 @@ public:
 
 	AudioSnapshot snapshot() const;
 
-	/// How far above the recent average a rise in bass must go for a beat to be
+	/// How far above the recent spread a rise in bass must go for a beat to be
 	/// announced. Lower hears more; higher is stricter.
-	void setBeatSensitivity(float factor) { beatFactor_ = factor; }
+	///
+	/// Written from the interface while the audio thread reads it, hence the
+	/// atomic. Relaxed ordering is enough: nothing else depends on when the new
+	/// value lands, only that no torn read is possible.
+	void setBeatSensitivity(float factor) { beatFactor_.store(factor, std::memory_order_relaxed); }
+	float beatSensitivity() const { return beatFactor_.load(std::memory_order_relaxed); }
+
+	/// The default, and what the interface calls the middle of its range.
+	static constexpr float kDefaultBeatSensitivity = 1.5f;
 
 	void reset();
 
@@ -119,7 +127,7 @@ private:
 	int fluxCursor_ = 0;
 	int fluxFilled_ = 0;
 
-	float beatFactor_ = 1.5f;
+	std::atomic<float> beatFactor_{kDefaultBeatSensitivity};
 	int refractory_ = 0;
 	int refractorySamples_ = 0;
 

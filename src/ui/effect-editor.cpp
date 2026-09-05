@@ -49,8 +49,8 @@ int pageFor(EffectType type)
 
 } // namespace
 
-EffectEditor::EffectEditor(Show &show, std::function<AudioSnapshot()> audioProvider, QWidget *parent)
-	: QWidget(parent), show_(show), audioProvider_(std::move(audioProvider))
+EffectEditor::EffectEditor(Show &show, AudioAccess audio, QWidget *parent)
+	: QWidget(parent), show_(show), audio_(std::move(audio))
 {
 	auto *layout = new QVBoxLayout(this);
 
@@ -185,6 +185,11 @@ QWidget *EffectEditor::buildChaserPage()
 	timing->addRow(tr_("Effect.Chaser.Direction"), direction_);
 	layout->addLayout(timing);
 
+	// A chase on the beat lives or dies by the detection, so the meter and its
+	// setting belong here too, not only on the sound effect.
+	chaserBeatTuning_ = new BeatTuning(audio_, page);
+	layout->addWidget(chaserBeatTuning_);
+
 	connect(addStepButton, &QPushButton::clicked, this, &EffectEditor::addStep);
 	connect(removeStepButton, &QPushButton::clicked, this, &EffectEditor::removeStep);
 	connect(steps_, &QListWidget::currentRowChanged, this, [this](int) { loadStep(); });
@@ -290,10 +295,7 @@ QWidget *EffectEditor::buildSoundPage()
 	soundBlendWarning_->setWordWrap(true);
 	layout->addWidget(soundBlendWarning_);
 
-	auto *meterHint = new QLabel(tr_("Effect.Sound.Meter.Hint"), page);
-	meterHint->setWordWrap(true);
-	layout->addWidget(meterHint);
-	layout->addWidget(new LevelMeter(audioProvider_, page));
+	layout->addWidget(new BeatTuning(audio_, page));
 
 	connect(soundTarget_, &QComboBox::currentIndexChanged, this, &EffectEditor::commit);
 	connect(soundBand_, &QComboBox::currentIndexChanged, this, &EffectEditor::commit);
@@ -556,6 +558,8 @@ void EffectEditor::refreshChaserTiming()
 		form->setRowVisible(stepMs_, timing == ChaserTiming::Duration);
 		form->setRowVisible(bpm_, timing == ChaserTiming::Bpm);
 	}
+
+	chaserBeatTuning_->setVisible(timing == ChaserTiming::Beat);
 }
 
 void EffectEditor::refreshSoundPage()

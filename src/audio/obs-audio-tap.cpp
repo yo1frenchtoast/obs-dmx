@@ -1,10 +1,14 @@
 #include "audio/obs-audio-tap.h"
 
 #include <obs-module.h>
+#include <util/platform.h>
 
 namespace obsdmx {
 
 namespace {
+
+/// Kept apart from output.json, which is about wires and addresses.
+constexpr const char *kConfigFile = "audio.json";
 
 /// The main mix. OBS can have several; this is the one streaming uses by
 /// default.
@@ -67,6 +71,42 @@ void ObsAudioTap::onAudio(void *param, size_t, audio_data *data)
 
 	auto *self = static_cast<ObsAudioTap *>(param);
 	self->analyzer_.process(reinterpret_cast<const float *>(data->data[0]), data->frames);
+}
+
+void ObsAudioTap::loadSettings()
+{
+	char *path = obs_module_config_path(kConfigFile);
+	obs_data_t *data = path ? obs_data_create_from_json_file(path) : nullptr;
+	bfree(path);
+	if (!data)
+		return;
+
+	if (obs_data_has_user_value(data, "beat_sensitivity"))
+		analyzer_.setBeatSensitivity(
+			static_cast<float>(obs_data_get_double(data, "beat_sensitivity")));
+
+	obs_data_release(data);
+}
+
+void ObsAudioTap::saveSettings() const
+{
+	obs_data_t *data = obs_data_create();
+	obs_data_set_double(data, "beat_sensitivity", analyzer_.beatSensitivity());
+
+	// The configuration directory does not exist yet on a first launch.
+	char *dir = obs_module_config_path("");
+	if (dir) {
+		os_mkdirs(dir);
+		bfree(dir);
+	}
+
+	char *path = obs_module_config_path(kConfigFile);
+	if (path) {
+		if (!obs_data_save_json_safe(data, path, "tmp", "bak"))
+			blog(LOG_WARNING, "[obs-dmx] could not save %s", path);
+		bfree(path);
+	}
+	obs_data_release(data);
 }
 
 } // namespace obsdmx
