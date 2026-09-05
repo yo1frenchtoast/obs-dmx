@@ -66,8 +66,8 @@ public:
 
 	AudioSnapshot snapshot() const;
 
-	/// How far above its usual energy the bass must rise for a beat to be
-	/// announced.
+	/// How far above the recent average a rise in bass must go for a beat to be
+	/// announced. Lower hears more; higher is stricter.
 	void setBeatSensitivity(float factor) { beatFactor_ = factor; }
 
 	void reset();
@@ -92,7 +92,7 @@ private:
 		}
 	};
 
-	void updateBeat(float lowEnergy);
+	void updateBeat(float lowLevel);
 
 	float sampleRate_ = 48000.0f;
 
@@ -101,9 +101,25 @@ private:
 	float releaseCoeff_ = 0.999f;
 
 	// --- beat detection ---
-	float energyAverage_ = 0.0f;
-	float averageCoeff_ = 0.9995f;
-	float beatFactor_ = 1.6f;
+	//
+	// Onsets are found from the *rise* in bass energy, not from its level. A
+	// club master is limited hard enough that the level barely moves between
+	// kicks, so a level-against-average test finds almost nothing; the rise at
+	// each kick survives that limiting.
+	static constexpr int kBlockSize = 512;   ///< about 11 ms at 48 kHz
+	static constexpr int kFluxHistory = 64;  ///< about 0.7 s of recent rises
+
+	float blockSum_ = 0.0f;
+	int blockFill_ = 0;
+	float previousBlockLevel_ = 0.0f;
+	float previousFlux_ = 0.0f;
+
+	/// Recent rises, kept to work out what counts as unusual right now.
+	float fluxHistory_[kFluxHistory] = {};
+	int fluxCursor_ = 0;
+	int fluxFilled_ = 0;
+
+	float beatFactor_ = 1.5f;
 	int refractory_ = 0;
 	int refractorySamples_ = 0;
 

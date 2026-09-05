@@ -75,11 +75,12 @@ void AudioAnalyzer::prepare(float sampleRate)
 	// Instant attack, 120 ms release: the light must snap on the attack and
 	// fall back gently, not follow every oscillation.
 	releaseCoeff_ = std::exp(-1.0f / (sampleRate_ * 0.120f));
-	// Long average for the adaptive threshold: about one second.
-	averageCoeff_ = std::exp(-1.0f / (sampleRate_ * 1.0f));
-	// 250 ms of guard: past 240 beats per minute we are no longer talking about
-	// tempo, and it avoids counting the same hit twice.
-	refractorySamples_ = static_cast<int>(sampleRate_ * 0.25f);
+	// 110 ms of guard, so a kick every 120 ms still registers -- roughly 500
+	// beats per minute, well past any dance floor. The old quarter-second
+	// capped detection at 240 BPM, which fast techno reaches. A shorter guard
+	// is safe now that the detector reads rises rather than levels: a decaying
+	// kick produces no rise and cannot trigger twice.
+	refractorySamples_ = static_cast<int>(sampleRate_ * 0.110f);
 
 	reset();
 }
@@ -91,7 +92,14 @@ void AudioAnalyzer::reset()
 		envelopes_[i] = 0.0f;
 		published_[i].store(0.0f, std::memory_order_relaxed);
 	}
-	energyAverage_ = 0.0f;
+	blockSum_ = 0.0f;
+	blockFill_ = 0;
+	previousBlockLevel_ = 0.0f;
+	previousFlux_ = 0.0f;
+	for (float &value : fluxHistory_)
+		value = 0.0f;
+	fluxCursor_ = 0;
+	fluxFilled_ = 0;
 	refractory_ = 0;
 }
 
@@ -108,6 +116,10 @@ void AudioAnalyzer::process(const float *samples, size_t count)
 			envelopes_[band] = level > envelopes_[band] ? level : envelopes_[band] * releaseCoeff_;
 		}
 
+		// The bass envelope feeds the detector. A shorter one was tried, on the
+		// theory that the 120 ms release would smear close kicks together; it
+		// measured no better and slightly worse at extreme tempos, because the
+		// onset function is a difference and both envelopes rise just as fast.
 		updateBeat(envelopes_[0]);
 	}
 
@@ -115,21 +127,66 @@ void AudioAnalyzer::process(const float *samples, size_t count)
 		published_[band].store(std::min(envelopes_[band], 1.0f), std::memory_order_relaxed);
 }
 
-void AudioAnalyzer::updateBeat(float lowEnergy)
+void AudioAnalyzer::updateBeat(float lowLevel)
 {
 	if (refractory_ > 0)
 		--refractory_;
 
-	// Adaptive threshold: what matters is how far the level rises above what
-	// the track usually does, not an absolute level that would depend on how
-	// the desk is set.
-	const bool loudEnough = lowEnergy > 0.05f;
-	if (refractory_ == 0 && loudEnough && lowEnergy > energyAverage_ * beatFactor_) {
+	// Gather a short block before deciding anything: a single sample says
+	// nothing about an onset, and blocks keep the cost per sample trivial.
+	blockSum_ += lowLevel;
+	if (++blockFill_ < kBlockSize)
+		return;
+
+	const float level = blockSum_ / static_cast<float>(kBlockSize);
+	blockSum_ = 0.0f;
+	blockFill_ = 0;
+
+	// The onset function: how much the bass rose since the previous block.
+	// Only rises count -- a decay is not an attack.
+	const float flux = std::max(0.0f, level - previousBlockLevel_);
+	previousBlockLevel_ = level;
+
+	// What counts as a large rise depends on the track. A mean alone is not
+	// enough: a noisy master has a high mean *and* a wide spread, and comparing
+	// against the mean lets every noise burst through. The spread has to enter
+	// the threshold, so a busy track demands a correspondingly bigger rise.
+	float sum = 0.0f;
+	float sumOfSquares = 0.0f;
+	for (int i = 0; i < fluxFilled_; ++i) {
+		sum += fluxHistory_[i];
+		sumOfSquares += fluxHistory_[i] * fluxHistory_[i];
+	}
+	const float mean = fluxFilled_ > 0 ? sum / static_cast<float>(fluxFilled_) : 0.0f;
+	const float variance =
+		fluxFilled_ > 0 ? std::max(0.0f, sumOfSquares / static_cast<float>(fluxFilled_) - mean * mean)
+				: 0.0f;
+	const float deviation = std::sqrt(variance);
+
+	fluxHistory_[fluxCursor_] = flux;
+	fluxCursor_ = (fluxCursor_ + 1) % kFluxHistory;
+	fluxFilled_ = std::min(fluxFilled_ + 1, kFluxHistory);
+
+	// The floor has to scale with the signal. An absolute one lets a loud
+	// sustained note through: its envelope still ripples slightly, and on a
+	// strong signal that ripple alone clears any fixed number. Demanding a rise
+	// worth a few percent of the current level rejects that ripple while
+	// leaving a kick, whose rise is a large fraction of its own level, well
+	// clear.
+	const float floor = std::max(0.0015f, level * 0.05f);
+	const float threshold = mean + beatFactor_ * deviation + floor;
+
+	// Only a peak counts. Without this the same attack fires on each block of
+	// its rising edge, which reads as a double beat.
+	const bool isPeak = flux > previousFlux_;
+	const float wasFlux = previousFlux_;
+	previousFlux_ = flux;
+
+	if (refractory_ == 0 && fluxFilled_ >= kFluxHistory / 4 && isPeak && wasFlux >= 0.0f &&
+	    flux > threshold) {
 		beatCount_.fetch_add(1, std::memory_order_relaxed);
 		refractory_ = refractorySamples_;
 	}
-
-	energyAverage_ = energyAverage_ * averageCoeff_ + lowEnergy * (1.0f - averageCoeff_);
 }
 
 AudioSnapshot AudioAnalyzer::snapshot() const

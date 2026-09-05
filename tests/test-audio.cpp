@@ -3,6 +3,8 @@
 #include "core/audio-analysis.h"
 
 #include <cmath>
+#include <cstdio>
+#include <random>
 #include <vector>
 
 using namespace obsdmx;
@@ -173,4 +175,76 @@ TEST(an_empty_call_does_nothing)
 	analyzer.process(nullptr, 100);
 	analyzer.process(nullptr, 0);
 	CHECK_EQ(analyzer.snapshot().beatCount, uint64_t(0));
+}
+
+namespace {
+
+/// A synthetic dance track: a kick at the given tempo over a sustained bass note
+/// and noise, then limited the way a club master is.
+///
+/// The limiting is the point. It is what flattens the attacks, and it is why a
+/// detector that compares the bass *level* against its average finds almost
+/// nothing on this material.
+std::vector<float> danceTrack(float bpm, float sustain, float noise, float ceiling, float seconds)
+{
+	std::mt19937 rng(1234);
+	std::normal_distribution<float> gauss(0.0f, 1.0f);
+
+	const size_t count = static_cast<size_t>(kSampleRate * seconds);
+	const size_t period = static_cast<size_t>(kSampleRate * 60.0f / bpm);
+
+	std::vector<float> samples(count);
+	for (size_t n = 0; n < count; ++n) {
+		const float intoBeat = static_cast<float>(n % period) / kSampleRate;
+		const float kick = std::exp(-intoBeat * 28.0f) *
+				   std::sin(2.0f * 3.14159265f * 55.0f * intoBeat);
+		const float bass = sustain * std::sin(2.0f * 3.14159265f * 82.0f * float(n) / kSampleRate);
+		samples[n] = std::tanh((kick + bass + noise * gauss(rng)) / ceiling) * ceiling;
+	}
+	return samples;
+}
+
+uint64_t beatsIn(const std::vector<float> &samples)
+{
+	AudioAnalyzer analyzer;
+	analyzer.prepare(kSampleRate);
+	// Fed in blocks, the way OBS delivers audio.
+	for (size_t i = 0; i < samples.size(); i += 480)
+		analyzer.process(samples.data() + i, std::min<size_t>(480, samples.size() - i));
+	return analyzer.snapshot().beatCount;
+}
+
+} // namespace
+
+TEST(beats_are_found_in_a_dense_compressed_master)
+{
+	// The case that sent this detector back to the drawing board: hard techno,
+	// heavily limited, with a sustained bass and plenty of noise. Comparing the
+	// bass level against its running average found seven beats out of
+	// twenty-five here.
+	const float seconds = 10.0f;
+	const auto track = danceTrack(155.0f, 0.60f, 0.30f, 0.6f, seconds);
+
+	const int expected = static_cast<int>(155.0f * seconds / 60.0f);
+	const int found = static_cast<int>(beatsIn(track));
+
+	CHECK(std::abs(found - expected) <= expected / 5);
+}
+
+TEST(beats_are_found_across_the_tempo_range)
+{
+	// Fast tempos were the other complaint. The guard between beats used to cap
+	// detection at 240 per minute, and the display envelope's long release
+	// smeared close kicks into one.
+	const float seconds = 10.0f;
+	for (float bpm : {124.0f, 150.0f, 174.0f, 190.0f, 220.0f}) {
+		const auto track = danceTrack(bpm, 0.45f, 0.20f, 0.8f, seconds);
+		const int expected = static_cast<int>(bpm * seconds / 60.0f);
+		const int found = static_cast<int>(beatsIn(track));
+
+		if (std::abs(found - expected) > expected / 5)
+			std::fprintf(stderr, "    %.0f BPM: expected about %d, found %d\n", bpm, expected,
+				     found);
+		CHECK(std::abs(found - expected) <= expected / 5);
+	}
 }
