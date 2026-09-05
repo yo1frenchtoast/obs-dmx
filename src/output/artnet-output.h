@@ -1,6 +1,7 @@
 #pragma once
 
 #include "output/dmx-output.h"
+#include "output/udp-socket.h"
 
 #include <cstdint>
 #include <string>
@@ -34,7 +35,7 @@ public:
 private:
 	std::string host_;
 	uint16_t port_;
-	int socket_ = -1;
+	UdpSocket socket_;
 	uint8_t sequence_ = 0;
 };
 

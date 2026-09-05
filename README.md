@@ -27,17 +27,65 @@ configuration file to write.
 
 ## Building and installing
 
-The plugin builds as a Flatpak extension of OBS. Nothing has to be installed on
-the host system.
+The plugin is a plain CMake project. Nothing about it is tied to a particular
+packaging: pick whichever route matches how OBS is installed on your machine.
+
+### Linux, system OBS
+
+Install the OBS development files (`obs-studio-devel` on Fedora,
+`libobs-dev` on Debian and Ubuntu) along with Qt 6, then:
+
+    cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    cmake --build build
+    sudo cmake --install build --prefix /usr
+
+This lands `obs-dmx.so` in `/usr/lib/obs-plugins` (or `lib64` where that is the
+convention) and its data in `/usr/share/obs/obs-plugins/obs-dmx`.
+
+To install for yourself rather than system-wide, point OBS at the user plugin
+directory instead:
+
+    cmake --install build --prefix ~/.config/obs-studio/plugins/obs-dmx
+
+### Linux, OBS from Flatpak
+
+A Flatpak app runs against its own libobs, Qt and C++ runtime, so a plugin has to
+be built inside that same runtime. The manifest does exactly that, and installs
+the result as an OBS plugin extension:
 
     flatpak install --user flathub org.flatpak.Builder
     flatpak run org.flatpak.Builder --force-clean --user --install \
         build-dir flatpak/com.obsproject.Studio.Plugin.ObsDmx.yaml
 
-Restart OBS. The panel appears under **Docks → DMX Lighting**.
+### Windows
 
-The plugin must be rebuilt for each major OBS release: a native plugin is bound
-to the version it was compiled against.
+With OBS's development files available, configure as usual and point
+`CMAKE_PREFIX_PATH` at them:
+
+    cmake -B build -DCMAKE_PREFIX_PATH=<path to libobs and Qt6>
+    cmake --build build --config RelWithDebInfo
+    cmake --install build --prefix "<OBS install>"
+
+The install step places `obs-dmx.dll` in `obs-plugins/64bit` and its data in
+`data/obs-plugins/obs-dmx`, which is where OBS looks.
+
+### macOS
+
+    cmake -B build -DCMAKE_PREFIX_PATH=<path to libobs and Qt6>
+    cmake --build build
+    cmake --install build --prefix ~/Library/Application\ Support/obs-studio/plugins
+
+The plugin is built as an `obs-dmx.plugin` bundle.
+
+### A note on versions
+
+A native plugin is bound to the OBS release it was compiled against, and must be
+rebuilt when OBS makes a major version jump.
+
+**What has actually been tested:** the Flatpak route and the Linux native route,
+the latter against libobs 31 on Fedora. The Windows and macOS code paths are
+compiled on every push by CI, but their runtime behaviour has not been exercised
+on real hardware. Reports welcome.
 
 ## Getting started
 

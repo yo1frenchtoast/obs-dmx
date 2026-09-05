@@ -20,7 +20,17 @@ option(BUILD_TESTING_OBS_DMX "Build the engine tests" OFF)
 # obs-dmx-core: the engine, deliberately free of libobs and Qt so it stays
 # testable outside OBS (see tests/).
 # ---------------------------------------------------------------------------
-find_package(nlohmann_json REQUIRED)
+# Packaged on most distributions and inside the OBS Flatpak runtime; fetched
+# otherwise, so a Windows or macOS build needs no package manager.
+find_package(nlohmann_json QUIET)
+if(NOT nlohmann_json_FOUND)
+  include(FetchContent)
+  FetchContent_Declare(nlohmann_json
+    URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+    URL_HASH SHA256=d6c65aca6b1ed68e7a182f4757257b107ae403032760ed6ef121c9d55e81757d)
+  set(JSON_BuildTests OFF CACHE INTERNAL "")
+  FetchContent_MakeAvailable(nlohmann_json)
+endif()
 
 add_library(obs-dmx-core STATIC
   src/core/audio-analysis.cpp
@@ -34,10 +44,21 @@ add_library(obs-dmx-core STATIC
   src/output/artnet-output.cpp
   src/output/sacn-output.cpp
   src/output/enttec-output.cpp
+  src/output/serial-port.cpp
+  src/output/udp-socket.cpp
 )
 target_include_directories(obs-dmx-core PUBLIC src)
 target_link_libraries(obs-dmx-core PUBLIC nlohmann_json::nlohmann_json)
-target_compile_options(obs-dmx-core PRIVATE -Wall -Wextra)
+if(WIN32)
+  # Winsock is not linked by default, unlike the POSIX socket API.
+  target_link_libraries(obs-dmx-core PUBLIC ws2_32)
+endif()
+
+if(MSVC)
+  target_compile_options(obs-dmx-core PRIVATE /W4)
+else()
+  target_compile_options(obs-dmx-core PRIVATE -Wall -Wextra)
+endif()
 
 # ---------------------------------------------------------------------------
 # The OBS module itself.
@@ -76,11 +97,31 @@ if(BUILD_PLUGIN)
 
   target_compile_definitions(obs-dmx PRIVATE PLUGIN_VERSION="${PROJECT_VERSION}")
 
-  target_compile_options(obs-dmx PRIVATE -Wall -Wextra)
+  if(MSVC)
+    target_compile_options(obs-dmx PRIVATE /W4)
+  else()
+    target_compile_options(obs-dmx PRIVATE -Wall -Wextra)
+  endif()
 
+  # Each platform expects a different layout, and OBS looks in exactly one
+  # place per platform. Getting this wrong builds a plugin that loads nowhere.
   include(GNUInstallDirs)
-  install(TARGETS obs-dmx LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/obs-plugins")
-  install(DIRECTORY data/ DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/obs/obs-plugins/obs-dmx")
+  if(APPLE)
+    # A macOS plugin is a bundle; OBS loads the executable inside it.
+    set_target_properties(obs-dmx PROPERTIES
+      BUNDLE TRUE
+      BUNDLE_EXTENSION plugin
+      MACOSX_BUNDLE_BUNDLE_NAME obs-dmx
+      MACOSX_BUNDLE_GUI_IDENTIFIER com.obsproject.obs-dmx)
+    install(TARGETS obs-dmx BUNDLE DESTINATION ".")
+    install(DIRECTORY data/ DESTINATION "obs-dmx.plugin/Contents/Resources")
+  elseif(WIN32)
+    install(TARGETS obs-dmx RUNTIME DESTINATION "obs-plugins/64bit")
+    install(DIRECTORY data/ DESTINATION "data/obs-plugins/obs-dmx")
+  else()
+    install(TARGETS obs-dmx LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/obs-plugins")
+    install(DIRECTORY data/ DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/obs/obs-plugins/obs-dmx")
+  endif()
 endif()
 
 if(BUILD_TESTING_OBS_DMX)

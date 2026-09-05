@@ -7,31 +7,50 @@ on:
   workflow_dispatch:
 
 jobs:
-  tests:
-    name: Engine tests
-    runs-on: ubuntu-latest
+  engine:
+    # src/core and src/output depend on neither libobs nor Qt, and every line of
+    # platform-specific code lives in src/output. Building them on all three
+    # systems is what actually covers the Winsock and Windows serial paths.
+    name: Engine (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends \
-            g++ cmake ninja-build nlohmann-json3-dev
-
-      # src/core and src/output depend on neither libobs nor Qt, so the engine
-      # builds and runs without an OBS runtime at all.
       - name: Configure
-        run: |
-          cmake -B build -G Ninja \
-            -DBUILD_PLUGIN=OFF -DBUILD_TESTING_OBS_DMX=ON \
-            -DCMAKE_CXX_FLAGS=-Werror
+        run: >
+          cmake -B build
+          -DBUILD_PLUGIN=OFF
+          -DBUILD_TESTING_OBS_DMX=ON
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
       - name: Build
-        run: cmake --build build
+        run: cmake --build build --config RelWithDebInfo
 
       - name: Test
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build --build-config RelWithDebInfo --output-on-failure
+
+  plugin:
+    name: Plugin (Linux, native)
+    runs-on: ubuntu-latest
+    container: fedora:41
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install OBS development files
+        run: |
+          dnf install -y gcc-c++ cmake ninja-build \
+            obs-studio-devel qt6-qtbase-devel json-devel
+
+      # Proves the plugin builds against a plain system OBS, with no Flatpak in
+      # sight.
+      - name: Build
+        run: |
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          cmake --build build
 
   checks:
     name: Translations and Qt wiring
@@ -44,8 +63,8 @@ jobs:
       - run: ./tools/check-locales.sh
       - run: ./tools/check-slots.sh
 
-  plugin:
-    name: Flatpak plugin
+  flatpak:
+    name: Flatpak extension
     runs-on: ubuntu-latest
     container:
       image: bilelmoussaoui/flatpak-github-actions:gnome-47

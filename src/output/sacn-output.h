@@ -1,6 +1,7 @@
 #pragma once
 
 #include "output/dmx-output.h"
+#include "output/udp-socket.h"
 
 #include <array>
 #include <cstdint>
@@ -45,7 +46,7 @@ private:
 	std::array<uint8_t, 16> cid_;
 	std::string sourceName_;
 	uint8_t priority_;
-	int socket_ = -1;
+	UdpSocket socket_;
 	uint8_t sequence_ = 0;
 };
 

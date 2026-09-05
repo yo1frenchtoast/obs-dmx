@@ -1,11 +1,6 @@
 #include "output/artnet-output.h"
 
-#include <arpa/inet.h>
-#include <cerrno>
 #include <cstring>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <unistd.h>
 
 namespace obsdmx {
 
@@ -69,37 +64,20 @@ std::vector<uint8_t> ArtnetOutput::buildPacket(uint16_t universeId, uint8_t sequ
 
 bool ArtnetOutput::open(std::string &error)
 {
-	close();
-
-	socket_ = ::socket(AF_INET, SOCK_DGRAM, 0);
-	if (socket_ < 0) {
-		error = std::string("socket(): ") + std::strerror(errno);
+	if (!socket_.open(error))
 		return false;
-	}
 
 	// Allow broadcast: it is the usual way to reach a node whose address is
 	// unknown.
-	int broadcast = 1;
-	if (::setsockopt(socket_, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast)) < 0) {
-		error = std::string("setsockopt(SO_BROADCAST): ") + std::strerror(errno);
-		close();
-		return false;
-	}
-
-	sockaddr_in addr{};
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(port_);
-	if (::inet_pton(AF_INET, host_.c_str(), &addr.sin_addr) != 1) {
-		error = "invalid IPv4 address: " + host_;
-		close();
+	if (!socket_.allowBroadcast(error)) {
+		socket_.close();
 		return false;
 	}
 
 	// Connected socket: avoids repeating the address on every frame, and lets
 	// the kernel report ICMP errors back to us.
-	if (::connect(socket_, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) < 0) {
-		error = std::string("connect(): ") + std::strerror(errno);
-		close();
+	if (!socket_.connectTo(host_, port_, error)) {
+		socket_.close();
 		return false;
 	}
 
@@ -109,15 +87,12 @@ bool ArtnetOutput::open(std::string &error)
 
 void ArtnetOutput::close()
 {
-	if (socket_ >= 0) {
-		::close(socket_);
-		socket_ = -1;
-	}
+	socket_.close();
 }
 
 void ArtnetOutput::send(const Universe &universe)
 {
-	if (socket_ < 0)
+	if (!socket_.isOpen())
 		return;
 
 	// The sequence lets the receiver spot out-of-order frames. Value 0 means
@@ -127,9 +102,7 @@ void ArtnetOutput::send(const Universe &universe)
 
 	const auto packet = buildPacket(universe.id(), sequence_, universe.data(), Universe::size());
 
-	// MSG_DONTWAIT: dropping a frame beats blocking the engine. The next one
-	// arrives in 25 ms anyway.
-	::send(socket_, packet.data(), packet.size(), MSG_DONTWAIT);
+	socket_.send(packet.data(), packet.size());
 }
 
 } // namespace obsdmx

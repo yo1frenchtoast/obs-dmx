@@ -57,12 +57,14 @@ manual. That is what stops a later edit quietly breaking them.
 
 ## Building
 
-The plugin builds as a Flatpak extension of OBS, so the OBS headers and Qt6 come
-from the OBS runtime itself and nothing has to be installed on the host:
+The project is plain CMake. `README.md` lists the route for each platform; for
+day-to-day work on Linux with system OBS:
 
-    flatpak install --user flathub org.flatpak.Builder
-    flatpak run org.flatpak.Builder --force-clean --user --install \
-        build-dir flatpak/com.obsproject.Studio.Plugin.ObsDmx.yaml
+    cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    cmake --build build
+
+`nlohmann/json` is found through your package manager if it is there, and
+downloaded otherwise, so no dependency has to be installed by hand.
 
 ## Running the tests
 
@@ -96,3 +98,19 @@ Read its README before running it: it modifies your OBS configuration.
   `src/obs`, `src/audio` or `src/ui`.
 - The audio thread is real time: it must not allocate, take a lock, or log. It
   publishes only atomics.
+
+## Platform-specific code
+
+There are exactly two places where the operating system shows through, and they
+should stay the only two:
+
+- `src/output/udp-socket.*` — Art-Net and sACN differ in their packets, not in
+  how they reach the network. Windows needs Winsock, whose types, error reporting
+  and shutdown all differ from POSIX.
+- `src/output/serial-port.*` — the Enttec protocol is the same everywhere, but
+  POSIX wants termios on a file descriptor and Windows a DCB on a handle, and the
+  two enumerate devices in entirely different ways.
+
+Everything else — the engine, the interface, the OBS glue — is portable as
+written. If you find yourself reaching for `#ifdef _WIN32` outside those two
+files, the abstraction is missing something.

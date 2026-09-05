@@ -1,14 +1,9 @@
 #include "output/sacn-output.h"
 
 #include <algorithm>
-#include <arpa/inet.h>
-#include <cerrno>
 #include <cstdio>
 #include <cstring>
-#include <netinet/in.h>
 #include <random>
-#include <sys/socket.h>
-#include <unistd.h>
 
 namespace obsdmx {
 
@@ -132,26 +127,18 @@ std::vector<uint8_t> SacnOutput::buildPacket(uint16_t universeId, uint8_t sequen
 
 bool SacnOutput::open(std::string &error)
 {
-	close();
-
-	socket_ = ::socket(AF_INET, SOCK_DGRAM, 0);
-	if (socket_ < 0) {
-		error = std::string("socket(): ") + std::strerror(errno);
+	if (!socket_.open(error))
 		return false;
-	}
 
 	// 16 hops: ample for a venue network, without flooding beyond it.
-	const int ttl = 16;
-	if (::setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl)) < 0) {
-		error = std::string("setsockopt(IP_MULTICAST_TTL): ") + std::strerror(errno);
-		close();
+	if (!socket_.setMulticastTtl(16, error)) {
+		socket_.close();
 		return false;
 	}
 
 	// Loop back to the local machine: required for a visualiser running on the
 	// same host to see anything.
-	const int loop = 1;
-	::setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_LOOP, &loop, sizeof(loop));
+	socket_.setMulticastLoopback(true);
 
 	sequence_ = 0;
 	return true;
@@ -159,15 +146,12 @@ bool SacnOutput::open(std::string &error)
 
 void SacnOutput::close()
 {
-	if (socket_ >= 0) {
-		::close(socket_);
-		socket_ = -1;
-	}
+	socket_.close();
 }
 
 void SacnOutput::send(const Universe &universe)
 {
-	if (socket_ < 0)
+	if (!socket_.isOpen())
 		return;
 
 	// Here the sequence uses the full range: E1.31 does not reserve 0.
@@ -176,13 +160,7 @@ void SacnOutput::send(const Universe &universe)
 	const auto packet = buildPacket(universe.id(), sequence_, priority_, cid_, sourceName_, universe.data(),
 					Universe::size());
 
-	sockaddr_in addr{};
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(kPort);
-	::inet_pton(AF_INET, multicastAddress(universe.id()).c_str(), &addr.sin_addr);
-
-	::sendto(socket_, packet.data(), packet.size(), MSG_DONTWAIT, reinterpret_cast<sockaddr *>(&addr),
-		 sizeof(addr));
+	socket_.sendTo(multicastAddress(universe.id()), kPort, packet.data(), packet.size());
 }
 
 } // namespace obsdmx

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "output/dmx-output.h"
+#include "output/serial-port.h"
 
 #include <cstdint>
 #include <string>
@@ -30,7 +31,7 @@ public:
 
 private:
 	std::string devicePath_;
-	int fd_ = -1;
+	SerialPort port_;
 };
 
 } // namespace obsdmx
