@@ -112,7 +112,11 @@ if(BUILD_PLUGIN)
       BUNDLE TRUE
       BUNDLE_EXTENSION plugin
       MACOSX_BUNDLE_BUNDLE_NAME obs-dmx
-      MACOSX_BUNDLE_GUI_IDENTIFIER com.obsproject.obs-dmx)
+      MACOSX_BUNDLE_GUI_IDENTIFIER com.obsproject.obs-dmx
+      MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+      MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+      MACOSX_BUNDLE_EXECUTABLE_NAME obs-dmx
+      MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/cmake/macos/Info.plist.in")
     # LIBRARY here too: BUNDLE covers executables, and a MODULE library stays
     # a LIBRARY for installation even once it is bundled.
     install(TARGETS obs-dmx LIBRARY DESTINATION ".")
