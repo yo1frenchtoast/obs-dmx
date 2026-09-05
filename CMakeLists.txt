@@ -113,11 +113,13 @@ if(BUILD_PLUGIN)
       BUNDLE_EXTENSION plugin
       MACOSX_BUNDLE_BUNDLE_NAME obs-dmx
       MACOSX_BUNDLE_GUI_IDENTIFIER com.obsproject.obs-dmx)
-    install(TARGETS obs-dmx BUNDLE DESTINATION ".")
+    # LIBRARY here too: BUNDLE covers executables, and a MODULE library stays
+    # a LIBRARY for installation even once it is bundled.
+    install(TARGETS obs-dmx LIBRARY DESTINATION ".")
     install(DIRECTORY data/ DESTINATION "obs-dmx.plugin/Contents/Resources")
   elseif(WIN32)
-    # A MODULE library installs through LIBRARY on every platform, Windows
-    # included; RUNTIME covers executables and the DLLs of SHARED libraries.
+    # RUNTIME would cover executables and the DLLs of SHARED libraries; a
+    # MODULE library is a LIBRARY here as everywhere else.
     install(TARGETS obs-dmx LIBRARY DESTINATION "obs-plugins/64bit")
     install(DIRECTORY data/ DESTINATION "data/obs-plugins/obs-dmx")
   else()
