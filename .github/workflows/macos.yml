@@ -51,15 +51,17 @@ jobs:
       - name: Build libobs and obs-frontend-api
         run: |
           deps="$PWD/deps"
-          cmake -S "obs-studio-${{ matrix.obs }}" -B obs-build \
+          # OBS refuses to configure on macOS with anything but the Xcode
+          # generator, which is why this differs from the Windows job.
+          cmake -S "obs-studio-${{ matrix.obs }}" -B obs-build -G Xcode \
             -DCMAKE_PREFIX_PATH="$deps" \
             -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
             -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET}" \
             -DOBS_CMAKE_VERSION=3.0.0 \
             -DOBS_VERSION_OVERRIDE=${{ matrix.obs }} \
             -DENABLE_PLUGINS=OFF -DENABLE_FRONTEND=OFF -DENABLE_SCRIPTING=OFF
-          cmake --build obs-build --target obs-frontend-api --parallel
-          cmake --install obs-build --component Development --prefix "$deps"
+          cmake --build obs-build --target obs-frontend-api --config RelWithDebInfo --parallel
+          cmake --install obs-build --component Development --config RelWithDebInfo --prefix "$deps"
 
       - name: Build the plugin
         run: |
