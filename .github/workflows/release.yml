@@ -27,7 +27,7 @@ jobs:
           manifest-path: flatpak/com.obsproject.Studio.Plugin.ObsDmx.yaml
           cache-key: flatpak-builder-${{ github.sha }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: obs-dmx-flatpak
           path: obs-dmx.flatpak
@@ -39,7 +39,7 @@ jobs:
     needs: bundle
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: obs-dmx-flatpak
 

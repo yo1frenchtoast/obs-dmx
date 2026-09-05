@@ -81,7 +81,23 @@ jobs:
           Compress-Archive -Path package/* `
             -DestinationPath "obs-dmx-windows-x64-obs${{ matrix.major }}.zip" -Force
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: obs-dmx-windows-obs${{ matrix.major }}
           path: obs-dmx-windows-x64-obs${{ matrix.major }}.zip
+
+      # Nobody has run this plugin on Windows yet, so the binary goes to a
+      # pre-release of its own rather than alongside the tested Flatpak bundle.
+      # GitHub marks it as such and does not offer it as the default download.
+      - name: Attach to the Windows pre-release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${GITHUB_REF_NAME}-windows"
+          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" \
+            --prerelease \
+            --title "${GITHUB_REF_NAME} — Windows preview" \
+            --notes "Windows build of ${GITHUB_REF_NAME}, compiled by CI and never run on Windows by anyone. Pick the archive matching your OBS major version and extract it over your OBS install directory. Reports very welcome."
+          gh release upload "$tag" "obs-dmx-windows-x64-obs${{ matrix.major }}.zip" --clobber
