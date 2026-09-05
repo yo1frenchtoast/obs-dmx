@@ -56,11 +56,14 @@ jobs:
           $deps = (Resolve-Path deps).Path
           # Only the two libraries a plugin links against are needed; building
           # the application and its plugins would cost minutes for nothing.
+          # Every -D argument is quoted: PowerShell splits an unquoted
+          # native argument at a dot, turning -D...=31.1.2 into -D...=31
+          # followed by a stray ".1.2".
           cmake -S "obs-studio-${{ matrix.obs }}" -B obs-build -A x64 `
-            -DCMAKE_PREFIX_PATH="$deps" `
-            -DOBS_CMAKE_VERSION=3.0.0 `
-            -DOBS_VERSION_OVERRIDE=${{ matrix.obs }} `
-            -DENABLE_PLUGINS=OFF -DENABLE_FRONTEND=OFF -DENABLE_SCRIPTING=OFF
+            "-DCMAKE_PREFIX_PATH=$deps" `
+            "-DOBS_CMAKE_VERSION=3.0.0" `
+            "-DOBS_VERSION_OVERRIDE=${{ matrix.obs }}" `
+            "-DENABLE_PLUGINS=OFF" "-DENABLE_FRONTEND=OFF" "-DENABLE_SCRIPTING=OFF"
           cmake --build obs-build --target obs-frontend-api --config RelWithDebInfo --parallel
           cmake --install obs-build --component Development --config RelWithDebInfo --prefix "$deps"
 
@@ -68,7 +71,7 @@ jobs:
         shell: pwsh
         run: |
           $deps = (Resolve-Path deps).Path
-          cmake -B build -A x64 -DCMAKE_PREFIX_PATH="$deps"
+          cmake -B build -A x64 "-DCMAKE_PREFIX_PATH=$deps"
           cmake --build build --config RelWithDebInfo --parallel
 
       - name: Package
