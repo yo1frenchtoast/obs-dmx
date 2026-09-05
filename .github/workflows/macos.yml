@@ -98,3 +98,16 @@ jobs:
         with:
           name: obs-dmx-macos-obs${{ matrix.major }}
           path: obs-dmx-macos-universal-obs${{ matrix.major }}.zip
+
+      # Any of the three build jobs may reach the release first, so creating it
+      # is allowed to fail harmlessly.
+      - name: Attach to the release
+        if: ${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1 \
+            || gh release create "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" --generate-notes \
+            || true
+          gh release upload "${GITHUB_REF_NAME}" \
+            "obs-dmx-macos-universal-obs${{ matrix.major }}.zip" --clobber

@@ -76,11 +76,24 @@ against the prebuilt dependencies the project ships. With those in place:
 
 ### macOS
 
-    cmake -B build -DCMAKE_PREFIX_PATH=<path to libobs and Qt6>
-    cmake --build build
-    cmake --install build --prefix ~/Library/Application\ Support/obs-studio/plugins
+A universal build, covering both Apple silicon and Intel, is published on the
+[releases page](https://github.com/yo1frenchtoast/obs-dmx/releases), one archive
+per OBS major version. Unpack it into your plugins directory:
 
-The plugin is built as an `obs-dmx.plugin` bundle.
+    unzip obs-dmx-macos-universal-obs32.zip \
+      -d ~/Library/Application\ Support/obs-studio/plugins
+
+macOS quarantines anything downloaded from a browser, and an unsigned plugin will
+be refused silently. Clear the flag once:
+
+    xattr -dr com.apple.quarantine \
+      ~/Library/Application\ Support/obs-studio/plugins/obs-dmx.plugin
+
+Restart OBS and look under **Docks → DMX Lighting**.
+
+To build it yourself, `.github/workflows/macos.yml` is the worked example. Note
+that OBS insists on the Xcode generator for its own build, and that it installs
+libobs as a framework, so `libobs_DIR` has to point inside the bundle.
 
 ### A note on versions
 
@@ -91,8 +104,9 @@ rebuilt when OBS makes a major version jump.
 Flatpak against OBS 32 and natively against libobs 31 on Fedora — the Linux
 routes verified down to real DMX frames on the wire.
 
-Not yet exercised by anyone: the Windows build for OBS 31, and macOS, which CI
-compiles but does not package. Reports welcome, working or not.
+Not yet exercised by anyone: the Windows build for OBS 31, and macOS, whose
+universal bundle is built and inspected by CI but has never been loaded into a
+running OBS. Reports welcome, working or not.
 
 The Enttec serial protocol is written from its documentation and has never met a
 real interface, on any platform. Art-Net and sACN were verified frame by frame
