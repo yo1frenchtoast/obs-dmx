@@ -13,6 +13,5 @@
   </description>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-2.0-or-later</project_license>
-  <!-- Set this to the repository URL before publishing. -->
-  <url type="homepage">https://github.com/OWNER/obs-dmx</url>
+  <url type="homepage">https://github.com/yo1frenchtoast/obs-dmx</url>
 </component>

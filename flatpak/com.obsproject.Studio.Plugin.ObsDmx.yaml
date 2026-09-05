@@ -21,7 +21,7 @@ modules:
       # contributor wants. To publish a release, swap this for a git source
       # pinned to a tag:
       #   - type: git
-      #     url: https://github.com/OWNER/obs-dmx.git
+      #     url: https://github.com/yo1frenchtoast/obs-dmx.git
       #     tag: vX.Y.Z
       - type: dir
         path: ..
