@@ -63,10 +63,10 @@ jobs:
           cmake --build obs-build --target obs-frontend-api --config RelWithDebInfo --parallel
           cmake --install obs-build --component Development --config RelWithDebInfo --prefix "$deps"
 
-          # Show where the install actually landed: the Windows job found its
-          # config packages straight away, so a difference here is worth seeing
-          # rather than guessing at.
-          find "$deps" -name "libobsConfig.cmake" -o -name "obs-frontend-apiConfig.cmake" | head
+          echo "--- what the Development component installed ---"
+          find "$deps" -newer obs.tar.gz -maxdepth 3 | head -40
+          echo "--- CMake package configs anywhere under deps ---"
+          find "$deps" -name "*Config.cmake" | head -20
 
       - name: Build the plugin
         run: |
