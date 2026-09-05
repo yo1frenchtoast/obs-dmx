@@ -61,12 +61,11 @@ jobs:
             -DOBS_VERSION_OVERRIDE=${{ matrix.obs }} \
             -DENABLE_PLUGINS=OFF -DENABLE_FRONTEND=OFF -DENABLE_SCRIPTING=OFF
           cmake --build obs-build --target obs-frontend-api --config RelWithDebInfo --parallel
-          cmake --install obs-build --component Development --config RelWithDebInfo --prefix "$deps"
-
-          echo "--- what the Development component installed ---"
-          find "$deps" -newer obs.tar.gz -maxdepth 3 | head -40
-          echo "--- CMake package configs anywhere under deps ---"
-          find "$deps" -name "*Config.cmake" | head -20
+          echo "--- installing the Development component ---"
+          cmake --install obs-build --component Development --config RelWithDebInfo \
+            --prefix "$deps" -v 2>&1 | tail -30
+          echo "--- CMake package configs anywhere in the workspace ---"
+          find "$PWD" -name "libobsConfig.cmake" -o -name "obs-frontend-apiConfig.cmake" | head
 
       - name: Build the plugin
         run: |
