@@ -8,12 +8,12 @@ permissions:
   contents: write
 
 jobs:
-  flatpak:
+  bundle:
     # The Flatpak extension is the one binary worth shipping: it is
-    # self-contained, it targets the OBS everyone gets from Flathub, and it is
-    # the route this project actually tests end to end. A bare .so would be tied
-    # to one distribution's OBS build and would help almost nobody.
-    name: Flatpak bundle
+    # self-contained, it targets the OBS most people install, and it is the route
+    # this project actually tests end to end. A bare .so would be tied to one
+    # distribution's OBS build and would help almost nobody.
+    name: Build the Flatpak bundle
     runs-on: ubuntu-latest
     container:
       image: bilelmoussaoui/flatpak-github-actions:gnome-47
@@ -27,7 +27,23 @@ jobs:
           manifest-path: flatpak/com.obsproject.Studio.Plugin.ObsDmx.yaml
           cache-key: flatpak-builder-${{ github.sha }}
 
-      - name: Attach the bundle to the release
-        env:
+      - uses: actions/upload-artifact@v4
+        with:
+          name: obs-dmx-flatpak
+          path: obs-dmx.flatpak
+
+  publish:
+    # The build image carries no GitHub CLI, so the upload happens from an
+    # ordinary runner rather than by installing tools into that container.
+    name: Attach the bundle to the release
+    needs: bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: obs-dmx-flatpak
+
+      - env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: gh release upload "${GITHUB_REF_NAME}" obs-dmx.flatpak --clobber
