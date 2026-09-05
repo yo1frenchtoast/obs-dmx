@@ -47,7 +47,13 @@ jobs:
         with:
           name: obs-dmx-flatpak
 
+      # Either this job or the Windows one may get here first, so creating the
+      # release is allowed to fail harmlessly.
       - env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-        run: gh release upload "${GITHUB_REF_NAME}" obs-dmx.flatpak --clobber
+        run: |
+          gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1 \
+            || gh release create "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" --generate-notes \
+            || true
+          gh release upload "${GITHUB_REF_NAME}" obs-dmx.flatpak --clobber

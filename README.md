@@ -60,14 +60,11 @@ the result as an OBS plugin extension:
 ### Windows
 
 A build is published on the
-[releases page](https://github.com/yo1frenchtoast/obs-dmx/releases), as a
-pre-release, with one archive per OBS major version. Extract it over your OBS
-installation directory — usually `C:\Program Files\obs-studio` — or into
-`%APPDATA%\obs-studio\plugins\obs-dmx` to install it for yourself alone.
-
-It is a pre-release because **nobody has run this plugin on Windows yet**. It is
-compiled on every push, but its behaviour there is unknown. Reports welcome,
-working or not.
+[releases page](https://github.com/yo1frenchtoast/obs-dmx/releases), one archive
+per OBS major version. Extract it over your OBS installation directory — usually
+`C:\Program Files\obs-studio` — or into `%APPDATA%\obs-studio\plugins\obs-dmx`
+to install it for yourself alone. Restart OBS and look under
+**Docks → DMX Lighting**.
 
 To build it yourself, the CI workflow in `.github/workflows/windows.yml` is the
 worked example: OBS publishes no Windows SDK, so libobs is built from its sources
@@ -90,17 +87,16 @@ The plugin is built as an `obs-dmx.plugin` bundle.
 A native plugin is bound to the OBS release it was compiled against, and must be
 rebuilt when OBS makes a major version jump.
 
-**What has actually been tested:** the Flatpak route against OBS 32, and the
-Linux native route against libobs 31 on Fedora, both to real DMX frames on the
-wire.
+**What has actually been run:** Windows with OBS 32, and Linux both through the
+Flatpak against OBS 32 and natively against libobs 31 on Fedora — the Linux
+routes verified down to real DMX frames on the wire.
 
-The Windows plugin is built by CI against both OBS 31 and 32, and its DLL is a
-valid 64-bit module linking against `obs.dll`, `obs-frontend-api.dll`, Qt 6 and
-Winsock — but nobody has loaded it into a running OBS on Windows. macOS is
-compiled but not packaged. Reports welcome, working or not.
+Not yet exercised by anyone: the Windows build for OBS 31, and macOS, which CI
+compiles but does not package. Reports welcome, working or not.
 
 The Enttec serial protocol is written from its documentation and has never met a
-real interface, on any platform.
+real interface, on any platform. Art-Net and sACN were verified frame by frame
+against a software receiver.
 
 ## Getting started
 
