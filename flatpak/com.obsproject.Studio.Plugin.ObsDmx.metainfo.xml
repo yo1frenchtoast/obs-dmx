@@ -14,4 +14,20 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-2.0-or-later</project_license>
   <url type="homepage">https://github.com/yo1frenchtoast/obs-dmx</url>
+  <releases>
+    <release version="0.1.1" date="2026-09-05">
+      <description>
+        <p>
+          Beats are now found in dense, loud and fast music, a chase set to run on
+          the beat actually does, and the sensitivity of the detection can be set
+          from the interface while watching the level meter.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.0" date="2026-09-04">
+      <description>
+        <p>First release.</p>
+      </description>
+    </release>
+  </releases>
 </component>
