@@ -116,7 +116,9 @@ if(BUILD_PLUGIN)
     install(TARGETS obs-dmx BUNDLE DESTINATION ".")
     install(DIRECTORY data/ DESTINATION "obs-dmx.plugin/Contents/Resources")
   elseif(WIN32)
-    install(TARGETS obs-dmx RUNTIME DESTINATION "obs-plugins/64bit")
+    # A MODULE library installs through LIBRARY on every platform, Windows
+    # included; RUNTIME covers executables and the DLLs of SHARED libraries.
+    install(TARGETS obs-dmx LIBRARY DESTINATION "obs-plugins/64bit")
     install(DIRECTORY data/ DESTINATION "data/obs-plugins/obs-dmx")
   else()
     install(TARGETS obs-dmx LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/obs-plugins")
