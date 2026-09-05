@@ -90,7 +90,9 @@ jobs:
       # pre-release of its own rather than alongside the tested Flatpak bundle.
       # GitHub marks it as such and does not offer it as the default download.
       - name: Attach to the Windows pre-release
-        if: startsWith(github.ref, 'refs/tags/v')
+        # Only from a plain release tag: the derived -windows tag is the one
+        # this step creates, and must not trigger a second round.
+        if: ${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

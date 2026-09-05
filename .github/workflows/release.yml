@@ -14,6 +14,9 @@ jobs:
     # this project actually tests end to end. A bare .so would be tied to one
     # distribution's OBS build and would help almost nobody.
     name: Build the Flatpak bundle
+    # The v* filter also catches derived tags such as v0.1.0-windows, which
+    # carry their own artefacts and must not receive this one.
+    if: ${{ !contains(github.ref_name, '-') }}
     runs-on: ubuntu-latest
     container:
       image: bilelmoussaoui/flatpak-github-actions:gnome-47
@@ -37,6 +40,7 @@ jobs:
     # ordinary runner rather than by installing tools into that container.
     name: Attach the bundle to the release
     needs: bundle
+    if: ${{ !contains(github.ref_name, '-') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v8
