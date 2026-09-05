@@ -7,6 +7,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Attaching an archive to a release is a write, and a workflow gets read-only
+# access unless it says otherwise. Without this the upload step fails with a 403
+# the moment it is the first job to reach the release.
+permissions:
+  contents: write
+
 jobs:
   plugin:
     # Same shape as the Windows build: OBS ships no macOS SDK either, so libobs
