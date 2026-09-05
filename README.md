@@ -59,15 +59,23 @@ the result as an OBS plugin extension:
 
 ### Windows
 
-With OBS's development files available, configure as usual and point
-`CMAKE_PREFIX_PATH` at them:
+A build is published on the
+[releases page](https://github.com/yo1frenchtoast/obs-dmx/releases), as a
+pre-release, with one archive per OBS major version. Extract it over your OBS
+installation directory — usually `C:\Program Files\obs-studio` — or into
+`%APPDATA%\obs-studio\plugins\obs-dmx` to install it for yourself alone.
 
-    cmake -B build -DCMAKE_PREFIX_PATH=<path to libobs and Qt6>
+It is a pre-release because **nobody has run this plugin on Windows yet**. It is
+compiled on every push, but its behaviour there is unknown. Reports welcome,
+working or not.
+
+To build it yourself, the CI workflow in `.github/workflows/windows.yml` is the
+worked example: OBS publishes no Windows SDK, so libobs is built from its sources
+against the prebuilt dependencies the project ships. With those in place:
+
+    cmake -B build -A x64 "-DCMAKE_PREFIX_PATH=<deps>"
     cmake --build build --config RelWithDebInfo
     cmake --install build --prefix "<OBS install>"
-
-The install step places `obs-dmx.dll` in `obs-plugins/64bit` and its data in
-`data/obs-plugins/obs-dmx`, which is where OBS looks.
 
 ### macOS
 
@@ -82,10 +90,17 @@ The plugin is built as an `obs-dmx.plugin` bundle.
 A native plugin is bound to the OBS release it was compiled against, and must be
 rebuilt when OBS makes a major version jump.
 
-**What has actually been tested:** the Flatpak route and the Linux native route,
-the latter against libobs 31 on Fedora. The Windows and macOS code paths are
-compiled on every push by CI, but their runtime behaviour has not been exercised
-on real hardware. Reports welcome.
+**What has actually been tested:** the Flatpak route against OBS 32, and the
+Linux native route against libobs 31 on Fedora, both to real DMX frames on the
+wire.
+
+The Windows plugin is built by CI against both OBS 31 and 32, and its DLL is a
+valid 64-bit module linking against `obs.dll`, `obs-frontend-api.dll`, Qt 6 and
+Winsock — but nobody has loaded it into a running OBS on Windows. macOS is
+compiled but not packaged. Reports welcome, working or not.
+
+The Enttec serial protocol is written from its documentation and has never met a
+real interface, on any platform.
 
 ## Getting started
 
